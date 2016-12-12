@@ -1,0 +1,4 @@
+Django==1.10.4
+optional-django==0.3.0
+react==3.0.1
+requests==2.12.3
