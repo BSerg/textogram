@@ -2,7 +2,7 @@ var argv = require('yargs')
 	.option('p', {
 		alias: 'port',
 		description: 'Specify the server\'s port',
-		default: 9009
+		default: 9000
     })
     .option('a', {
 		alias: 'address',

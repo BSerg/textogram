@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'polymorphic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +39,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'react',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'storages',
+]
+
+INSTALLED_APPS += [
+    'accounts',
+    'common',
+    'articles',
 ]
 
 MIDDLEWARE = [
@@ -129,6 +140,39 @@ REACT = {
     'RENDER': not DEBUG,
     'RENDER_URL': 'http://127.0.0.1:9000/render',
 }
+
+AUTH_USER_MODEL = 'accounts.User'
+
+# REST
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    )
+}
+
+# SOCIALS
+
+VK_APP_ID = ''
+VK_APP_SECRET = ''
+VK_ACCESS_TOKEN = ''
+VK_REDIRECT_URI = ''
+
+TWITTER_CONSUMER_KEY = ''
+TWITTER_CONSUMER_KEY_SECRET = ''
+TWITTER_ACCESS_TOKEN = ''
+TWITTER_ACCESS_TOKEN_SECRET = ''
+
+FACEBOOK_APP_ID = ''
+FACEBOOK_APP_SECRET = ''
+FACEBOOK_ACCESS_TOKEN = ''
+FACEBOOK_LOGIN = ''
+FACEBOOK_PASSWORD = ''
+FACEBOOK_REDIRECT_URI = ''
+
+GOOGLE_API_KEY = ''
 
 try:
     from local_settings import *
