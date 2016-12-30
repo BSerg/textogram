@@ -2,6 +2,9 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.db.models import F
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 
 from common import upload_to
@@ -45,6 +48,34 @@ class Article(models.Model):
 
 
 class ArticleContent(PolymorphicModel):
+    TEXT = 1
+    HEADER = 2
+    LEAD = 3
+    VIDEO = 4
+    PHOTO = 5
+    AUDIO = 6
+    QUOTE = 7
+    COLUMNS = 8
+    PHRASE = 9
+    LIST = 10
+    DIALOG = 11
+    POST = 12
+
+    TYPES = (
+        TEXT,
+        HEADER,
+        LEAD,
+        VIDEO,
+        PHOTO,
+        AUDIO,
+        QUOTE,
+        COLUMNS,
+        PHRASE,
+        LIST,
+        DIALOG,
+        POST,
+    )
+
     article = models.ForeignKey(Article, related_name='content')
     position = models.PositiveSmallIntegerField('Позиция', default=0)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -54,6 +85,7 @@ class ArticleContent(PolymorphicModel):
         raise NotImplementedError
 
     class Meta:
+        ordering = ['article', 'position']
         verbose_name = 'Контент'
         verbose_name_plural = 'Контент'
 
@@ -66,7 +98,7 @@ class ArticleContentHeader(ArticleContent):
     text = models.CharField('Заголовок', max_length=255)
 
 
-class ArticleContenLead(ArticleContent):
+class ArticleContentLead(ArticleContent):
     text = models.TextField('Заголовок', max_length=400)
 
 
@@ -146,4 +178,11 @@ class ArticleList(ArticleContent):
         verbose_name_plural = 'Списки'
 
 
-
+@receiver(post_save, sender=ArticleContent)
+@receiver(post_save, sender=ArticleContentText)
+@receiver(post_save, sender=ArticleContentHeader)
+@receiver(post_save, sender=ArticleContentLead)
+def update_content_positions(sender, instance, created, **kwargs):
+    if created:
+        ArticleContent.objects.exclude(pk=instance.pk)\
+            .filter(article=instance.article, position__gte=instance.position).update(position=F('position') + 1)

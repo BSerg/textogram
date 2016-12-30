@@ -42,14 +42,14 @@ class AccountSerializerTestCase(TestCase):
             'id': self.account.id,
             'first_name': 'Иван',
             'last_name': 'Петров',
-            'avatar': 'tmp/avatar.jpg',
+            'avatar': '/data/tmp/avatar.jpg',
             'social': 'vk',
             'uid': '12345',
             'email': '',
             'multi_accounts': [
                 OrderedDict([
                     ('name', 'MULTI_ACCOUNT1'),
-                    ('avatar', 'tmp/avatar.jpg'),
+                    ('avatar', '/data/tmp/avatar.jpg'),
                     ('is_owner', True)
                 ]),
             ]
@@ -61,7 +61,7 @@ class AccountSerializerTestCase(TestCase):
             'id': self.account.id,
             'first_name': 'Иван',
             'last_name': 'Петров',
-            'avatar': 'tmp/avatar.jpg',
+            'avatar': '/data/tmp/avatar.jpg',
         })
 
 
