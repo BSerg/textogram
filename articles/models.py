@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 
@@ -95,11 +95,11 @@ class ArticleContentText(ArticleContent):
 
 
 class ArticleContentHeader(ArticleContent):
-    text = models.CharField('Заголовок', max_length=255)
+    text = models.CharField('Заголовок', max_length=255, blank=True)
 
 
 class ArticleContentLead(ArticleContent):
-    text = models.TextField('Заголовок', max_length=400)
+    text = models.TextField('Заголовок', max_length=400, blank=True)
 
 
 class ArticleContentImageCollection(ArticleContent):
@@ -186,3 +186,13 @@ def update_content_positions(sender, instance, created, **kwargs):
     if created:
         ArticleContent.objects.exclude(pk=instance.pk)\
             .filter(article=instance.article, position__gte=instance.position).update(position=F('position') + 1)
+
+
+@receiver(post_delete, sender=ArticleContent)
+@receiver(post_delete, sender=ArticleContentText)
+@receiver(post_delete, sender=ArticleContentHeader)
+@receiver(post_delete, sender=ArticleContentLead)
+def update_content_positions(sender, instance, **kwargs):
+    for index, c in enumerate(instance.article.content.all()):
+        c.position = index
+        c.save()

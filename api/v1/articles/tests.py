@@ -83,21 +83,21 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_another_user_retrieve_update_delete(self):
         self.client.force_authenticate(user=self.another_account)
-        response = self.client.get('/api/v1/articles/editor/hello-article/')
+        response = self.client.get('/api/v1/articles/editor/1/')
         response.render()
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.patch('/api/v1/articles/editor/hello-article/', {'title': 'New'})
+        response = self.client.patch('/api/v1/articles/editor/1/', {'title': 'New'})
         response.render()
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.delete('/api/v1/articles/editor/hello-article/')
+        response = self.client.delete('/api/v1/articles/editor/1/')
         response.render()
         self.assertEqual(response.status_code, 403)
 
     def test_retrieve(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.get('/api/v1/articles/editor/hello-article/')
+        response = self.client.get('/api/v1/articles/editor/1/')
         response.render()
         self.assertEqual(response.status_code, 200)
 
@@ -112,7 +112,7 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_update(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.patch('/api/v1/articles/editor/hello-article/', {
+        response = self.client.patch('/api/v1/articles/editor/1/', {
             'title': 'NewNew',
         })
         response.render()
@@ -120,7 +120,7 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_delete(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.delete('/api/v1/articles/editor/hello-article/')
+        response = self.client.delete('/api/v1/articles/editor/1/')
         response.render()
         self.article.refresh_from_db()
         self.assertEqual(response.status_code, 204)
@@ -169,6 +169,7 @@ class ArticleContentTestCase(TestCase):
         self.assertEqual(response.data, {
             'id': 1,
             'article': 1,
+            'type': ArticleContent.TEXT,
             'position': 0,
             'text': 'Hello **WORLD**!',
         })
@@ -233,3 +234,21 @@ class ArticleContentTestCase(TestCase):
         response.render()
         self.assertEqual(response.status_code, 401)
 
+        text1 = ArticleContentText.objects.create(
+            article=self.article,
+            position=0,
+            text='The first text'
+        )
+
+        text2 = ArticleContentText.objects.create(
+            article=self.article,
+            position=1,
+            text='The second text'
+        )
+
+        self.client.force_authenticate(user=self.account)
+        response = self.client.delete('/api/v1/articles/content/%d/' % text1.id)
+        response.render()
+        self.assertEqual(response.status_code, 204)
+        text2.refresh_from_db()
+        self.assertEqual(text2.position, 0)

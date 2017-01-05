@@ -39,16 +39,18 @@ class ArticleViewSet(mixins.RetrieveModelMixin,
         position = request.data.get('position')
         article = self.get_object()
         content = article.content.filter(position=position).first()
+        print content
         if not content:
             raise ValidationError('CONTENT ISN\'T SWAPPABLE')
-        next_content = ArticleContent.objects.exclude(pk=content.pk). \
-            filter(article=content.article, position__gte=content.position).first()
-        if not next_content:
+        prev_content = ArticleContent.objects.exclude(pk=content.pk). \
+            filter(article=content.article, position__lte=content.position - 1).last()
+        print prev_content
+        if not prev_content:
             raise ValidationError('CONTENT ISN\'T SWAPPABLE')
-        content.position += 1
+        content.position -= 1
         content.save()
-        next_content.position -= 1
-        next_content.save()
+        prev_content.position += 1
+        prev_content.save()
         return Response('SWAPPED')
 
 
