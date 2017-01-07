@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from api.v1.accounts.serializers import PublicUserSerializer, PublicMultiAccountSerializer
 from articles.models import Article, ArticleContent, ArticleContentText, ArticleContentHeader, ArticleContentLead, \
-    ArticleContentImageCollection, ArticleContentImageCollectionItem
+    ArticleContentImageCollection, ArticleContentImageCollectionItem, ArticleContentPhrase
 
 
 class ArticleContentSerializer(serializers.ModelSerializer):
@@ -44,6 +44,14 @@ class ArticleContentLeadSerializer(ArticleContentSerializer):
         exclude = ['created_at', 'last_modified', 'polymorphic_ctype']
 
 
+class ArticleContentPhraseSerializer(ArticleContentSerializer):
+    TYPE = ArticleContent.PHRASE
+
+    class Meta:
+        model = ArticleContentPhrase
+        exclude = ['created_at', 'last_modified', 'polymorphic_ctype']
+
+
 # TODO other content serializers
 
 
@@ -57,6 +65,8 @@ class ArticleSerializer(serializers.ModelSerializer):
             return ArticleContentHeaderSerializer(content)
         if isinstance(content, ArticleContentLead):
             return ArticleContentLeadSerializer(content)
+        if isinstance(content, ArticleContentPhrase):
+            return ArticleContentPhraseSerializer(content)
 
     def get_content(self, obj):
         content = obj.content.all()

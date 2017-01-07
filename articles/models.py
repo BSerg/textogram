@@ -95,11 +95,15 @@ class ArticleContentText(ArticleContent):
 
 
 class ArticleContentHeader(ArticleContent):
-    text = models.CharField('Заголовок', max_length=255, blank=True)
+    text = models.CharField('Текст', max_length=255, blank=True)
 
 
 class ArticleContentLead(ArticleContent):
-    text = models.TextField('Заголовок', max_length=400, blank=True)
+    text = models.TextField('Текст', max_length=400, blank=True)
+
+
+class ArticleContentPhrase(ArticleContent):
+    text = models.TextField('Текст', max_length=500, blank=True)
 
 
 class ArticleContentImageCollection(ArticleContent):
@@ -178,21 +182,23 @@ class ArticleList(ArticleContent):
         verbose_name_plural = 'Списки'
 
 
-@receiver(post_save, sender=ArticleContent)
 @receiver(post_save, sender=ArticleContentText)
 @receiver(post_save, sender=ArticleContentHeader)
 @receiver(post_save, sender=ArticleContentLead)
-def update_content_positions(sender, instance, created, **kwargs):
+@receiver(post_save, sender=ArticleContentPhrase)
+def update_content_positions_on_save(sender, instance, created, **kwargs):
     if created:
-        ArticleContent.objects.exclude(pk=instance.pk)\
-            .filter(article=instance.article, position__gte=instance.position).update(position=F('position') + 1)
+        ArticleContent.objects\
+            .exclude(pk=instance.pk)\
+            .filter(article=instance.article, position__gte=instance.position)\
+            .update(position=F('position') + 1)
 
 
-@receiver(post_delete, sender=ArticleContent)
 @receiver(post_delete, sender=ArticleContentText)
 @receiver(post_delete, sender=ArticleContentHeader)
 @receiver(post_delete, sender=ArticleContentLead)
-def update_content_positions(sender, instance, **kwargs):
-    for index, c in enumerate(instance.article.content.all()):
-        c.position = index
-        c.save()
+@receiver(post_delete, sender=ArticleContentPhrase)
+def update_content_positions_on_delete(sender, instance, **kwargs):
+    ArticleContent.objects\
+        .filter(article=instance.article, position__gt=instance.position)\
+        .update(position=F('position') - 1)

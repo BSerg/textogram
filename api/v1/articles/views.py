@@ -8,8 +8,10 @@ from rest_framework.response import Response
 
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleContentSerializer, \
-    ArticleContentTextSerializer, ArticleContentHeaderSerializer, ArticleContentLeadSerializer
-from articles.models import Article, ArticleContent, ArticleContentText, ArticleContentHeader, ArticleContentLead
+    ArticleContentTextSerializer, ArticleContentHeaderSerializer, ArticleContentLeadSerializer, \
+    ArticleContentPhraseSerializer
+from articles.models import Article, ArticleContent, ArticleContentText, ArticleContentHeader, ArticleContentLead, \
+    ArticleContentPhrase
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -82,6 +84,9 @@ class ArticleContentViewSet(mixins.CreateModelMixin,
                 return ArticleContentHeaderSerializer
             if type_param == ArticleContent.LEAD:
                 return ArticleContentLeadSerializer
+            if type_param == ArticleContent.PHRASE:
+                return ArticleContentPhraseSerializer
+
         else:
             content = self.get_object()
             if isinstance(content, ArticleContentText):
@@ -90,4 +95,6 @@ class ArticleContentViewSet(mixins.CreateModelMixin,
                 return ArticleContentHeaderSerializer
             if isinstance(content, ArticleContentLead):
                 return ArticleContentLeadSerializer
+            if isinstance(content, ArticleContentPhrase):
+                return ArticleContentPhraseSerializer
             return super(ArticleContentViewSet, self).get_serializer_class()

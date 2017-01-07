@@ -187,6 +187,9 @@ class ArticleContentTestCase(TestCase):
         self.assertEqual(response.status_code, 201)
         c = ArticleContentText.objects.get(pk=response.data['id'])
         self.assertIsInstance(c, ArticleContentText)
+        self.content_text.refresh_from_db()
+
+        self.assertEqual(self.content_text.position, 1)
 
         self.client.force_authenticate(user=self.another_account)
         response = self.client.post('/api/v1/articles/content/', data, format='json')
