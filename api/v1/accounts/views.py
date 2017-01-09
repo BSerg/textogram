@@ -3,10 +3,11 @@ from __future__ import unicode_literals
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
+from rest_framework.status import HTTP_404_NOT_FOUND
 
 from accounts.models import User
 from api.v1.accounts.permissions import IsAdminOrOwner
-from api.v1.accounts.serializers import UserSerializer, PublicUserSerializer
+from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -16,7 +17,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET'])
     def me(self, request):
-        return Response(UserSerializer(request.user, many=False).data)
+        try:
+            return Response(MeUserSerializer(request.user, many=False).data)
+        except AttributeError:
+            return Response(status=HTTP_404_NOT_FOUND)
 
 
 class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):

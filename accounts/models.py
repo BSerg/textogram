@@ -47,3 +47,36 @@ class MultiAccountUser(models.Model):
     is_owner = models.BooleanField('Владелец', default=False)
     is_active = models.BooleanField('Активен', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class SocialLink(models.Model):
+    VK = 'vk'
+    FB = 'fb'
+    TWITTER = 'twitter'
+    INSTAGRAM = 'instagram'
+    TELEGRAM = 'telegram'
+    GOOGLE = 'google'
+    ODNOKLASSNIKI = 'Odnoklassniki'
+    YOUTUBE = 'Youtube'
+
+    SOCIALS = (
+        (VK, 'В контакте'),
+        (FB, 'Facebook'),
+        (TWITTER, 'Twitter'),
+        (INSTAGRAM, 'Instagram'),
+        (TELEGRAM, 'Telegram'),
+        (GOOGLE, 'Google'),
+        (ODNOKLASSNIKI, 'Odnoklassniki'),
+        (YOUTUBE, 'Youtube'),
+    )
+
+    user = models.ForeignKey(User)
+    social = models.CharField('Соцсеть', max_length=20, choices=SOCIALS)
+    url = models.CharField('URL', max_length=255)
+
+    class Meta:
+        verbose_name = 'Ссылка на социальный аккаунт'
+        verbose_name_plural = 'Сыылки на социальные аккаунты'
+
+    def __unicode__(self):
+        return '%s %s' % (self.user, self.social)
