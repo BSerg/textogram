@@ -6,6 +6,9 @@ from django.db import models
 
 from common import upload_to
 
+from django.db.models.signals import post_save, post_delete, pre_delete
+from django.dispatch import receiver
+
 
 def _upload_to(instance, filename):
     return upload_to('avatars', instance, filename)
@@ -24,6 +27,7 @@ class User(AbstractUser):
     avatar = models.ImageField('Аватар', upload_to=_upload_to, blank=True, null=True)
     social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)
     uid = models.CharField('UID Соцсети', max_length=255, blank=True)
+    number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -56,7 +60,7 @@ class SocialLink(models.Model):
     INSTAGRAM = 'instagram'
     TELEGRAM = 'telegram'
     GOOGLE = 'google'
-    ODNOKLASSNIKI = 'Odnoklassniki'
+    ODNOKLASSNIKI = 'OK'
     YOUTUBE = 'Youtube'
 
     SOCIALS = (
@@ -66,7 +70,7 @@ class SocialLink(models.Model):
         (INSTAGRAM, 'Instagram'),
         (TELEGRAM, 'Telegram'),
         (GOOGLE, 'Google'),
-        (ODNOKLASSNIKI, 'Odnoklassniki'),
+        (ODNOKLASSNIKI, 'Одноклассники'),
         (YOUTUBE, 'Youtube'),
     )
 
@@ -76,7 +80,30 @@ class SocialLink(models.Model):
 
     class Meta:
         verbose_name = 'Ссылка на социальный аккаунт'
-        verbose_name_plural = 'Сыылки на социальные аккаунты'
+        verbose_name_plural = 'Ссылки на социальные аккаунты'
 
     def __unicode__(self):
         return '%s %s' % (self.user, self.social)
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, related_name='user', verbose_name='Пользователь')
+    author = models.ForeignKey(User, related_name='author', verbose_name='Автор')
+    subscribed_at = models.DateTimeField('Подписался', auto_now_add=True)
+    is_active = models.BooleanField('Активно', default=True)
+
+    class Meta:
+        unique_together = ('user', 'author')
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+
+    def __unicode__(self):
+        return '%s %s' % (self.user, self.author)
+
+
+@receiver(post_save, sender=Subscription)
+@receiver(post_delete, sender=Subscription)
+def recount_subscribers(sender, instance, **kwargs):
+    user = instance.author
+    user.number_of_subscribers_cached = sender.objects.filter(author=user).count()
+    user.save()

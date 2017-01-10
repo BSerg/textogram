@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from accounts.models import User, MultiAccountUser, MultiAccount, SocialLink
+from accounts.models import User, MultiAccountUser, MultiAccount, SocialLink, Subscription
 
 
 class SocialLinkSerializer(serializers.ModelSerializer):
@@ -24,6 +24,10 @@ class MultiAccountSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     multi_accounts = serializers.SerializerMethodField()
     social_links = SocialLinkSerializer(source='sociallink_set', many=True, read_only=True)
+    subscribers = serializers.SerializerMethodField()
+
+    def get_subscribers(self, obj):
+        return obj.number_of_subscribers_cached
 
     def get_multi_accounts(self, obj):
         multi_accounts = obj.multi_account_membership.filter(is_active=True)
@@ -31,7 +35,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts', 'social_links']
+        fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
+                  'social_links', 'subscribers']
 
 
 class MeUserSerializer(UserSerializer):
@@ -45,8 +50,15 @@ class MeUserSerializer(UserSerializer):
 
 
 class PublicUserSerializer(UserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    def get_is_subscribed(self, obj):
+        if not self.context.get('request').user.is_authenticated:
+            return False
+        return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
+
     class Meta(UserSerializer.Meta):
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links']
+        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'is_subscribed']
 
 
 class PublicMultiAccountSerializer(serializers.ModelSerializer):
