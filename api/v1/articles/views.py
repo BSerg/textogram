@@ -6,12 +6,13 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsArticleContentPhotoOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleContentSerializer, \
     ArticleContentTextSerializer, ArticleContentHeaderSerializer, ArticleContentLeadSerializer, \
-    ArticleContentPhraseSerializer
+    ArticleContentPhraseSerializer, ArticleContentListSerializer, ArticleContentPhotoGallerySerializer, \
+    ArticleContentPhotoSerializer
 from articles.models import Article, ArticleContent, ArticleContentText, ArticleContentHeader, ArticleContentLead, \
-    ArticleContentPhrase
+    ArticleContentPhrase, ArticleContentList, ArticleContentPhotoGallery, ArticleContentPhoto
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -41,12 +42,10 @@ class ArticleViewSet(mixins.RetrieveModelMixin,
         position = request.data.get('position')
         article = self.get_object()
         content = article.content.filter(position=position).first()
-        print content
         if not content:
             raise ValidationError('CONTENT ISN\'T SWAPPABLE')
         prev_content = ArticleContent.objects.exclude(pk=content.pk). \
             filter(article=content.article, position__lte=content.position - 1).last()
-        print prev_content
         if not prev_content:
             raise ValidationError('CONTENT ISN\'T SWAPPABLE')
         content.position -= 1
@@ -86,7 +85,10 @@ class ArticleContentViewSet(mixins.CreateModelMixin,
                 return ArticleContentLeadSerializer
             if type_param == ArticleContent.PHRASE:
                 return ArticleContentPhraseSerializer
-
+            if type_param == ArticleContent.LIST:
+                return ArticleContentListSerializer
+            if type_param == ArticleContent.PHOTO:
+                return ArticleContentPhotoGallerySerializer
         else:
             content = self.get_object()
             if isinstance(content, ArticleContentText):
@@ -97,4 +99,18 @@ class ArticleContentViewSet(mixins.CreateModelMixin,
                 return ArticleContentLeadSerializer
             if isinstance(content, ArticleContentPhrase):
                 return ArticleContentPhraseSerializer
-            return super(ArticleContentViewSet, self).get_serializer_class()
+            if isinstance(content, ArticleContentList):
+                return ArticleContentListSerializer
+            if isinstance(content, ArticleContentPhotoGallery):
+                return ArticleContentPhotoGallerySerializer
+
+        return super(ArticleContentViewSet, self).get_serializer_class()
+
+
+class ArticleContentPhotoViewSet(mixins.CreateModelMixin,
+                                 mixins.UpdateModelMixin,
+                                 mixins.DestroyModelMixin,
+                                 viewsets.GenericViewSet):
+    queryset = ArticleContentPhoto.objects.all()
+    serializer_class = ArticleContentPhotoSerializer
+    permission_classes = [permissions.IsAuthenticated, IsArticleContentPhotoOwner]

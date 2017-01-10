@@ -23,3 +23,8 @@ class IsArticleContentOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.article.owner == request.user
+
+
+class IsArticleContentPhotoOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.content_item.article.owner == request.user
