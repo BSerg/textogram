@@ -19,6 +19,12 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     })),
+    url(r'^article/content/photo/$', views.ArticleContentPhotoViewSet.as_view({'post': 'create'})),
+    url(r'^article/content/photo/(?P<pk>\d+)/$', views.ArticleContentPhotoViewSet.as_view({
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy'
+    })),
     url(r'', include(router.urls))
 ]
 

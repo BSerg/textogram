@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from api.v1.accounts.serializers import PublicUserSerializer, PublicMultiAccountSerializer
 from articles.models import Article, ArticleContent, ArticleContentText, ArticleContentHeader, ArticleContentLead, \
-    ArticleContentImageCollection, ArticleContentImageCollectionItem, ArticleContentPhrase
+    ArticleContentPhrase, ArticleContentList, ArticleContentPhoto, ArticleContentPhotoGallery
 
 
 class ArticleContentSerializer(serializers.ModelSerializer):
@@ -52,6 +53,45 @@ class ArticleContentPhraseSerializer(ArticleContentSerializer):
         exclude = ['created_at', 'last_modified', 'polymorphic_ctype']
 
 
+class ArticleContentListSerializer(ArticleContentSerializer):
+    TYPE = ArticleContent.LIST
+
+    class Meta:
+        model = ArticleContentList
+        exclude = ['created_at', 'last_modified', 'polymorphic_ctype']
+
+
+class ArticleContentPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleContentPhoto
+        exclude = ['created_at']
+        extra_kwargs = {
+            'content_item': {'write_only': True}
+        }
+
+
+class ArticleContentPhotoGallerySerializer(ArticleContentSerializer):
+    TYPE = ArticleContent.PHOTO
+    photos = serializers.SerializerMethodField()
+
+    def get_photos(self, obj):
+        return ArticleContentPhotoSerializer(obj.photos.all(), many=True, context=self.context).data
+
+    def create(self, validated_data):
+        instance = super(ArticleContentPhotoGallerySerializer, self).create(validated_data)
+        request = self.context['request']
+        if request and request.data.get('image'):
+            try:
+                ArticleContentPhoto.objects.create(content_item=instance, position=0, image=request.data.get('image'))
+            except:
+                raise ValidationError('Error')
+        return instance
+
+    class Meta:
+        model = ArticleContentPhotoGallery
+        exclude = ['created_at', 'last_modified', 'polymorphic_ctype']
+
+
 # TODO other content serializers
 
 
@@ -67,6 +107,10 @@ class ArticleSerializer(serializers.ModelSerializer):
             return ArticleContentLeadSerializer(content)
         if isinstance(content, ArticleContentPhrase):
             return ArticleContentPhraseSerializer(content)
+        if isinstance(content, ArticleContentList):
+            return ArticleContentListSerializer(content)
+        if isinstance(content, ArticleContentPhotoGallery):
+            return ArticleContentPhotoGallerySerializer(content)
 
     def get_content(self, obj):
         content = obj.content.all()

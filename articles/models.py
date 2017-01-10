@@ -106,13 +106,19 @@ class ArticleContentPhrase(ArticleContent):
     text = models.TextField('Текст', max_length=500, blank=True)
 
 
-class ArticleContentImageCollection(ArticleContent):
-    pass
+class ArticleContentPhotoGallery(ArticleContent):
+    TYPE1 = 1
+
+    TYPES = (
+        (TYPE1, 'Тип 1'),
+    )
+    subtype = models.PositiveSmallIntegerField('Тип', choices=TYPES, default=TYPE1)
 
 
-class ArticleContentImageCollectionItem(models.Model):
-    content_item = models.ForeignKey(ArticleContentImageCollection, related_name='photos')
+class ArticleContentPhoto(models.Model):
+    content_item = models.ForeignKey(ArticleContentPhotoGallery, related_name='photos')
     image = models.ImageField('Изображение', upload_to=_upload_to)
+    caption = models.TextField('Подпись', max_length=500, blank=True)
     position = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -131,14 +137,14 @@ class ArticleContentEmbed(ArticleContent):
         (AUDIO, 'Аудио'),
     )
 
-    type = models.PositiveSmallIntegerField('Тип', choices=TYPES, default=POST)
+    subtype = models.PositiveSmallIntegerField('Тип', choices=TYPES, default=POST)
     url = models.URLField('Ссылка', max_length=255)
 
     class Meta:
         verbose_name = 'Embed'
 
 
-class ArticleQuote(ArticleContent):
+class ArticleContentQuote(ArticleContent):
     photo = models.ImageField('Фото', upload_to=_upload_to)
     text = models.TextField('Текст')
 
@@ -147,7 +153,7 @@ class ArticleQuote(ArticleContent):
         verbose_name_plural = 'Цитаты'
 
 
-class ArticleColumn(ArticleContent):
+class ArticleContentColumn(ArticleContent):
     image = models.ImageField('Изображение', upload_to=_upload_to)
     text = models.TextField('Текст [MARKDOWN]')
 
@@ -156,26 +162,15 @@ class ArticleColumn(ArticleContent):
         verbose_name_plural = 'Колонки'
 
 
-class ArticlePhrase(ArticleContent):
-    text = models.TextField('Текст [MARKDOWN]')
-
-    def get_type(self):
-        return self.PHRASE
-
-    class Meta:
-        verbose_name = 'Фраза'
-        verbose_name_plural = 'Фразы'
-
-
-class ArticleList(ArticleContent):
+class ArticleContentList(ArticleContent):
     UNORDERED = 1
     ORDERED = 2
     TYPES = (
         (UNORDERED, 'Непронумерованный'),
         (ORDERED, 'Пронумерованный')
     )
-    type = models.PositiveSmallIntegerField('Тип', choices=TYPES, default=UNORDERED)
-    text = models.TextField('Текст [MARKDOWN]')
+    subtype = models.PositiveSmallIntegerField('Тип', choices=TYPES, default=UNORDERED)
+    text = models.TextField('Текст [MARKDOWN]', blank=True)
 
     class Meta:
         verbose_name = 'Список'
@@ -186,6 +181,8 @@ class ArticleList(ArticleContent):
 @receiver(post_save, sender=ArticleContentHeader)
 @receiver(post_save, sender=ArticleContentLead)
 @receiver(post_save, sender=ArticleContentPhrase)
+@receiver(post_save, sender=ArticleContentList)
+@receiver(post_save, sender=ArticleContentPhotoGallery)
 def update_content_positions_on_save(sender, instance, created, **kwargs):
     if created:
         ArticleContent.objects\
@@ -198,7 +195,25 @@ def update_content_positions_on_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=ArticleContentHeader)
 @receiver(post_delete, sender=ArticleContentLead)
 @receiver(post_delete, sender=ArticleContentPhrase)
+@receiver(post_delete, sender=ArticleContentList)
+@receiver(post_delete, sender=ArticleContentPhotoGallery)
 def update_content_positions_on_delete(sender, instance, **kwargs):
-    ArticleContent.objects\
-        .filter(article=instance.article, position__gt=instance.position)\
-        .update(position=F('position') - 1)
+    for index, content in enumerate(instance.article.content.all()):
+        content.position = index
+        content.save()
+
+
+@receiver(post_save, sender=ArticleContentPhoto)
+def update_photo_position_on_create(sender, instance, created, **kwargs):
+    if created:
+        ArticleContentPhoto.objects\
+            .exclude(pk=instance.pk)\
+            .filter(content_item=instance.content_item, position__gte=instance.position)\
+            .update(position=F('position') + 1)
+
+
+@receiver(post_delete, sender=ArticleContentPhoto)
+def update_photo_position_on_delete(sender, instance, **kwargs):
+    for index, photo in enumerate(instance.content_item.photos.all()):
+        photo.position = index
+        photo.save()
