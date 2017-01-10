@@ -24,6 +24,7 @@ class Article(models.Model):
         (PUBLISHED, 'Опубликовано'),
         (DELETED, 'Удалено')
     )
+    draft = models.ForeignKey('self', verbose_name='Черновик', blank=True)
     slug = models.SlugField('Машинное имя', unique=True, db_index=True)
     title = models.CharField('Заголовок', max_length=255)
     cover = models.ImageField('Обложка', upload_to=_upload_to, blank=True, null=True)
@@ -45,6 +46,16 @@ class Article(models.Model):
         ordering = ['-published_at', '-created_at']
         verbose_name = 'Статья'
         verbose_name_plural = 'Статьи'
+
+
+class ArticleTitle(models.Model):
+    article = models.OneToOneField(Article, verbose_name='Статья', related_name='title')
+    text = models.CharField('Текст заголовка', max_length=255)
+
+
+class ArticleCover(models.Model):
+    article = models.OneToOneField(Article, verbose_name='Статья', related_name='cover')
+    image = models.ImageField('Обложка', upload_to=_upload_to)
 
 
 class ArticleContent(PolymorphicModel):
@@ -82,6 +93,9 @@ class ArticleContent(PolymorphicModel):
     last_modified = models.DateTimeField('Дата последнего изменения', auto_now=True)
 
     def get_html(self):
+        raise NotImplementedError
+
+    def clone(self):
         raise NotImplementedError
 
     class Meta:
