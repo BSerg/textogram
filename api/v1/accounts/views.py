@@ -1,9 +1,13 @@
 from __future__ import unicode_literals
 
+from django.contrib.auth import logout
+
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.status import HTTP_404_NOT_FOUND
+
+from rest_framework.views import APIView
 
 from accounts.models import User, Subscription
 from api.v1.accounts.permissions import IsAdminOrOwner
@@ -54,6 +58,12 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
 
-
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
+
+
+class Logout(APIView):
+
+    def post(self, request):
+        logout(request)
+        return Response({'msg': 'logged out'})

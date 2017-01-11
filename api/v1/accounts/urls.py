@@ -9,6 +9,7 @@ router.register('users', views.PublicUserViewSet)
 
 urlpatterns = [
     url(r'users/me/$', views.UserViewSet.as_view({'get': 'me'})),
+    url(r'logout/$', views.Logout.as_view()),
     url(r'', include(router.urls))
 ]
 
