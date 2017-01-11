@@ -50,3 +50,10 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'author not found'}, status=HTTP_404_NOT_FOUND)
         except Subscription.DoesNotExist:
             return Response({'msg': 'not subscribed'}, status=HTTP_404_NOT_FOUND)
+
+
+class SubscriptionViewSet(viewsets.ModelViewSet):
+
+
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)

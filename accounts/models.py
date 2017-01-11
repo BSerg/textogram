@@ -8,7 +8,8 @@ from common import upload_to
 
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
-
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 def _upload_to(instance, filename):
     return upload_to('avatars', instance, filename)

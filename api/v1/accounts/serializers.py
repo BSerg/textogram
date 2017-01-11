@@ -53,6 +53,7 @@ class PublicUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
+        # return False
         if not self.context.get('request').user.is_authenticated:
             return False
         return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
@@ -72,6 +73,10 @@ class PublicMultiAccountSerializer(serializers.ModelSerializer):
         exclude = ['users']
 
 
+class SubscriptionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscription
 
 
 

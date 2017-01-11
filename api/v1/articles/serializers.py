@@ -134,3 +134,13 @@ class PublicArticleSerializer(ArticleSerializer):
         model = Article
         fields = ['slug', 'title', 'published_at', 'cover', 'html', 'author', 'published_at']
 
+
+class PublicArticleSerializerMin(ArticleSerializer):
+    lead = serializers.SerializerMethodField()
+
+    def get_lead(self, obj):
+        return ArticleContentLead.objects.filter(article=obj).first()
+
+    class Meta:
+        model = Article
+        fields = ['slug', 'title', 'published_at', 'cover', 'author', 'lead']
