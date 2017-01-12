@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from rest_framework.views import APIView
+from rest_framework import mixins
 
 from accounts.models import User, Subscription
 from api.v1.accounts.permissions import IsAdminOrOwner
@@ -19,12 +20,21 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdminOrOwner]
 
-    @list_route(methods=['GET'])
-    def me(self, request):
-        try:
-            return Response(MeUserSerializer(request.user, many=False).data)
-        except AttributeError:
-            return Response(status=HTTP_404_NOT_FOUND)
+    # @list_route(methods=['GET'])
+    # def me(self, request):
+    #     try:
+    #         return Response(MeUserSerializer(request.user, many=False).data)
+    #     except AttributeError:
+    #         return Response(status=HTTP_404_NOT_FOUND)
+
+
+class MeUserViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = MeUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 
 class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
