@@ -12,6 +12,11 @@ class SocialLinkSerializer(serializers.ModelSerializer):
         fields = ['social', 'url']
 
 
+class MeSocialLinkSerializer(SocialLinkSerializer):
+    class Meta(SocialLinkSerializer.Meta):
+        fields = ['id', 'social', 'url', 'is_auth', 'is_hidden']
+
+
 class MultiAccountSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='multi_account.name')
     avatar = serializers.ImageField(source='multi_account.avatar')
@@ -23,8 +28,11 @@ class MultiAccountSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     multi_accounts = serializers.SerializerMethodField()
-    social_links = SocialLinkSerializer(source='sociallink_set', many=True, read_only=True)
+    social_links = serializers.SerializerMethodField()
     subscribers = serializers.SerializerMethodField()
+
+    def get_social_links(self, obj):
+        return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False), many=True).data
 
     def get_subscribers(self, obj):
         return obj.number_of_subscribers_cached
@@ -41,6 +49,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
+
+    def get_social_links(self, obj):
+        return MeSocialLinkSerializer(SocialLink.objects.filter(user=obj), many=True).data
 
     def get_token(self, obj):
         return Token.objects.get_or_create(user=obj)[0].key

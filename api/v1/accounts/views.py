@@ -10,22 +10,15 @@ from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.views import APIView
 from rest_framework import mixins
 
-from accounts.models import User, Subscription
+from accounts.models import User, Subscription, SocialLink
 from api.v1.accounts.permissions import IsAdminOrOwner
-from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer
+from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, MeSocialLinkSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminOrOwner]
-
-    # @list_route(methods=['GET'])
-    # def me(self, request):
-    #     try:
-    #         return Response(MeUserSerializer(request.user, many=False).data)
-    #     except AttributeError:
-    #         return Response(status=HTTP_404_NOT_FOUND)
 
 
 class MeUserViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
@@ -72,8 +65,17 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         return Subscription.objects.filter(user=self.request.user)
 
 
-class Logout(APIView):
+class SocialLinksViewSet(viewsets.ModelViewSet):
 
+    serializer_class = MeSocialLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = SocialLink.objects.all()
+
+    def get_queryset(self):
+        return SocialLink.objects.filter(user=self.request.user)
+
+
+class Logout(APIView):
     def post(self, request):
         logout(request)
         return Response({'msg': 'logged out'})

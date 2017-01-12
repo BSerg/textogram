@@ -78,10 +78,13 @@ class SocialLink(models.Model):
     user = models.ForeignKey(User)
     social = models.CharField('Соцсеть', max_length=20, choices=SOCIALS)
     url = models.CharField('URL', max_length=255)
+    is_auth = models.BooleanField('Аккаунт авторизации', default=False)
+    is_hidden = models.BooleanField('Скрыта', default=False)
 
     class Meta:
         verbose_name = 'Ссылка на социальный аккаунт'
         verbose_name_plural = 'Ссылки на социальные аккаунты'
+        ordering = ('id',)
 
     def __unicode__(self):
         return '%s %s' % (self.user, self.social)
