@@ -43,13 +43,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'storages',
-    'notifications',
 ]
 
 INSTALLED_APPS += [
     'accounts',
     'common',
     'articles',
+    'notifications',
 ]
 
 MIDDLEWARE = [
