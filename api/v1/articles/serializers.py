@@ -43,7 +43,7 @@ class PublicArticleSerializerMin(ArticleSerializer):
     lead = serializers.SerializerMethodField()
 
     def get_lead(self, obj):
-        return ArticleContentLead.objects.filter(article=obj).first()
+        return 'lead'
 
     class Meta:
         model = Article

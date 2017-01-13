@@ -61,6 +61,8 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
 
+
+
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
 
