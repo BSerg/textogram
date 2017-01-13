@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from accounts.models import User, MultiAccount, MultiAccountUser
-from articles.models import Article, ArticleContentText, ArticleContent
+from articles.models import Article, ArticleImage
 
 
 class ArticleViewSetTestCase(TestCase):
@@ -29,26 +29,20 @@ class ArticleViewSetTestCase(TestCase):
             social='vk',
             uid='54321'
         )
-        self.multi_account = MultiAccount.objects.create(name='MULTI_ACCOUNT1', avatar='/tmp/avatar.jpg')
-        self.multi_account_user = MultiAccountUser.objects.create(
-            user=self.account,
-            multi_account=self.multi_account,
-            is_owner=True
-        )
         self.article = Article.objects.create(
             owner=self.account,
-            multi_account=self.multi_account,
-            title='Hello, Article!',
             slug='hello-article',
-            cover='/tmp/cover.png',
+            content={'title': 'Hello, Article', 'cover': None, 'blocks': []},
             html='<html/>',
             status=Article.PUBLISHED
         )
+        self.cover = ArticleImage.objects.create(article=self.article, image='/tmp/cover.png')
+        self.article.content['cover'] = self.cover.id
+        self.article.save()
         self.another_article = Article.objects.create(
             owner=self.another_account,
-            title='Hello, another Article!',
             slug='hello-another-article',
-            cover='/tmp/cover.png',
+            content={'title': 'Hello, another Article', 'cover': None, 'blocks': []},
             html='<html/>'
         )
 
@@ -69,35 +63,35 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_anon_retrieve_update_delete(self):
         self.client.force_authenticate(user=None)
-        response = self.client.get('/api/v1/articles/editor/hello-article/')
+        response = self.client.get('/api/v1/articles/editor/1/')
         response.render()
         self.assertEqual(response.status_code, 401)
 
-        response = self.client.patch('/api/v1/articles/editor/hello-article/', {'title': 'New'})
+        response = self.client.patch('/api/v1/articles/editor/1/', {'title': 'New'})
         response.render()
         self.assertEqual(response.status_code, 401)
 
-        response = self.client.delete('/api/v1/articles/editor/hello-article/')
+        response = self.client.delete('/api/v1/articles/editor/1/')
         response.render()
         self.assertEqual(response.status_code, 401)
 
     def test_another_user_retrieve_update_delete(self):
         self.client.force_authenticate(user=self.another_account)
-        response = self.client.get('/api/v1/articles/editor/1/')
+        response = self.client.get('/api/v1/articles/editor/%d/' % self.article.id)
         response.render()
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.patch('/api/v1/articles/editor/1/', {'title': 'New'})
+        response = self.client.patch('/api/v1/articles/editor/%d/' % self.article.id, {'title': 'New'})
         response.render()
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.delete('/api/v1/articles/editor/1/')
+        response = self.client.delete('/api/v1/articles/editor/%d/' % self.article.id)
         response.render()
         self.assertEqual(response.status_code, 403)
 
     def test_retrieve(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.get('/api/v1/articles/editor/1/')
+        response = self.client.get('/api/v1/articles/editor/%d/' % self.article.id)
         response.render()
         self.assertEqual(response.status_code, 200)
 
@@ -112,7 +106,7 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_update(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.patch('/api/v1/articles/editor/1/', {
+        response = self.client.patch('/api/v1/articles/editor/%d/' % self.article.id, {
             'title': 'NewNew',
         })
         response.render()
@@ -120,138 +114,10 @@ class ArticleViewSetTestCase(TestCase):
 
     def test_delete(self):
         self.client.force_authenticate(user=self.account)
-        response = self.client.delete('/api/v1/articles/editor/1/')
+        response = self.client.delete('/api/v1/articles/editor/%d/' % self.article.id)
         response.render()
         self.article.refresh_from_db()
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.article.status, Article.DELETED)
 
 
-class ArticleContentTestCase(TestCase):
-    def setUp(self):
-        self.account = User.objects.create(
-            username='user',
-            first_name='Иван',
-            last_name='Петров',
-            avatar='/tmp/avatar.jpg',
-            social='vk',
-            uid='12345'
-        )
-        self.another_account = User.objects.create(
-            username='another_user',
-            first_name='Петр',
-            last_name='Иванов',
-            avatar='/tmp/avatar.jpg',
-            social='vk',
-            uid='54321'
-        )
-        self.article = Article.objects.create(
-            owner=self.account,
-            title='Hello, Article!',
-            slug='hello-article',
-            cover='/tmp/cover.png',
-            html='<html/>',
-            status=Article.PUBLISHED
-        )
-        self.content_text = ArticleContentText.objects.create(
-            article=self.article,
-            position=0,
-            text='Hello **WORLD**!'
-        )
-        self.token = Token.objects.create(user=self.account)
-        self.client = APIClient()
-
-    def test_retireve(self):
-        self.client.force_authenticate(user=self.account, token=self.token)
-        response = self.client.get('/api/v1/articles/content/1/')
-        response.render()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {
-            'id': 1,
-            'article': 1,
-            'type': ArticleContent.TEXT,
-            'position': 0,
-            'text': 'Hello **WORLD**!',
-        })
-
-    def test_create(self):
-        data = {
-            'type': 1,
-            'article': 1,
-            'position': 0,
-            'text': 'NEW TEXT'
-        }
-        self.client.force_authenticate(user=self.account, token=self.token)
-        response = self.client.post('/api/v1/articles/content/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 201)
-        c = ArticleContentText.objects.get(pk=response.data['id'])
-        self.assertIsInstance(c, ArticleContentText)
-        self.content_text.refresh_from_db()
-
-        self.assertEqual(self.content_text.position, 1)
-
-        self.client.force_authenticate(user=self.another_account)
-        response = self.client.post('/api/v1/articles/content/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 403)
-
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/api/v1/articles/content/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 401)
-
-    def test_update(self):
-        data = {
-            'text': 'UPDATE TEXT'
-        }
-        self.client.force_authenticate(user=self.account, token=self.token)
-        response = self.client.patch('/api/v1/articles/content/1/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['text'], data['text'])
-
-        self.client.force_authenticate(user=self.another_account)
-        response = self.client.post('/api/v1/articles/content/1/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 403)
-
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/api/v1/articles/content/1/', data, format='json')
-        response.render()
-        self.assertEqual(response.status_code, 401)
-
-    def test_delete(self):
-        self.client.force_authenticate(user=self.account, token=self.token)
-        response = self.client.delete('/api/v1/articles/content/1/')
-        response.render()
-        self.assertEqual(response.status_code, 204)
-
-        self.client.force_authenticate(user=self.another_account)
-        response = self.client.post('/api/v1/articles/content/1/')
-        response.render()
-        self.assertEqual(response.status_code, 403)
-
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/api/v1/articles/content/1/')
-        response.render()
-        self.assertEqual(response.status_code, 401)
-
-        text1 = ArticleContentText.objects.create(
-            article=self.article,
-            position=0,
-            text='The first text'
-        )
-
-        text2 = ArticleContentText.objects.create(
-            article=self.article,
-            position=1,
-            text='The second text'
-        )
-
-        self.client.force_authenticate(user=self.account)
-        response = self.client.delete('/api/v1/articles/content/%d/' % text1.id)
-        response.render()
-        self.assertEqual(response.status_code, 204)
-        text2.refresh_from_db()
-        self.assertEqual(text2.position, 0)
