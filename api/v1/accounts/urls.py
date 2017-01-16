@@ -5,8 +5,9 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
+router.register('social_links', views.SocialLinksViewSet)
 router.register('users', views.PublicUserViewSet)
-router.register('users/social_links/', views.SocialLinksViewSet)
+router.register('subscriptions', views.SubscriptionViewSet)
 
 urlpatterns = [
     url(r'users/me/$', views.MeUserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'})),

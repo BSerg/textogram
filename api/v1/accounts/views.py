@@ -5,14 +5,17 @@ from django.contrib.auth import logout
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
-from rest_framework.status import HTTP_404_NOT_FOUND
+from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
 
 from rest_framework.views import APIView
 from rest_framework import mixins
 
 from accounts.models import User, Subscription, SocialLink
 from api.v1.accounts.permissions import IsAdminOrOwner
-from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, MeSocialLinkSerializer
+from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, MeSocialLinkSerializer, SubscriptionSerializer
+
+from django.core.validators import URLValidator
+from django.forms import ValidationError
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -59,9 +62,11 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'not subscribed'}, status=HTTP_404_NOT_FOUND)
 
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
+class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
 
-
+    queryset = Subscription.objects.all()
+    serializer_class = SubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
@@ -75,6 +80,27 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return SocialLink.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        url = request.data.get('url')
+        validate = URLValidator()
+        try:
+            validate(url)
+            link, created = SocialLink.objects.get_or_create(user=user, url=request.data.get('url'))
+            return Response(MeSocialLinkSerializer(link).data)
+        except ValidationError:
+            return Response({'msg': 'url incorrect'}, status=HTTP_400_BAD_REQUEST)
+
+    @detail_route(methods=['POST'])
+    def toggle_hidden(self, request, pk=None):
+        obj = self.get_object()
+        if obj and obj.is_auth:
+            obj.is_hidden = not obj.is_hidden
+            obj.save()
+            return Response(MeSocialLinkSerializer(obj).data)
+        return Response({'msg': 'social link incorrect'}, status=HTTP_400_BAD_REQUEST)
+
 
 
 class Logout(APIView):

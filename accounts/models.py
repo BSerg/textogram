@@ -3,10 +3,11 @@ from __future__ import unicode_literals
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+import re
 
 from common import upload_to
 
-from django.db.models.signals import post_save, post_delete, pre_delete
+from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -63,6 +64,7 @@ class SocialLink(models.Model):
     GOOGLE = 'google'
     ODNOKLASSNIKI = 'OK'
     YOUTUBE = 'Youtube'
+    WEB = 'Web'
 
     SOCIALS = (
         (VK, 'В контакте'),
@@ -73,11 +75,12 @@ class SocialLink(models.Model):
         (GOOGLE, 'Google'),
         (ODNOKLASSNIKI, 'Одноклассники'),
         (YOUTUBE, 'Youtube'),
+        (WEB, 'Web'),
     )
 
     user = models.ForeignKey(User)
-    social = models.CharField('Соцсеть', max_length=20, choices=SOCIALS)
-    url = models.CharField('URL', max_length=255)
+    social = models.CharField('Соцсеть', max_length=20, choices=SOCIALS, default=WEB)
+    url = models.URLField('URL', max_length=255)
     is_auth = models.BooleanField('Аккаунт авторизации', default=False)
     is_hidden = models.BooleanField('Скрыта', default=False)
 
@@ -111,3 +114,31 @@ def recount_subscribers(sender, instance, **kwargs):
     user = instance.author
     user.number_of_subscribers_cached = sender.objects.filter(author=user).count()
     user.save()
+
+
+SOCIAL_PATTERNS = [
+    (SocialLink.VK, '^(http:\/\/|https:\/\/)?(www\.)?vk\.com\/(\w|\d)+?\/?$'),
+    (SocialLink.FB, '(?:(?:http|https):\/\/)?(?:www.)?facebook.com\/(?:(?:\w)*#!\/)?(?:pages\/)?(?:[?\w\-]*\/)?(?:profile.php\?id=(?=\d.*))?([\w\-]*)?'),
+    (SocialLink.TWITTER, 'http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/?'),
+    (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)')
+]
+
+
+def get_social_type(url):
+
+    for p in SOCIAL_PATTERNS:
+        pattern = re.compile(p[1])
+        if pattern.match(url):
+            return p[0]
+
+    return None
+
+
+@receiver(pre_save, sender=SocialLink)
+def set_social(sender, instance, **kwargs):
+    url = instance.url
+
+    for p in SOCIAL_PATTERNS:
+        pattern = re.compile(p[1])
+        if pattern.match(url):
+            instance.social = p[0]
