@@ -53,3 +53,5 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = ArticleSetPagination
     lookup_field = 'slug'
+
+
