@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from accounts.models import User, MultiAccount, MultiAccountUser
 from api.v1.accounts.serializers import UserSerializer, PublicUserSerializer
-from api.v1.accounts.views import PublicUserViewSet, UserViewSet
+from api.v1.accounts.views import PublicUserViewSet, UserViewSet, RegistrationView
 
 
 class AccountSerializerTestCase(TestCase):
@@ -97,3 +97,15 @@ class UserViewSetTestCase(TestCase):
         self.assertEqual(response.data['id'], self.account.id)
 
 
+class RegistrationViewCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def test_registration_flow(self):
+        print 'registration'
+        request = self.factory.post('/registration/')
+
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        print response

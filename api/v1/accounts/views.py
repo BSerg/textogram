@@ -106,7 +106,7 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         return Response({'msg': 'social link incorrect'}, status=HTTP_400_BAD_REQUEST)
 
 
-class Registration(APIView):
+class RegistrationView(APIView):
 
     PHONE_PATTERN = '^\d{10}$'
 
