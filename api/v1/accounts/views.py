@@ -102,6 +102,10 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         return Response({'msg': 'social link incorrect'}, status=HTTP_400_BAD_REQUEST)
 
 
+class Registration(APIView):
+    def post(self, request):
+        return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
+
 
 class Logout(APIView):
     def post(self, request):

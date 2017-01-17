@@ -12,6 +12,12 @@ from django.dispatch import receiver
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
+from django.utils import timezone
+from datetime import timedelta
+import random
+from uuid import uuid4
+
+
 def _upload_to(instance, filename):
     return upload_to('avatars', instance, filename)
 
@@ -30,6 +36,8 @@ class User(AbstractUser):
     social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)
     uid = models.CharField('UID Соцсети', max_length=255, blank=True)
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
+    phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
+    phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -108,6 +116,37 @@ class Subscription(models.Model):
         return '%s %s' % (self.user, self.author)
 
 
+class PhoneCode(models.Model):
+
+    EXPIRATION_TIME = 300
+
+    phone = models.CharField('Телефон', max_length=20)
+    code = models.CharField('Код', max_length=5, blank=True, default='', editable=False)
+    hash = models.CharField('Хэш', max_length=50, blank='', default='', editable=False)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+    is_confirmed = models.BooleanField('Подтвержден', default=False, editable=False)
+    disabled = models.BooleanField('Отключен', default=False, editable=False)
+
+    def is_active(self):
+
+        if self.is_confirmed or self.disabled or self.created_at < (timezone.now() - timedelta.min(self.EXPIRATION_TIME)):
+            return False
+        return True
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        n = random.randint(10000, 99999)
+        self.code = str(n)
+        self.hash = str(uuid4())
+        super(PhoneCode, self).save(force_insert, force_update, using, update_fields)
+
+    def __unicode__(self):
+        return '%s %s' % (self.code, self.disabled)
+
+    class Meta:
+        ordering = ('-created_at', )
+
+
+
 @receiver(post_save, sender=Subscription)
 @receiver(post_delete, sender=Subscription)
 def recount_subscribers(sender, instance, **kwargs):
@@ -142,3 +181,10 @@ def set_social(sender, instance, **kwargs):
         pattern = re.compile(p[1])
         if pattern.match(url):
             instance.social = p[0]
+
+
+@receiver(pre_save, sender=PhoneCode)
+def disable_previous_codes(sender, instance, **kwargs):
+    codes = PhoneCode.objects.filter(phone=instance.phone, disabled=False)
+    if codes:
+        codes.update(disabled=True)

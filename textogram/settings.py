@@ -146,6 +146,13 @@ REACT = {
 
 AUTH_USER_MODEL = 'accounts.User'
 
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.auth.PhoneAuthBackend',
+    'django.contrib.auth.backends.ModelBackend'
+]
+
+
 # REST
 
 REST_FRAMEWORK = {
