@@ -10,6 +10,7 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         exclude = ['owner']
+        read_only_fields = ['status']
 
 
 class ArticleImageSerializer(serializers.ModelSerializer):

@@ -1,7 +1,11 @@
 from __future__ import unicode_literals
 
+from django.utils import timezone
 from rest_framework import viewsets, mixins, permissions
+from rest_framework.decorators import detail_route
+from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer
@@ -26,6 +30,16 @@ class ArticleViewSet(viewsets.ModelViewSet):
         instance.status = Article.DELETED
         instance.save()
 
+    @detail_route(methods=['POST'])
+    def publish(self, request, **kwargs):
+        article = self.get_object()
+        if article.status != Article.DRAFT:
+            raise ValidationError('Article\'s status is not DRAFT')
+        article.status = Article.PUBLISHED
+        article.published_at = article.published_at or timezone.now()
+        article.save()
+        return Response(ArticleSerializer(article).data)
+
 
 class ArticleImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = ArticleImage.objects.all()
@@ -39,3 +53,5 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = ArticleSetPagination
     lookup_field = 'slug'
+
+
