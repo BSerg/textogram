@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from django.contrib.auth import logout
-
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -18,7 +16,7 @@ from django.core.validators import URLValidator
 from django.forms import ValidationError
 import re
 
-from django.contrib.auth import login
+from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
 
 
@@ -113,6 +111,9 @@ class RegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        # user = User.objects.filter().first()
+        # login(request, user)
+
         phone = request.data.get('phone')
         existing_user = User.objects.filter(phone=phone)
         if existing_user:
@@ -151,21 +152,21 @@ class RegistrationView(APIView):
                 last_name = last_name.strip()
                 try:
                     un = '+7%s' % phone
-                    user = User.objects.create_user(un, password=password, phone=phone,
-                                                    first_name=first_name, last_name=last_name)
-                    print type(request)
-                    print request
-                    print dir(request)
-                    login(request, user)
-                    user_data = MeUserSerializer(user).data
-                    user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
-                    user_data.update(created=True)
-                    return Response({'user': user_data})
+                    user_created = User.objects.create_user(un, password=password, phone=phone, phone_confirmed=True,
+                                                            first_name=first_name, last_name=last_name)
+
+                    user = authenticate(phone=user_created.phone, password=password)
+                    if user == user_created:
+                        login(request, user)
+                        user_data = MeUserSerializer(user).data
+                        user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
+                        user_data.update(created=True)
+                        return Response({'user': user_data})
 
                 except Exception as e:
                     print 'ERROR', e
-                    raise e
-                    # return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+                    # raise e
+                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 
