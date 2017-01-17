@@ -59,7 +59,7 @@ class MeUserSerializer(UserSerializer):
         return Token.objects.get_or_create(user=obj)[0].key
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ['token']
+        fields = UserSerializer.Meta.fields + ['phone', 'token']
 
 
 class PublicUserSerializer(UserSerializer):

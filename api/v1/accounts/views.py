@@ -113,7 +113,6 @@ class RegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        print request.data.keys()
         phone = request.data.get('phone')
         existing_user = User.objects.filter(phone=phone)
         if existing_user:
@@ -124,7 +123,7 @@ class RegistrationView(APIView):
                 if pattern.match(phone):
                     code = PhoneCode.objects.create(phone=phone)
                     return Response({'phone': code.phone})
-        elif 'phone' in request.data.key() and 'code' in request.data.keys() and 'hash' not in request.data.keys():
+        elif 'phone' in request.data.keys() and 'code' in request.data.keys() and 'hash' not in request.data.keys():
             code_string = request.data.get('code')
             if phone and code_string:
                 code = PhoneCode.objects.filter(phone=phone, code=code_string, disabled=False, is_confirmed=False).first()
@@ -132,14 +131,14 @@ class RegistrationView(APIView):
                     code.is_confirmed = True
                     code.save()
                     return Response({'phone': phone, 'hash': code.hash})
-        elif 'phone' in request.data.key() and 'hash' in request.data.keys() and 'code' not in request.data.keys():
+        elif 'phone' in request.data.keys() and 'hash' in request.data.keys() and 'code' not in request.data.keys():
             hash_string = request.data.get('hash')
             password = request.data.get('password')
             password_again = request.data.get('password_again')
             display_name = request.data.get('username')
 
             if phone and hash_string and password and password_again and display_name:
-                code = PhoneCode.objects.get(phone=phone, hash=hash_string, disabled=False).first()
+                code = PhoneCode.objects.filter(phone=phone, hash=hash_string, disabled=False).first()
 
                 if not code or (password != password_again):
                     return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
@@ -161,8 +160,9 @@ class RegistrationView(APIView):
                     user_data.update(created=True)
                     return Response({'user': user_data})
 
-                except:
-                    return Response({'msg': 'error'})
+                except Exception as e:
+                    print 'ERROR', e
+                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 

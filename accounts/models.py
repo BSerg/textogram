@@ -129,7 +129,7 @@ class PhoneCode(models.Model):
 
     def is_active(self):
 
-        if self.is_confirmed or self.disabled or self.created_at < (timezone.now() - timedelta.min(self.EXPIRATION_TIME)):
+        if self.is_confirmed or self.disabled or self.created_at < (timezone.now() - timedelta(minutes=self.EXPIRATION_TIME)):
             return False
         return True
 

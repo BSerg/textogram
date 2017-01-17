@@ -8,7 +8,7 @@ from django.test import TestCase
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from accounts.models import User, MultiAccount, MultiAccountUser
+from accounts.models import User, MultiAccount, MultiAccountUser, PhoneCode
 from api.v1.accounts.serializers import UserSerializer, PublicUserSerializer
 from api.v1.accounts.views import PublicUserViewSet, UserViewSet, RegistrationView
 
@@ -101,11 +101,91 @@ class RegistrationViewCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    def test_registration_flow(self):
-        print 'registration'
+    def test_registration_empty(self):
         request = self.factory.post('/registration/')
 
         view = RegistrationView.as_view()
         response = view(request)
         response.render()
-        print response
+        self.assertEqual(response.status_code, 400)
+
+    def test_registration_wrong_fields(self):
+        request = self.factory.post('/registration/', {'foo': 'bar'})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_registration_wrong_phone(self):
+        request = self.factory.post('/registration/', {'phone': '999'})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_registration_right_phone(self):
+        phone_number = '9999999999'
+        request = self.factory.post('/registration/', {'phone': phone_number})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('phone'), phone_number)
+
+    def test_registration_wrong_code(self):
+        phone_number = '9998887771'
+        request = self.factory.post('/registration/', {'phone': phone_number})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        code = PhoneCode.objects.filter(is_confirmed=False, phone=phone_number).first()
+
+        self.assertIsNotNone(code)
+        self.assertTrue(code.is_active())
+        request_code = self.factory.post('/registration/', {'phone': phone_number, 'code': '000000'})
+        response_code = view(request_code)
+        response_code.render()
+        self.assertEqual(response_code.status_code, 400)
+
+    def test_registration_wrong_phone_with_code(self):
+        phone_number = '9998887772'
+        request = self.factory.post('/registration/', {'phone': phone_number})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        code = PhoneCode.objects.filter(is_confirmed=False, phone=phone_number).first()
+
+        self.assertIsNotNone(code)
+        self.assertTrue(code.is_active())
+        request_code = self.factory.post('/registration/', {'phone': '111', 'code': code.code})
+        response_code = view(request_code)
+        response_code.render()
+        self.assertEqual(response_code.status_code, 400)
+
+    def test_registration_flow(self):
+        phone_number = '9998887773'
+        request = self.factory.post('/registration/', {'phone': phone_number})
+        view = RegistrationView.as_view()
+        response = view(request)
+        response.render()
+        code = PhoneCode.objects.filter(is_confirmed=False, phone=phone_number).first()
+
+        request_code = self.factory.post('/registration/', {'phone': code.phone, 'code': code.code})
+        response_code = view(request_code)
+        response_code.render()
+        self.assertIsNotNone(response_code.data.get('hash'))
+        self.assertEqual(response_code.data.get('phone'), phone_number)
+
+        request_reg = self.factory.post('/registration/', {
+            'phone': response_code.data.get('phone'),
+            'hash': response_code.data.get('hash'),
+            'username': 'MK I',
+            'password': '23456',
+            'password_again': '23456'
+        })
+
+        response_reg = view(request_reg)
+        self.assertEqual(response_reg.status_code, 200)
+        print response_reg.data.keys()
+        self.assertIsNotNone(response_reg.data.get('token'))
+
