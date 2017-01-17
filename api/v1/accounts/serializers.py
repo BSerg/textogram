@@ -66,8 +66,7 @@ class PublicUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
-        # return False
-        if not self.context.get('request').user.is_authenticated:
+        if not self.context or not self.context.get('request').user or not self.context.get('request').user.is_authenticated:
             return False
         return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
 

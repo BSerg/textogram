@@ -150,10 +150,12 @@ class RegistrationView(APIView):
                 last_name = ' '.join(display_name.split(' ')[1:])
                 last_name = last_name.strip()
                 try:
-
-                    user = User.objects.create_user(phone, password=password, phone=phone,
+                    un = '+7%s' % phone
+                    user = User.objects.create_user(un, password=password, phone=phone,
                                                     first_name=first_name, last_name=last_name)
-
+                    print type(request)
+                    print request
+                    print dir(request)
                     login(request, user)
                     user_data = MeUserSerializer(user).data
                     user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
@@ -162,7 +164,8 @@ class RegistrationView(APIView):
 
                 except Exception as e:
                     print 'ERROR', e
-                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+                    raise e
+                    # return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 
