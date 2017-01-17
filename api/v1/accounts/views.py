@@ -103,7 +103,9 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
 
 
 class Registration(APIView):
+
     def post(self, request):
+        print request.data.keys()
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 
 
