@@ -6,6 +6,8 @@ import re
 
 import requests
 
+from textogram.settings import VK_ACCESS_TOKEN
+
 
 class ArticleContentType:
     TEXT = 1
@@ -131,16 +133,54 @@ class InstagramEmbedHandler(EmbedHandler):
 
 class FacebookEmbedHandler(EmbedHandler):
     TYPE = 'fb'
-    EMBED_URL_REGEX = [r'^https://(www|ru-ru)\.facebook\.com/\w+/posts/\d+$']
+    EMBED_URL_REGEX = [
+        r'^https://(www|ru-ru)\.facebook\.com/\w+/posts/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/\w+/videos/\d+/?$',
+    ]
+
+    def __init__(self, url, type=None, **kwargs):
+        super(FacebookEmbedHandler, self).__init__(url, **kwargs)
+        self.type = type
 
     def get_embed(self):
-        iframe = '<iframe src="https://www.facebook.com/plugins/post.php?href=%(url)s' \
+        iframe_post = '<iframe src="https://www.facebook.com/plugins/post.php?href=%(url)s' \
                  '&width=500&show_text=true&height=500&appId" width="500" height="500" ' \
-                 'style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>'
+                 'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
+                 'allowTransparency="true"></iframe>'
+        iframe_video = '<iframe src="https://www.facebook.com/plugins/video.php?href=%(url)s' \
+                       '&width=500&show_text=false&height=280&appId" width="500" height="280" ' \
+                       'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
+                       'allowTransparency="true"></iframe>'
+        iframe = iframe_video if self.type == 'video' else iframe_post
         return iframe % {'url': self.url}
 
     def _get_embed(self):
         return '<div className="fb-post" data-href=%s/>' % self.url
+
+
+class VkVideoEmbedHandler(EmbedHandler):
+    TYPE = 'vk_video'
+    EMBED_URL_REGEX = [r'^https://vk\.com/video(?P<id>-?\d+_\d+)$']
+    API_URL = 'https://api.vk.com/method/video.get?v=5.53&access_token=%(token)s&videos=%(id)s'
+
+    def __init__(self, url, width=800, height=450, **kwargs):
+        super(VkVideoEmbedHandler, self).__init__(url, **kwargs)
+        self.width = width
+        self.height = height
+
+    def get_embed(self):
+        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+        r = requests.get(self.API_URL % {'token': VK_ACCESS_TOKEN, 'id': id})
+        if r.status_code != 200:
+            raise EmbedHandlerError('VK handler error. VK api is not available')
+        data = r.json()
+        if 'response' not in data or 'items' not in data['response']:
+            raise EmbedHandlerError('VK handler error. VK api response error')
+        items = data['response']['items']
+        if items:
+            _href = items[0]['player']
+            return '<iframe src="%s" width="%d" height="%d" frameborder="0" allowfullscreen></iframe>' \
+                   % (_href, self.width, self.height)
 
 
 EMBED_HANDLERS = [
@@ -149,6 +189,7 @@ EMBED_HANDLERS = [
     VimeoEmbedHandler,
     InstagramEmbedHandler,
     FacebookEmbedHandler,
+    VkVideoEmbedHandler
 ]
 
 
