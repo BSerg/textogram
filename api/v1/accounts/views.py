@@ -158,7 +158,6 @@ class RegistrationView(APIView):
                 last_name = last_name.strip()
                 first_name_pattern = re.compile(self.FIRST_NAME_PATTERN, flags=re.U)
                 last_name_pattern = re.compile(self.LAST_NAME_PATTERN, flags=re.U)
-
                 if not first_name or not first_name_pattern.match(first_name) or not last_name_pattern.match(last_name):
                     return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
                 try:
