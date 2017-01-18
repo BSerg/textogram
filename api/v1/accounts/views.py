@@ -1,3 +1,4 @@
+#! coding: utf-8
 from __future__ import unicode_literals
 
 from rest_framework import viewsets, mixins, generics, permissions
@@ -104,15 +105,20 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         return Response({'msg': 'social link incorrect'}, status=HTTP_400_BAD_REQUEST)
 
 
+def send_message(phone, code):
+    pass
+
+
 class RegistrationView(APIView):
 
-    PHONE_PATTERN = '^\d{10}$'
+    PHONE_PATTERN = '^\d{7,18}$'
+    PASSWORD_PATTERN = '^[^\s]{5,}$'
+    FIRST_NAME_PATTERN = '^[A-Za-zА-Яа-я][\w]+$'
+    LAST_NAME_PATTERN = '^(\w+\s?)*$'
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # user = User.objects.filter().first()
-        # login(request, user)
 
         phone = request.data.get('phone')
         existing_user = User.objects.filter(phone=phone)
@@ -123,6 +129,7 @@ class RegistrationView(APIView):
                 pattern = re.compile(self.PHONE_PATTERN)
                 if pattern.match(phone):
                     code = PhoneCode.objects.create(phone=phone)
+                    send_message(phone, code.code)
                     return Response({'phone': code.phone})
         elif 'phone' in request.data.keys() and 'code' in request.data.keys() and 'hash' not in request.data.keys():
             code_string = request.data.get('code')
@@ -135,38 +142,38 @@ class RegistrationView(APIView):
         elif 'phone' in request.data.keys() and 'hash' in request.data.keys() and 'code' not in request.data.keys():
             hash_string = request.data.get('hash')
             password = request.data.get('password')
-            password_again = request.data.get('password_again')
+            # password_again = request.data.get('password_again')
             display_name = request.data.get('username')
 
-            if phone and hash_string and password and password_again and display_name:
+            if phone and hash_string and password and display_name:
                 code = PhoneCode.objects.filter(phone=phone, hash=hash_string, disabled=False).first()
+                pattern_password = re.compile(self.PASSWORD_PATTERN)
 
-                if not code or (password != password_again):
+                if not code or not pattern_password.match(password):
                     return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
                 display_name = ' '.join(display_name.split())
                 display_name = display_name.strip()
                 first_name = display_name.split(' ')[0]
-                if not first_name:
-                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
                 last_name = ' '.join(display_name.split(' ')[1:])
                 last_name = last_name.strip()
+                first_name_pattern = re.compile(self.FIRST_NAME_PATTERN, flags=re.U)
+                last_name_pattern = re.compile(self.LAST_NAME_PATTERN, flags=re.U)
+
+                if not first_name or not first_name_pattern.match(first_name) or not last_name_pattern.match(last_name):
+                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
                 try:
-                    un = '+7%s' % phone
+                    un = '+%s' % phone
                     user_created = User.objects.create_user(un, password=password, phone=phone, phone_confirmed=True,
                                                             first_name=first_name, last_name=last_name)
 
                     user = authenticate(phone=user_created.phone, password=password)
                     if user == user_created:
-                        login(request, user)
                         user_data = MeUserSerializer(user).data
                         user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
                         user_data.update(created=True)
                         return Response({'user': user_data})
-
                 except Exception as e:
-                    print 'ERROR', e
-                    # raise e
-                    return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+                    pass
 
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 
