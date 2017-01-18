@@ -158,6 +158,8 @@ class RegistrationView(APIView):
                 last_name = last_name.strip()
                 first_name_pattern = re.compile(self.FIRST_NAME_PATTERN, flags=re.U)
                 last_name_pattern = re.compile(self.LAST_NAME_PATTERN, flags=re.U)
+                code.disabled = True
+                code.save()
                 if not first_name or not first_name_pattern.match(first_name) or not last_name_pattern.match(last_name):
                     return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
                 try:
@@ -166,7 +168,7 @@ class RegistrationView(APIView):
                                                             first_name=first_name, last_name=last_name)
 
                     user = authenticate(phone=user_created.phone, password=password)
-                    if user == user_created:
+                    if user and user == user_created:
                         user_data = MeUserSerializer(user).data
                         user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
                         user_data.update(created=True)
@@ -175,6 +177,19 @@ class RegistrationView(APIView):
                     pass
 
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
+
+
+class Login(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        user = authenticate(**request.data)
+        if user:
+            user_data = MeUserSerializer(user).data
+            user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
+            return Response({'user': user_data})
+
+        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
 
 class Logout(APIView):
