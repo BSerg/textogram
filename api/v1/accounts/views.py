@@ -179,6 +179,51 @@ class RegistrationView(APIView):
         return Response({'msg': ''}, status=HTTP_400_BAD_REQUEST)
 
 
+class ResetPasswordView(APIView):
+
+    permission_classes = [permissions.AllowAny]
+
+    PASSWORD_PATTERN = '^[^\s]{5,}$'
+
+    def post(self, request):
+        phone = request.data.get('phone')
+        if not phone:
+            return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(phone=phone)
+            print user
+        except User.DoesNotExist:
+            return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+
+        if 'code' not in request.data.keys() and 'hash' not in request.data.keys():
+            code = PhoneCode.objects.create(phone=phone)
+            send_message(phone, code.code)
+            return Response({'phone': code.phone})
+
+        elif 'code' in request.data.keys() and 'hash' not in request.data.keys():
+            code = PhoneCode.objects.filter(phone=phone, code=request.data.get('code'),
+                                            disabled=False, is_confirmed=False).first()
+            if code and code.is_active():
+                code.is_confirmed = True
+                code.save()
+                return Response({'phone': phone, 'hash': code.hash})
+        elif 'code' not in request.data.keys() and 'hash' in request.data.keys():
+            code = PhoneCode.objects.filter(phone=phone, hash=request.data.get('hash'), disabled=False).first()
+            pattern_password = re.compile(self.PASSWORD_PATTERN)
+            password = request.data.get('password', '')
+            if code and pattern_password.match(password):
+                code.disabled = True
+                code.save()
+                user.set_password(password)
+                user.save()
+                user_data = MeUserSerializer(user).data
+                user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
+                user_data.update(created=True)
+                return Response({'user': user_data})
+
+        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+
+
 class Login(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -193,6 +238,8 @@ class Login(APIView):
 
 
 class Logout(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
-        logout(request)
         return Response({'msg': 'logged out'})
