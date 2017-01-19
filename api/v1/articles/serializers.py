@@ -26,7 +26,6 @@ class PublicArticleSerializer(serializers.ModelSerializer):
     cover = serializers.SerializerMethodField()
 
     def get_title(self, obj):
-        print obj.content
         return obj.content.get('title')
 
     def get_cover(self, obj):
@@ -46,7 +45,7 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
     lead = serializers.SerializerMethodField()
 
     def get_lead(self, obj):
-        return 'lead'
+        return '''Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'''
 
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at']
