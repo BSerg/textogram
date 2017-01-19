@@ -183,13 +183,69 @@ class VkVideoEmbedHandler(EmbedHandler):
                    % (_href, self.width, self.height)
 
 
+class SoundCloudEmbedHandler(EmbedHandler):
+    TYPE = 'soundcloud'
+    EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/[\w\-]+$']
+    API_URL = 'http://soundcloud.com/oembed'
+
+    def get_embed(self):
+        r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
+        if r.status_code != 200:
+            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
+        data = r.json()
+        if 'html' not in data:
+            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
+        return data['html']
+
+
+class PromoDjEmbedHandler(EmbedHandler):
+    TYPE = 'promodj'
+    EMBED_URL_REGEX = [r'^http://promodj\.com/[\w\-.]+/tracks/(?P<id>\d+)/\w+$']
+
+    def get_embed(self):
+        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+        print id
+        iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
+                 'frameborder="0" allowfullscreen></iframe>'
+        return iframe % {'id': id}
+
+
+class YandexMusicEmbedHandler(EmbedHandler):
+    TYPE = 'yandex_music'
+    EMBED_URL_REGEX = [
+        r'https://music\.yandex\.ru/album/(?P<album>\d+)(/track/(?P<track>\d+))?',
+    ]
+
+    def get_embed(self):
+        url_re = re.match(self.EMBED_URL_REGEX[0], self.url)
+        album, track = url_re.group('album'), url_re.group('track')
+        if not track:
+            return '<iframe frameborder="0" width="900" height="500" ' \
+                     'src="https://music.yandex.ru/iframe/#album/%(album)s/"></iframe>' % {'album': album}
+        else:
+            return '<iframe frameborder="0" width="600" height="100" ' \
+                     'src="https://music.yandex.ru/iframe/#track/%(track)s/%(album)s/"></iframe>' % {'album': album, 'track': track}
+
+
+# class BandCampEmbedHandler(EmbedHandler):
+#     TYPE = 'bandcamp'
+#     EMBED_URL_REGEX = []
+#
+#     def get_embed(self):
+#         iframe = '<iframe style="border: 0; width: 100%; height: 120px;" ' \
+#                  'src="https://bandcamp.com/EmbeddedPlayer/album=4101000047/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=false/artwork=small/transparent=true/" seamless></iframe>'
+
+
 EMBED_HANDLERS = [
     YoutubeEmbedHandler,
     TwitterEmbedHandler,
     VimeoEmbedHandler,
     InstagramEmbedHandler,
     FacebookEmbedHandler,
-    VkVideoEmbedHandler
+    VkVideoEmbedHandler,
+    SoundCloudEmbedHandler,
+    PromoDjEmbedHandler,
+    YandexMusicEmbedHandler
 ]
 
 
