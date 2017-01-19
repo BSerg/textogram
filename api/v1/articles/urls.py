@@ -8,8 +8,10 @@ from . import views
 router = DefaultRouter()
 router.register('articles/editor/images', views.ArticleImageViewSet)
 router.register('articles/editor', views.ArticleViewSet)
-router.register('articles', views.PublicArticleViewSet)
+# router.register('articles', views.PublicArticleListViewSet)
 
 urlpatterns = [
+    url('^articles/$', views.PublicArticleListViewSet.as_view({'get': 'list'}), name='articles_list'),
+    url('^articles/(?P<slug>[\w]+)/$', views.PublicArticleListViewSet.as_view({'get': 'retrieve'}), name='article'),
     url(r'', include(router.urls))
 ]

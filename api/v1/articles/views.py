@@ -8,7 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
-from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer
+from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, PublicArticleSerializerMin
 from articles.models import Article, ArticleImage
 
 
@@ -47,11 +47,17 @@ class ArticleImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated, IsArticleContentOwner]
 
 
-class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Article.objects.filter(status=Article.PUBLISHED)
-    serializer_class = PublicArticleSerializer
+class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Article.objects.filter(status=Article.PUBLISHED, link_access=False)
+    serializer_class = PublicArticleSerializerMin
     permission_classes = [permissions.AllowAny]
     pagination_class = ArticleSetPagination
     lookup_field = 'slug'
 
 
+class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Article.objects.filter(status=Article.PUBLISHED)
+    serializer_class = PublicArticleSerializer
+    permission_classes = [permissions.AllowAny]
+    # pagination_class = ArticleSetPagination
+    lookup_field = 'slug'

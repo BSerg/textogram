@@ -26,10 +26,11 @@ class PublicArticleSerializer(serializers.ModelSerializer):
     cover = serializers.SerializerMethodField()
 
     def get_title(self, obj):
+        print obj.content
         return obj.content.get('title')
 
     def get_cover(self, obj):
-        cover_id = obj.content.get('cover')
+        cover_id = obj.content.get('cover', {}).get('id')
         try:
             return obj.images.get(pk=cover_id).image.url
         except ArticleImage.DoesNotExist:
@@ -40,12 +41,12 @@ class PublicArticleSerializer(serializers.ModelSerializer):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'html']
 
 
-class PublicArticleSerializerMin(ArticleSerializer):
+class PublicArticleSerializerMin(PublicArticleSerializer):
+
     lead = serializers.SerializerMethodField()
 
     def get_lead(self, obj):
         return 'lead'
 
-    class Meta:
-        model = Article
-        fields = ['slug', 'title', 'published_at', 'cover', 'author', 'lead']
+    class Meta(PublicArticleSerializer.Meta):
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at']
