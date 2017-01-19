@@ -49,3 +49,14 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
 
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at']
+
+
+class DraftArticleSerializer(PublicArticleSerializerMin):
+
+    is_draft = serializers.SerializerMethodField()
+
+    def get_is_draft(self):
+        return True
+
+    class Meta(PublicArticleSerializerMin.Meta):
+        fields = PublicArticleSerializerMin.Meta.fields + ['is_draft', 'last_modified']

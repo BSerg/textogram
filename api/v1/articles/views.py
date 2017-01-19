@@ -8,7 +8,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
-from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, PublicArticleSerializerMin
+from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
+    PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
 
 
@@ -61,3 +62,12 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     # pagination_class = ArticleSetPagination
     lookup_field = 'slug'
+
+
+class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Article.objects.filter(status=Article.DRAFT)
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DraftArticleSerializer
+
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
