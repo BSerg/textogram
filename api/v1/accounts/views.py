@@ -232,7 +232,7 @@ class Login(APIView):
         if user:
             user_data = MeUserSerializer(user).data
             user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
-            return Response({'user': user_data})
+            return Response(user_data)
 
         return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
