@@ -66,8 +66,17 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Article.objects.filter(status=Article.DRAFT)
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerForUnsafeRequests]
     serializer_class = DraftArticleSerializer
 
     def get_queryset(self):
         return self.queryset.filter(owner=self.request.user)
+
+    @detail_route(methods=['POST'])
+    def delete(self, request, **kwargs):
+        draft = self.get_object()
+        if draft.status != Article.DRAFT:
+            raise ValidationError('Article\'s status is not DRAFT')
+        draft.status = Article.DELETED
+        draft.save()
+        return Response({'msg': 'deleted'})
