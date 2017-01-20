@@ -29,10 +29,12 @@ class PublicArticleSerializer(serializers.ModelSerializer):
         return obj.content.get('title')
 
     def get_cover(self, obj):
-        cover_id = obj.content.get('cover', {}).get('id')
         try:
+            cover_id = obj.content.get('cover', {}).get('id')
             return obj.images.get(pk=cover_id).image.url
         except ArticleImage.DoesNotExist:
+            return None
+        except AttributeError:
             return None
 
     class Meta:
@@ -55,7 +57,7 @@ class DraftArticleSerializer(PublicArticleSerializerMin):
 
     is_draft = serializers.SerializerMethodField()
 
-    def get_is_draft(self):
+    def get_is_draft(self, obj):
         return True
 
     class Meta(PublicArticleSerializerMin.Meta):
