@@ -15,7 +15,6 @@ class SocialLinkSerializer(serializers.ModelSerializer):
         fields = ['social', 'url']
 
 
-
 class MeSocialLinkSerializer(SocialLinkSerializer):
     class Meta(SocialLinkSerializer.Meta):
         fields = ['id', 'social', 'url', 'is_auth', 'is_hidden']
@@ -52,11 +51,8 @@ class UserSerializer(serializers.ModelSerializer):
                   'social_links', 'subscribers']
 
 
-
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
-    username = serializers.CharField(write_only=True)
-
 
     def get_social_links(self, obj):
         return MeSocialLinkSerializer(SocialLink.objects.filter(user=obj), many=True).data
@@ -66,20 +62,19 @@ class MeUserSerializer(UserSerializer):
 
     def validate_avatar(self, value):
         try:
-            if value.content_type == 'image/jpeg':
-
+            if value.content_type == 'image/jpeg' and value.size <= 1024 * 1024:
                 i = Image.open(value)
                 width, height = i.size
                 if width <= 400 and width == height:
                     return value
-        except AttributeError, ValueError:
+        except (AttributeError, ValueError):
             pass
         raise ValidationError('image format wrong')
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ['phone', 'token', 'username']
-        read_only_fields = ['id', 'first_name', 'last_name', 'social', 'uid', 'email', 'multi_accounts',
-                            'social_links', 'subscribers', 'phone', 'token']
+        fields = UserSerializer.Meta.fields + ['phone', 'token']
+        read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
+                            'phone', 'token']
 
 
 

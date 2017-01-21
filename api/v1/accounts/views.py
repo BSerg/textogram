@@ -1,6 +1,8 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
+from textogram.settings import PASSWORD_PATTERN, PHONE_PATTERN, FIRST_NAME_PATTERN, LAST_NAME_PATTERN
+
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -111,10 +113,10 @@ def send_message(phone, code):
 
 class RegistrationView(APIView):
 
-    PHONE_PATTERN = '^\d{7,18}$'
-    PASSWORD_PATTERN = '^[^\s]{5,}$'
-    FIRST_NAME_PATTERN = '^[A-Za-zА-Яа-я][\w]+$'
-    LAST_NAME_PATTERN = '^(\w+\s?)*$'
+    # PHONE_PATTERN = '^\d{7,18}$'
+    # PASSWORD_PATTERN = '^[^\s]{5,}$'
+    # FIRST_NAME_PATTERN = '^[A-Za-zА-Яа-я][\w]+$'
+    # LAST_NAME_PATTERN = '^(\w+\s?)*$'
 
     permission_classes = [permissions.AllowAny]
 
@@ -126,7 +128,7 @@ class RegistrationView(APIView):
             return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
         if 'phone' in request.data.keys() and ('code' not in request.data.keys() and 'hash' not in request.data.keys()):
             if phone:
-                pattern = re.compile(self.PHONE_PATTERN)
+                pattern = re.compile(PHONE_PATTERN)
                 if pattern.match(phone):
                     code = PhoneCode.objects.create(phone=phone)
                     send_message(phone, code.code)
@@ -147,7 +149,7 @@ class RegistrationView(APIView):
 
             if phone and hash_string and password and display_name:
                 code = PhoneCode.objects.filter(phone=phone, hash=hash_string, disabled=False).first()
-                pattern_password = re.compile(self.PASSWORD_PATTERN)
+                pattern_password = re.compile(PASSWORD_PATTERN)
 
                 if not code or not pattern_password.match(password):
                     return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
@@ -156,8 +158,8 @@ class RegistrationView(APIView):
                 first_name = display_name.split(' ')[0]
                 last_name = ' '.join(display_name.split(' ')[1:])
                 last_name = last_name.strip()
-                first_name_pattern = re.compile(self.FIRST_NAME_PATTERN, flags=re.U)
-                last_name_pattern = re.compile(self.LAST_NAME_PATTERN, flags=re.U)
+                first_name_pattern = re.compile(FIRST_NAME_PATTERN, flags=re.U)
+                last_name_pattern = re.compile(LAST_NAME_PATTERN, flags=re.U)
                 code.disabled = True
                 code.save()
                 if not first_name or not first_name_pattern.match(first_name) or not last_name_pattern.match(last_name):
@@ -183,7 +185,7 @@ class ResetPasswordView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
-    PASSWORD_PATTERN = '^[^\s]{5,}$'
+    # PASSWORD_PATTERN = '^[^\s]{5,}$'
 
     def post(self, request):
         phone = request.data.get('phone')
@@ -209,7 +211,7 @@ class ResetPasswordView(APIView):
                 return Response({'phone': phone, 'hash': code.hash})
         elif 'code' not in request.data.keys() and 'hash' in request.data.keys():
             code = PhoneCode.objects.filter(phone=phone, hash=request.data.get('hash'), disabled=False).first()
-            pattern_password = re.compile(self.PASSWORD_PATTERN)
+            pattern_password = re.compile(PASSWORD_PATTERN)
             password = request.data.get('password', '')
             if code and pattern_password.match(password):
                 code.disabled = True
