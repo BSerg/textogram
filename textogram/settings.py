@@ -148,6 +148,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 AUTHENTICATION_BACKENDS = [
+    'accounts.auth.VKAuthBackend',
     'accounts.auth.PhoneAuthBackend',
     'django.contrib.auth.backends.ModelBackend'
 ]
