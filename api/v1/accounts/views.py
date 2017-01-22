@@ -6,7 +6,7 @@ from accounts import PASSWORD_PATTERN, PHONE_PATTERN, FIRST_NAME_PATTERN, LAST_N
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
-from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 from rest_framework.views import APIView
 from rest_framework import mixins
@@ -234,9 +234,11 @@ class Login(APIView):
         if user:
             user_data = MeUserSerializer(user).data
             user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
+            if getattr(user, '_created', False):
+                user_data.update(created=True)
             return Response(user_data)
 
-        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+        return Response({'msg': 'error'}, status=HTTP_401_UNAUTHORIZED)
 
 
 class Logout(APIView):
