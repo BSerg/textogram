@@ -1,5 +1,3 @@
-#! coding: utf-8
-from __future__ import unicode_literals
 """
 Django settings for textogram project.
 
@@ -185,11 +183,6 @@ FACEBOOK_PASSWORD = ''
 FACEBOOK_REDIRECT_URI = ''
 
 GOOGLE_API_KEY = ''
-
-PHONE_PATTERN = '^\d{7,18}$'
-PASSWORD_PATTERN = '^[^\s]{5,}$'
-FIRST_NAME_PATTERN = '^[A-Za-zА-Яа-я][\w]+$'
-LAST_NAME_PATTERN = '^(\w+\s?)*$'
 
 try:
     from local_settings import *

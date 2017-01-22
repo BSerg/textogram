@@ -1,7 +1,7 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
-from textogram.settings import PASSWORD_PATTERN, PHONE_PATTERN, FIRST_NAME_PATTERN, LAST_NAME_PATTERN
+from accounts import PASSWORD_PATTERN, PHONE_PATTERN, FIRST_NAME_PATTERN, LAST_NAME_PATTERN
 
 from rest_framework import viewsets, mixins, generics, permissions
 from rest_framework.decorators import detail_route, list_route
