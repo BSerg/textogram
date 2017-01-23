@@ -7,6 +7,8 @@ import requests
 from accounts.models import User, SocialLink
 from textogram import settings
 from common import image_retrieve
+from textogram.settings import GOOGLE_CLIENT_ID
+from oauth2client import client, crypt
 
 
 class VKAuthBackend(object):
@@ -75,6 +77,41 @@ class FBAuthBackend(object):
                             url='https://www.facebook.com/%s' % data.get('id')
                         )
                         return user
+        return None
+
+
+class GoogleAuthClient(object):
+
+    def authenticate(self, *args, **kwargs):
+
+        if kwargs.get('social') == 'google':
+            id_token = kwargs.get('id_token')
+            id_info = client.verify_id_token(id_token, GOOGLE_CLIENT_ID)
+
+            if id_info and id_info.get('sub'):
+                username = '%s%s' % (User.GOOGLE, id_info.get('sub'))
+                try:
+                    user = User.objects.get(username=username)
+                    return user
+                except User.DoesNotExist:
+                    first_name = id_info.get('given_name') \
+                        or id_info.get('name', '').split(' ')[0] \
+                        or id_info.get('email', '').split('@')[0]
+
+                    user = User.objects.create_user(
+                        username, email=id_info.get('email'), first_name=first_name,
+                        last_name=id_info.get('family_name'), social=User.GOOGLE
+                    )
+                    avatar_retrieve = image_retrieve(id_info.get('picture', ''))
+                    if avatar_retrieve:
+                        user.avatar = avatar_retrieve[2]
+                        user.save()
+                    SocialLink.objects.create(
+                        user=user, social=SocialLink.FB, is_auth=True,
+                        url='https://plus.google.com/u/0/%s' % id_info.get('sub')
+                    )
+                    return user
+
         return None
 
 
