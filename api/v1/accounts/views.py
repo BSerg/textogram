@@ -226,6 +226,54 @@ class ResetPasswordView(APIView):
         return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
 
+class SetPhonePasswordView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        phone = request.data.get('phone')
+        if not phone:
+            return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(phone=phone)
+            if user and user != request.user:
+                return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            pass
+        if 'code' not in request.data.keys() and 'hash' not in request.data.keys():
+
+            code = PhoneCode.objects.create(phone=phone)
+            send_message(phone, code.code)
+            return Response({'phone': code.phone})
+        elif 'code' in request.data.keys() and 'hash' not in request.data.keys():
+            code = PhoneCode.objects.filter(phone=phone, code=request.data.get('code'),
+                                            disabled=False, is_confirmed=False).first()
+            if code and code.is_active():
+                code.is_confirmed = True
+                code.save()
+                return Response({'phone': phone, 'hash': code.hash})
+
+        elif 'code' not in request.data.keys() and 'hash' in request.data.keys():
+            code = PhoneCode.objects.filter(phone=phone, hash=request.data.get('hash'), disabled=False).first()
+            phone_pattern = re.compile(PHONE_PATTERN)
+            password = request.data.get('password', '')
+            pattern_password = re.compile(PASSWORD_PATTERN)
+            if code and phone_pattern.match(phone) and pattern_password.match(password):
+                code.disabled = True
+                code.save()
+                user = self.request.user
+                user.phone = phone
+                user.phone_confirmed = True
+                user.set_password(password)
+                print user
+                print password
+                user.save()
+                user_data = MeUserSerializer(user).data
+                return Response({'user': user_data})
+
+        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+
+
 class Login(APIView):
     permission_classes = [permissions.AllowAny]
 

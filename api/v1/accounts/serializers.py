@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import re
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
@@ -53,9 +54,23 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
 
     def get_social_links(self, obj):
         return MeSocialLinkSerializer(SocialLink.objects.filter(user=obj), many=True).data
+
+    def get_phone(self, obj):
+        # return obj.phone
+        phone = obj.phone
+        if not phone.startswith('+'):
+            phone = '+%s' % phone
+        if len(phone) <= 3:
+            return '+..'
+        if len(phone) <= 7:
+            return phone[0:3] + '...'
+        print len(phone[4: -3])
+
+        return '%s %s %s %s' % (phone[0:2], phone[2:4], re.sub("\d", ".", phone[4: -3]), phone[-2:])
 
     def get_token(self, obj):
         return Token.objects.get_or_create(user=obj)[0].key
