@@ -4,7 +4,6 @@ import hashlib
 
 from django.core.exceptions import ValidationError
 
-from articles import ArticleContentType
 from articles import get_embed, ArticleContentType
 
 
@@ -14,42 +13,72 @@ class ContentBlockValidationError(Exception):
         self.type = _type
 
 
-IS_REQUIRED = 'required'
-MAX_LENGTH = 'max_length'
-MIN_LENGTH = 'min_length'
-REGEX_MATCH = 'regex_match'
-NULLABLE = 'nullable'
-ANY = 'any'
+IS_REQUIRED = 'REQUIRED'
+MAX_LENGTH = 'MAX_LENGTH'
+MIN_LENGTH = 'MIN_LENGTH'
+REGEX_MATCH = 'REGEX_MATCH'
+NULLABLE = 'NULLABLE'
+TYPE = 'TYPE'
+ANY = 'ANY'
+STRUCTURE = 'STRUCTURE'
+STRUCTURE_LIST = 'STRUCTURE_LIST'
+
+PHOTO_VALIDATION_CFG = {
+    'id': {IS_REQUIRED: True, NULLABLE: True, TYPE: int},
+    'image': {IS_REQUIRED: True, TYPE: (str, unicode)},
+    'caption': {IS_REQUIRED: False, TYPE: (str, unicode), MAX_LENGTH: 200},
+}
 
 ROOT_VALIDATION_CFG = {
-    'title': {IS_REQUIRED: True, MAX_LENGTH: 255},
-    'cover': {IS_REQUIRED: True, NULLABLE: True},
+    'title': {IS_REQUIRED: True, MAX_LENGTH: 150},
+    'cover': {
+        IS_REQUIRED: True,
+        NULLABLE: True,
+        STRUCTURE: PHOTO_VALIDATION_CFG},
     'blocks': {IS_REQUIRED: True}
 }
 
 BLOCK_BASE_VALIDATION_CFG = {
-    'id': {IS_REQUIRED: True},
+    'id': {IS_REQUIRED: True, TYPE: (str, unicode)},
     'type': {IS_REQUIRED: True, ANY: ArticleContentType.__dict__.values()},
 }
 
 BLOCKS_VALIDATION_CFG = {
     ArticleContentType.TEXT: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 10000}
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 3000}
     },
     ArticleContentType.HEADER: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 255}
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 100}
     },
     ArticleContentType.LEAD: {
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 400}
+    },
+    ArticleContentType.PHOTO: {
+        'photos': {IS_REQUIRED: True, STRUCTURE_LIST: PHOTO_VALIDATION_CFG}
+    },
+    ArticleContentType.QUOTE: {
+        'image': {IS_REQUIRED: True, NULLABLE: True, STRUCTURE: PHOTO_VALIDATION_CFG},
         'value': {IS_REQUIRED: True, MAX_LENGTH: 500}
     },
-    ArticleContentType.PHOTO: {},
-    ArticleContentType.QUOTE: {},
-    ArticleContentType.PHRASE: {},
-    ArticleContentType.LIST: {},
-    ArticleContentType.COLUMNS: {},
-    ArticleContentType.VIDEO: {},
-    ArticleContentType.AUDIO: {},
-    ArticleContentType.POST: {},
+    ArticleContentType.PHRASE: {
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 200}
+    },
+    ArticleContentType.LIST: {
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 3000}
+    },
+    ArticleContentType.COLUMNS: {
+        'image': {IS_REQUIRED: True, STRUCTURE: PHOTO_VALIDATION_CFG},
+        'value': {IS_REQUIRED: True, MAX_LENGTH: 300}
+    },
+    ArticleContentType.VIDEO: {
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
+    },
+    ArticleContentType.AUDIO: {
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
+    },
+    ArticleContentType.POST: {
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
+    },
     ArticleContentType.DIALOG: {},
 }
 
@@ -57,10 +86,16 @@ BLOCKS_VALIDATION_CFG = {
 class ContentValidator(object):
     @staticmethod
     def validate_structure(structure, field, params):
-        if field not in structure and params.get(IS_REQUIRED):
-            raise ValidationError('"%(field)s" is required', code=IS_REQUIRED, params={'field': field})
-        if structure[field] is None and not params.get(NULLABLE):
-            raise ValidationError('"%(field)s" can\'t be NULL', code=NULLABLE, params={'field': field})
+        if field not in structure:
+            if params.get(IS_REQUIRED):
+                raise ValidationError('"%(field)s" is required', code=IS_REQUIRED, params={'field': field})
+            else:
+                return
+        if structure[field] is None:
+            if not params.get(NULLABLE):
+                raise ValidationError('"%(field)s" can\'t be NULL', code=NULLABLE, params={'field': field})
+            else:
+                return
         if (params.get(MAX_LENGTH) or params.get(MIN_LENGTH)) and not isinstance(structure[field], (str, unicode)):
             raise ValidationError('"%(field)s" must be STRING or UNICODE', code='type', params={'field': field})
         if params.get(MAX_LENGTH) and len(structure[field]) > params.get(MAX_LENGTH):
@@ -69,11 +104,34 @@ class ContentValidator(object):
             raise ValidationError('"%(field)s" value is too short', code=MIN_LENGTH, params={'field': field})
         if params.get(ANY) and not any([structure[field] == v for v in params[ANY]]):
             raise ValidationError('"%(field)s" value is not one of allowed values', code=ANY, params={'field': field})
+        if params.get(TYPE) and not isinstance(structure[field], params.get(TYPE)):
+            raise ValidationError('"%(field)s" value is not instance of available types', code=TYPE,
+                                  params={'field': field})
+        if params.get(STRUCTURE):
+            _structure = structure[field]
+            for _field, _params in params.get(STRUCTURE).items():
+                try:
+                    ContentValidator.validate_structure(_structure, _field, _params)
+                except:
+                    raise ValidationError('"%(field)s" value has not valid structure', code=STRUCTURE,
+                                          params={'field': field})
+        if params.get(STRUCTURE_LIST):
+            if not isinstance(structure[field], list):
+                raise ValidationError('"%(field)s" value is not a list', code=STRUCTURE_LIST, params={'field': field})
+            for _structure in structure[field]:
+                for _field, _params in params.get(STRUCTURE_LIST).items():
+                    try:
+                        ContentValidator.validate_structure(_structure, _field, _params)
+                    except:
+                        raise ValidationError('"%(field)s" value has not valid structure list', code=STRUCTURE_LIST,
+                                              params={'field': field})
 
-    def __call__(self, content):
-        # root validation
+    def _root_validate(self, content):
         for field, params in ROOT_VALIDATION_CFG.items():
             self.validate_structure(content, field, params)
+
+    def __call__(self, content):
+        self._root_validate(content)
 
 
 class ContentBlockMetaGenerator(object):
@@ -130,4 +188,17 @@ def process_content(content):
         if meta_generator:
             if meta_generator.get_content_hash() != meta.get('hash'):
                 block['__meta'] = meta_generator.get_meta()
+    is_valid = True
+    for field, params in ROOT_VALIDATION_CFG.items():
+        try:
+            ContentValidator.validate_structure(content, field, params)
+        except ValidationError as e:
+            print e
+            is_valid = False
+    if is_valid:
+        for block in content.get('blocks', []):
+            block_is_valid = block.get('__meta', {}).get('is_valid')
+            if block_is_valid is not None and not block_is_valid:
+                is_valid = False
+    content['__meta'] = {'is_valid': is_valid}
     return content

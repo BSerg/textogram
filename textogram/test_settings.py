@@ -1,5 +1,7 @@
 SECRET_KEY = 'fake-key'
 
+AUTH_USER_MODEL = 'accounts.User'
+
 INSTALLED_APPS = [
     'polymorphic',
     'django.contrib.admin',
@@ -20,8 +22,10 @@ INSTALLED_APPS = [
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'textogram_test',
+        'USER': 'postgres',
+        'PASSWORD': 'admin'
     }
 }
 

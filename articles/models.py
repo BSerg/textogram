@@ -30,7 +30,7 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
-    content = JSONField('Контент', default=dict(title=None, cover=None, blocks=[]))
+    content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]))
     html = models.TextField('HTML', blank=True, editable=False)
     ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)
