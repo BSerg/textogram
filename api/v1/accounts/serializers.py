@@ -60,8 +60,10 @@ class MeUserSerializer(UserSerializer):
         return MeSocialLinkSerializer(SocialLink.objects.filter(user=obj), many=True).data
 
     def get_phone(self, obj):
-        # return obj.phone
+
         phone = obj.phone
+        if not phone:
+            return ''
         if not phone.startswith('+'):
             phone = '+%s' % phone
         if len(phone) <= 3:

@@ -36,11 +36,11 @@ def file_retrieve(url, path):
 
 
 def image_retrieve(url):
-    try:
-        url_filename = url.rsplit('/', 1)[1]
-    except:
-        url_filename = None
-    rel_path = image_upload(None, url_filename)
+    # try:
+    #     url_filename = url.rsplit('/', 1)[1]
+    # except:
+    #     url_filename = None
+    rel_path = image_upload(None, None)
     path = os.path.join(MEDIA_ROOT, rel_path)
     filepath = file_retrieve(url, path)
     if filepath:

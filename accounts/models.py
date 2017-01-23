@@ -26,11 +26,13 @@ class User(AbstractUser):
     VK = 'vk'
     FB = 'fb'
     TWITTER = 'twitter'
+    GOOGLE = 'google'
 
     SOCIALS = (
         (VK, 'В контакте'),
         (FB, 'Facebook'),
         (TWITTER, 'Twitter'),
+        (GOOGLE, 'Google'),
     )
     avatar = models.ImageField('Аватар', upload_to=_upload_to, blank=True, null=True)
     social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)

@@ -193,7 +193,6 @@ class ResetPasswordView(APIView):
             return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(phone=phone)
-            print user
         except User.DoesNotExist:
             return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
@@ -265,8 +264,6 @@ class SetPhonePasswordView(APIView):
                 user.phone = phone
                 user.phone_confirmed = True
                 user.set_password(password)
-                print user
-                print password
                 user.save()
                 user_data = MeUserSerializer(user).data
                 return Response({'user': user_data})
