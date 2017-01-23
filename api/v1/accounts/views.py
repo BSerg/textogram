@@ -22,6 +22,10 @@ import re
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
 
+import requests
+import requests_oauthlib
+from textogram.settings import TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_KEY_SECRET
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -268,6 +272,25 @@ class SetPhonePasswordView(APIView):
                 user_data = MeUserSerializer(user).data
                 return Response({'user': user_data})
 
+        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+
+
+class TwitterAuthView(APIView):
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        callback_uri = request.data.get('url') + '/auth/twitter/'
+        oauth = requests_oauthlib.OAuth1(TWITTER_CONSUMER_KEY,
+                                         client_secret=TWITTER_CONSUMER_KEY_SECRET,
+                                         callback_uri=callback_uri)
+        r = requests.post('https://api.twitter.com/oauth/request_token', auth=oauth)
+
+        if r.status_code == 200:
+            for param in r.text.split('&'):
+                param_list = param.split('=')
+                if len(param_list) == 2 and param_list[0] == 'oauth_token':
+                    return Response({'oauth_token': param_list[1]})
         return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
 

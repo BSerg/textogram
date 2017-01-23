@@ -13,6 +13,7 @@ urlpatterns = [
     url(r'users/me/$', views.MeUserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'})),
     url(r'login/$', views.Login.as_view()),
     url(r'logout/$', views.Logout.as_view()),
+    url(r'auth/twitter/$', views.TwitterAuthView.as_view()),
     url(r'registration/$', views.RegistrationView.as_view()),
     url(r'reset_password/$', views.ResetPasswordView.as_view()),
     url(r'set_phone/$', views.SetPhonePasswordView.as_view()),

@@ -151,6 +151,7 @@ AUTHENTICATION_BACKENDS = [
     'accounts.auth.VKAuthBackend',
     'accounts.auth.FBAuthBackend',
     'accounts.auth.GoogleAuthClient',
+    'accounts.auth.TwitterAuthBackend',
     'accounts.auth.PhoneAuthBackend',
     'django.contrib.auth.backends.ModelBackend'
 ]

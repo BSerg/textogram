@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import requests
+import requests_oauthlib
 from accounts.models import User, SocialLink
 from textogram import settings
 from common import image_retrieve
@@ -107,11 +108,62 @@ class GoogleAuthClient(object):
                         user.avatar = avatar_retrieve[2]
                         user.save()
                     SocialLink.objects.create(
-                        user=user, social=SocialLink.FB, is_auth=True,
+                        user=user, social=SocialLink.GOOGLE, is_auth=True,
                         url='https://plus.google.com/u/0/%s' % id_info.get('sub')
                     )
                     return user
 
+        return None
+
+
+class TwitterAuthBackend(object):
+
+    def authenticate(self, *args, **kwargs):
+        if kwargs.get('social') == User.TWITTER and kwargs.get('oauth_token') and kwargs.get('oauth_verifier'):
+
+            oauth = requests_oauthlib.OAuth1(settings.TWITTER_CONSUMER_KEY,
+                                             settings.TWITTER_CONSUMER_KEY_SECRET,
+                                             kwargs.get('oauth_token'))
+            r = requests.get('https://api.twitter.com/oauth/access_token',
+                             params={'oauth_verifier': kwargs.get('oauth_verifier')},
+                             auth=oauth)
+            try:
+                data = {p.split('=')[0]: p.split('=')[1] for p in r.text.split('&')}
+            except (ValueError, IndexError, TypeError):
+                return None
+            username = '%s%s' % (User.TWITTER, data.get('user_id'))
+
+            if username:
+                try:
+                    user = User.objects.get(username=username)
+                    return user
+                except User.DoesNotExist:
+                    return self.__create_new_user(**data)
+
+            print username
+
+        return None
+
+    def __create_new_user(self, **kwargs):
+        oauth = requests_oauthlib.OAuth1(settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_KEY_SECRET,
+                                         kwargs.get('oauth_token'), kwargs.get('oauth_token_secret'))
+        r = requests.get('https://api.twitter.com/1.1/account/verify_credentials.json', auth=oauth)
+        if r.status_code == 200:
+            full_data = r.json()
+            user = User.objects.create_user(
+                '%s%s' % (User.TWITTER, full_data.get('id')), first_name=full_data.get('name'))
+
+            avatar_retrieve = image_retrieve(full_data.get('profile_image_url'))
+            print avatar_retrieve
+            if avatar_retrieve:
+                user.avatar = avatar_retrieve[2]
+                user.save()
+            SocialLink.objects.create(
+                user=user, social=SocialLink.TWITTER, is_auth=True,
+                url='https://twitter.com/%s' % full_data.get('screen_name')
+            )
+
+            return user
         return None
 
 
