@@ -14,7 +14,7 @@ from articles.models import Article, ArticleImage
 
 
 class ArticleSetPagination(PageNumberPagination):
-    page_size = 20
+    page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -54,6 +54,13 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = ArticleSetPagination
     lookup_field = 'slug'
+
+    def get_queryset(self):
+        user = self.request.query_params.get('user')
+        if user == 'me':
+            return Article.objects.none()
+        else:
+            return Article.objects.filter(owner__id=int(user))
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
