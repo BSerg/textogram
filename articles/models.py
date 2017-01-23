@@ -9,7 +9,7 @@ from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
-from articles.utils import process_content
+from articles.validation import process_content
 from common import upload_to
 
 

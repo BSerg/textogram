@@ -1,14 +1,13 @@
 from __future__ import unicode_literals
 
 import hashlib
-from pprint import pprint as pp
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from articles import ArticleContentType
-from articles.utils import IS_REQUIRED, ContentValidator, NULLABLE, TYPE, ANY, MAX_LENGTH, STRUCTURE, STRUCTURE_LIST, \
-    MIN_LENGTH, ContentBlockMetaGenerator, process_content
+from articles.validation import IS_REQUIRED, MAX_LENGTH, MIN_LENGTH, NULLABLE, TYPE, ANY, STRUCTURE, STRUCTURE_LIST, \
+    ContentValidator, ContentBlockMetaGenerator, process_content
 
 
 class ArticleContentValidationTestCase(TestCase):
@@ -119,3 +118,8 @@ class ContentMetaGeneratorTestCase(TestCase):
         process_content(content)
 
         self.assertDictEqual(content['__meta'], {'is_valid': True})
+
+
+class EmbedTestCase(TestCase):
+    # TODO add embed tests
+    pass

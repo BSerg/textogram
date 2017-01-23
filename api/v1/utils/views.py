@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from articles import EmbedHandlerError, get_embed
+from articles.utils import EmbedHandlerError, get_embed
 from textogram.settings import VK_APP_ID, VK_APP_SECRET
 
 
