@@ -1,11 +1,23 @@
 from __future__ import unicode_literals
 
 import hashlib
+import json
 
 from django.core.exceptions import ValidationError
 
 from articles import ArticleContentType
 from articles.utils import get_embed
+
+
+class ContentSizeValidator(object):
+
+    def __init__(self, size=1024*1024):
+        self.size = size
+
+    def __call__(self, content):
+        content_json = json.dumps(content)
+        if len(content_json) > self.size:
+            raise ValidationError('Content size too large')
 
 
 class ContentBlockValidationError(Exception):
@@ -28,18 +40,21 @@ PHOTO_VALIDATION_CFG = {
     'image': {IS_REQUIRED: True, TYPE: (str, unicode)},
     'caption': {IS_REQUIRED: False, TYPE: (str, unicode), MAX_LENGTH: 200},
 }
+
+BLOCK_BASE_VALIDATION_CFG = {
+    'id': {IS_REQUIRED: True, TYPE: (str, unicode)},
+    'type': {IS_REQUIRED: True, ANY: ArticleContentType.__dict__.values()},
+}
+
 ROOT_VALIDATION_CFG = {
     'title': {IS_REQUIRED: True, MAX_LENGTH: 150},
     'cover': {
         IS_REQUIRED: True,
         NULLABLE: True,
         STRUCTURE: PHOTO_VALIDATION_CFG},
-    'blocks': {IS_REQUIRED: True}
+    'blocks': {IS_REQUIRED: True, STRUCTURE_LIST: BLOCK_BASE_VALIDATION_CFG}
 }
-BLOCK_BASE_VALIDATION_CFG = {
-    'id': {IS_REQUIRED: True, TYPE: (str, unicode)},
-    'type': {IS_REQUIRED: True, ANY: ArticleContentType.__dict__.values()},
-}
+
 BLOCKS_VALIDATION_CFG = {
     ArticleContentType.TEXT: {
         'value': {IS_REQUIRED: True, MAX_LENGTH: 3000}

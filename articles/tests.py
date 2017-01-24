@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import hashlib
+from pprint import pprint
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -116,7 +117,6 @@ class ContentMetaGeneratorTestCase(TestCase):
             ]
         }
         process_content(content)
-
         self.assertDictEqual(content['__meta'], {'is_valid': True})
 
 

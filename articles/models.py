@@ -9,7 +9,7 @@ from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
-from articles.validation import process_content
+from articles.validation import process_content, ContentValidator, ContentSizeValidator
 from common import upload_to
 
 
@@ -30,7 +30,8 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
-    content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]))
+    content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
+                        validators=[ContentSizeValidator(), ContentValidator()])
     html = models.TextField('HTML', blank=True, editable=False)
     ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)
