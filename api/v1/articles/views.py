@@ -11,6 +11,7 @@ from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleConte
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
+from accounts.models import Subscription
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -58,7 +59,8 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.query_params.get('user')
         if user == 'me':
-            return Article.objects.none()
+            subscriptions = Subscription.objects.filter(user=self.request.user)
+            return Article.objects.filter(owner__author__in=subscriptions)
         else:
             return Article.objects.filter(owner__id=int(user))
 
