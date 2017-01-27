@@ -46,13 +46,20 @@ BLOCK_BASE_VALIDATION_CFG = {
     'type': {IS_REQUIRED: True, ANY: ArticleContentType.__dict__.values()},
 }
 
+DIALOG_RECIPIENT_CFG = {
+
+}
+
 ROOT_VALIDATION_CFG = {
     'title': {IS_REQUIRED: True, MAX_LENGTH: 150},
     'cover': {
         IS_REQUIRED: True,
         NULLABLE: True,
         STRUCTURE: PHOTO_VALIDATION_CFG},
-    'blocks': {IS_REQUIRED: True, STRUCTURE_LIST: BLOCK_BASE_VALIDATION_CFG}
+    'blocks': {
+        IS_REQUIRED: True,
+        STRUCTURE_LIST: BLOCK_BASE_VALIDATION_CFG
+    }
 }
 
 BLOCKS_VALIDATION_CFG = {
@@ -91,7 +98,28 @@ BLOCKS_VALIDATION_CFG = {
     ArticleContentType.POST: {
         'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
-    ArticleContentType.DIALOG: {},
+    ArticleContentType.DIALOG: {
+        'participants': {
+            IS_REQUIRED: True,
+            STRUCTURE_LIST: {
+                'id': {IS_REQUIRED: True, TYPE: int},
+                'avatar': {
+                    IS_REQUIRED: True,
+                    NULLABLE: True,
+                    STRUCTURE: PHOTO_VALIDATION_CFG
+                },
+                'name': {IS_REQUIRED: True, MAX_LENGTH: 200},
+                'is_interviewer': {TYPE: bool}
+            }
+        },
+        'remarks': {
+            IS_REQUIRED: True,
+            STRUCTURE_LIST: {
+                'participant_id': {IS_REQUIRED: True, TYPE: int},
+                'value': {IS_REQUIRED: True, MAX_LENGTH: 1000}
+            }
+        }
+    },
 }
 
 
