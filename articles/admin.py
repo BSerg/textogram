@@ -4,6 +4,10 @@ from articles.models import Article
 
 
 class ArticleAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'slug', 'get_title']
+    readonly_fields = ['slug']
+
+    def get_title(self, obj):
+        return obj.content.get('title')
 
 admin.site.register(Article, ArticleAdmin)

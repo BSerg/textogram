@@ -57,9 +57,21 @@ class ArticleImage(models.Model):
 
 @receiver(pre_save, sender=Article)
 def update_slug(sender, instance, **kwargs):
+    db_instance = Article.objects.get(pk=instance.id) if instance.id else None
     if instance.status == Article.DRAFT:
         if instance.content.get('title'):
-            instance.slug = slugify(instance.content['title'])
+            if db_instance and db_instance.content.get('title') != instance.content.get('title'):
+                articles = Article.objects.exclude(pk=instance.id)
+            else:
+                articles = Article.objects.all()
+            slug = slugify(instance.content['title'])
+            suffix = ''
+            count = 0
+            while articles.filter(slug=slug + suffix).exists():
+                count += 1
+                suffix = '-%d' % count
+            slug += suffix
+            instance.slug = slug
 
 
 @receiver(pre_save, sender=Article)
