@@ -56,7 +56,7 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
         return ''
 
     class Meta(PublicArticleSerializer.Meta):
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access']
 
 
 class DraftArticleSerializer(PublicArticleSerializerMin):
