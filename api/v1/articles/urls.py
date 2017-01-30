@@ -11,7 +11,7 @@ router.register('articles/editor', views.ArticleViewSet)
 router.register('drafts', views.DraftListViewSet)
 
 urlpatterns = [
+    url(r'', include(router.urls)),
     url('^articles/$', views.PublicArticleListViewSet.as_view({'get': 'list'}), name='articles_list'),
     url('^articles/(?P<slug>[\w]+)/$', views.PublicArticleListViewSet.as_view({'get': 'retrieve'}), name='article'),
-    url(r'', include(router.urls))
 ]

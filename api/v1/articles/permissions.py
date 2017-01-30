@@ -6,6 +6,8 @@ from articles.models import Article
 
 class IsOwnerForUnsafeRequests(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
+        if request.method == 'POST':
+            return True
         return obj.owner == request.user
 
 
