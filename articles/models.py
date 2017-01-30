@@ -1,6 +1,8 @@
 #!coding:utf-8
 from __future__ import unicode_literals
 
+from uuid import uuid4
+
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.core.validators import MaxValueValidator
 from django.db import models
@@ -72,6 +74,8 @@ def update_slug(sender, instance, **kwargs):
                 suffix = '-%d' % count
             slug += suffix
             instance.slug = slug
+        elif not instance.slug:
+            instance.slug = str(uuid4())
 
 
 @receiver(pre_save, sender=Article)
