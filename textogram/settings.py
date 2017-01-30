@@ -49,6 +49,7 @@ INSTALLED_APPS += [
     'accounts',
     'common',
     'articles',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -145,6 +146,17 @@ REACT = {
 
 AUTH_USER_MODEL = 'accounts.User'
 
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.auth.VKAuthBackend',
+    'accounts.auth.FBAuthBackend',
+    'accounts.auth.GoogleAuthClient',
+    'accounts.auth.TwitterAuthBackend',
+    'accounts.auth.PhoneAuthBackend',
+    'django.contrib.auth.backends.ModelBackend'
+]
+
+
 # REST
 
 REST_FRAMEWORK = {
@@ -174,6 +186,7 @@ FACEBOOK_LOGIN = ''
 FACEBOOK_PASSWORD = ''
 FACEBOOK_REDIRECT_URI = ''
 
+GOOGLE_CLIENT_ID = ''
 GOOGLE_API_KEY = ''
 
 try:
