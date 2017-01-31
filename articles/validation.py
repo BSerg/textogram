@@ -233,12 +233,6 @@ def process_content(content):
         try:
             ContentValidator.validate_structure(content, field, params)
         except ValidationError as e:
-            print e
             is_valid = False
-    if is_valid:
-        for block in content.get('blocks', []):
-            block_is_valid = block.get('__meta', {}).get('is_valid')
-            if block_is_valid is not None and not block_is_valid:
-                is_valid = False
     content['__meta'] = {'is_valid': is_valid}
     return content
