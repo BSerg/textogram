@@ -161,7 +161,7 @@ SOCIAL_PATTERNS = [
     (SocialLink.VK, '^(http:\/\/|https:\/\/)?(www\.)?vk\.com\/(\w|\d)+?\/?$'),
     (SocialLink.FB, '(?:(?:http|https):\/\/)?(?:www.)?facebook.com\/(?:(?:\w)*#!\/)?(?:pages\/)?(?:[?\w\-]*\/)?(?:profile.php\?id=(?=\d.*))?([\w\-]*)?'),
     (SocialLink.TWITTER, 'http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/?'),
-    (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)')
+    (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?')
 ]
 
 
