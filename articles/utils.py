@@ -1,9 +1,14 @@
 from __future__ import unicode_literals
 
+import hashlib
 import re
 
+import markdown
 import requests
+from django.core.exceptions import ValidationError
 
+from articles import ArticleContentType
+from articles.validation import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
 from textogram.settings import VK_ACCESS_TOKEN
 
 
@@ -231,3 +236,131 @@ def get_embed(url, **kwargs):
                 return handler.get_embed()
             except EmbedHandlerError:
                 return
+
+
+# CONTENT META
+
+class ContentBlockMetaGenerator(object):
+    @classmethod
+    def get_instance(cls, content):
+        if content.get('type') in [ArticleContentType.VIDEO, ArticleContentType.AUDIO, ArticleContentType.POST]:
+            return EmbedBlockMetaGenerator(content, _type=content['type'])
+        return cls(content)
+
+    def __init__(self, content):
+        self.content = content
+
+    def is_valid(self):
+        is_valid = True
+        base_validation_cfg = BLOCK_BASE_VALIDATION_CFG.items()
+        validation_cfg = BLOCKS_VALIDATION_CFG.get(self.content.get('type'), {}).items()
+        for field, params in base_validation_cfg + validation_cfg:
+            try:
+                ContentValidator.validate_structure(self.content, field, params)
+            except ValidationError:
+                is_valid = False
+        return is_valid
+
+    def get_content_hash(self):
+        return hashlib.md5(str(self.content)).hexdigest()
+
+    def get_meta(self):
+        return {
+            'is_valid': self.is_valid(),
+            'hash': self.get_content_hash()
+        }
+
+
+class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
+    def __init__(self, content, _type=None):
+        super(EmbedBlockMetaGenerator, self).__init__(content)
+        self.type = _type
+
+    def get_meta(self):
+        meta = super(EmbedBlockMetaGenerator, self).get_meta()
+        if self.is_valid():
+            if self.content['type'] == ArticleContentType.VIDEO:
+                embed = get_embed(self.content['value'], type='video')
+            else:
+                embed = get_embed(self.content['value'])
+            meta['embed'] = embed
+        return meta
+
+
+def process_content(content):
+    for block in content.get('blocks', []):
+        meta = block.pop('__meta', {})
+        meta_generator = ContentBlockMetaGenerator.get_instance(block)
+        if meta_generator:
+            if meta_generator.get_content_hash() != meta.get('hash'):
+                block['__meta'] = meta_generator.get_meta()
+    is_valid = True
+    for field, params in ROOT_VALIDATION_CFG.items():
+        try:
+            ContentValidator.validate_structure(content, field, params)
+        except ValidationError as e:
+            is_valid = False
+    content['__meta'] = {'is_valid': is_valid}
+    return content
+
+
+# CONTENT CONVERTER
+
+def content_to_html(content):
+    html = []
+    if content.get('__meta', {}).get('is_valid'):
+        for block in content.get('blocks'):
+
+            if not block.get('__meta', {}).get('is_valid'):
+                continue
+
+            if block.get('type') == ArticleContentType.TEXT:
+                html.append(
+                    markdown.markdown(block.get('value'), safe_mode='escape',extensions=['markdown.extensions.attr_list']))
+
+            elif block.get('type') == ArticleContentType.HEADER:
+                html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
+
+            elif block.get('type') == ArticleContentType.LEAD:
+                html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+
+            elif block.get('type') == ArticleContentType.PHRASE:
+                html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+
+            elif block.get('type') == ArticleContentType.LIST:
+                html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
+
+            elif block.get('type') == ArticleContentType.QUOTE:
+                if block.get('image') and block['image'].get('image'):
+                    _image_html = '<img src="%s"/>' % block['image']['image']
+                    _html = '<blockquote class="personal">\n%s\n%s\n</blockquote>'
+                    html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
+                else:
+                    html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+
+            elif block.get('type') == ArticleContentType.COLUMNS:
+                _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
+                html.append(_html % {
+                    'left': '<img src="%s"/>' % block.get('image', {}).get('image', ''),
+                    'right': markdown.markdown(block.get('value'), safe_mode='escape')
+                })
+
+            elif block.get('type') == ArticleContentType.VIDEO:
+                if not block.get('__meta', {}).get('embed'):
+                    continue
+                html.append('<div class="embed video">%s</div>' % block['__meta']['embed'])
+
+            elif block.get('type') == ArticleContentType.AUDIO:
+                if not block.get('__meta', {}).get('embed'):
+                    continue
+                html.append('<div class="embed audio">%s</div>' % block['__meta']['embed'])
+
+            elif block.get('type') == ArticleContentType.POST:
+                if not block.get('__meta', {}).get('embed'):
+                    continue
+                html.append('<div class="embed post">%s</div>' % block['__meta']['embed'])
+
+            elif block.get('type') == ArticleContentType.DIALOG:
+                html.append('<div>DIALOGS ARE BEING DEVELOPED RIGHT NOW...</div>')
+
+    return '\n'.join(html)

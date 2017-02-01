@@ -61,18 +61,19 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
         if user == 'me':
             subscriptions = Subscription.objects.filter(user=self.request.user)
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED)
-        else:
+        elif user is not None:
             if self.request.user.id == int(user):
                 return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
             else:
                 return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
+        else:
+            return Article.objects.none()
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Article.objects.filter(status=Article.PUBLISHED)
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
-    # pagination_class = ArticleSetPagination
     lookup_field = 'slug'
 
 

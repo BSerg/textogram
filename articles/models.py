@@ -4,14 +4,14 @@ from __future__ import unicode_literals
 from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
-from django.core.validators import MaxValueValidator
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
-from articles.validation import process_content, ContentValidator, ContentSizeValidator
+from articles.utils import process_content, content_to_html
+from articles.validation import ContentValidator, ContentSizeValidator
 from common import upload_to
 
 
@@ -31,7 +31,7 @@ class Article(models.Model):
     )
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
-    slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
+    slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=True)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[ContentSizeValidator(), ContentValidator()])
     html = models.TextField('HTML', blank=True, editable=False)
@@ -81,3 +81,5 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
+    if instance.status == Article.PUBLISHED:
+        instance.html = content_to_html(instance.content)

@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
 
 import hashlib
-from pprint import pprint
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from articles import ArticleContentType
+from articles.utils import process_content, ContentBlockMetaGenerator, content_to_html
 from articles.validation import IS_REQUIRED, MAX_LENGTH, MIN_LENGTH, NULLABLE, TYPE, ANY, STRUCTURE, STRUCTURE_LIST, \
-    ContentValidator, ContentBlockMetaGenerator, process_content
+    ContentValidator
 
 
 class ArticleContentValidationTestCase(TestCase):
@@ -123,3 +123,90 @@ class ContentMetaGeneratorTestCase(TestCase):
 class EmbedTestCase(TestCase):
     # TODO add embed tests
     pass
+
+
+class ContentConverterTestCase(TestCase):
+    def setUp(self):
+        self.base_content = {'title': 'Hello TEST', 'cover': None, 'blocks': [], '__meta': {'is_valid': True}}
+
+    def test_convert_text(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.TEXT,
+            'value': 'Hello **World**!',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual('<p>Hello <strong>World</strong>!</p>', content_to_html(c))
+
+    def test_convert_header(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.HEADER,
+            'value': 'Header',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual('<h2>Header</h2>', content_to_html(c))
+
+    def test_convert_lead(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.LEAD,
+            'value': 'Donec rutrum congue leo eget malesuada.',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual('<div class="lead"><p>Donec rutrum congue leo eget malesuada.</p></div>', content_to_html(c))
+
+    def test_convert_phrase(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.PHRASE,
+            'value': 'Sed porttitor lectus nibh.\n\nVivamus magna justo, lacinia eget consectetur sed, convallis at tellus.',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual('<div class="phrase"><p>Sed porttitor lectus nibh.</p>\n<p>Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.</p></div>', content_to_html(c))
+
+    def test_convert_list(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.LIST,
+            'value': '* Sed porttitor lectus nibh.\n* Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual('<ul>\n<li>Sed porttitor lectus nibh.</li>\n<li>Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.</li>\n</ul>', content_to_html(c))
+
+    def test_convert_quote(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.QUOTE,
+            'value': 'Sed porttitor lectus nibh.\n\nVivamus magna justo, lacinia eget consectetur sed, convallis at tellus.',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual(
+            '<blockquote>\n<p>Sed porttitor lectus nibh.</p>\n<p>Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.</p>\n</blockquote>',
+            content_to_html(c)
+        )
+        c['blocks'][0].update(image={
+            'id': 1,
+            'image': 'http://ya.ru/hello.jpg'
+        })
+        self.assertEqual(
+            '<blockquote class="personal">\n<img src="http://ya.ru/hello.jpg"/>\n<p>Sed porttitor lectus nibh.</p>\n<p>Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.</p>\n</blockquote>',
+            content_to_html(c)
+        )
+
+    def test_convert_columns(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.COLUMNS,
+            'image': {
+                'id': 1,
+                'image': 'http://ya.ru/hello.jpg'
+            },
+            'value': 'Sed porttitor lectus nibh.\n\nVivamus magna justo, lacinia eget consectetur sed, convallis at tellus.',
+            '__meta': {'is_valid': True}
+        })
+        self.assertEqual(
+            '<div class="columns">\n<div class="column">\n<img src="http://ya.ru/hello.jpg"/>\n</div>\n<div class="column">\n<p>Sed porttitor lectus nibh.</p>\n<p>Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus.</p>\n</div>\n</div>',
+            content_to_html(c)
+        )
+

@@ -31,6 +31,9 @@ class PublicArticleSerializer(serializers.ModelSerializer):
     def get_cover(self, obj):
         try:
             cover_id = obj.content.get('cover', {}).get('id')
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.images.get(pk=cover_id).image.url)
             return obj.images.get(pk=cover_id).image.url
         except ArticleImage.DoesNotExist:
             return None
