@@ -357,17 +357,17 @@ def content_to_html(content):
             elif block.get('type') == ArticleContentType.VIDEO:
                 if not block.get('__meta', {}).get('embed'):
                     continue
-                html.append('<div class="embed video">%s</div>' % block['__meta']['embed'])
+                html.append('<div class="embed video">\n%s\n</div>' % block['__meta']['embed'])
 
             elif block.get('type') == ArticleContentType.AUDIO:
                 if not block.get('__meta', {}).get('embed'):
                     continue
-                html.append('<div class="embed audio">%s</div>' % block['__meta']['embed'])
+                html.append('<div class="embed audio">\n%s\n</div>' % block['__meta']['embed'])
 
             elif block.get('type') == ArticleContentType.POST:
                 if not block.get('__meta', {}).get('embed'):
                     continue
-                html.append('<div class="embed post">%s</div>' % block['__meta']['embed'])
+                html.append('<div class="embed post">\n%s\n</div>' % block['__meta']['embed'])
 
             elif block.get('type') == ArticleContentType.DIALOG:
                 html.append('<div>DIALOGS ARE BEING DEVELOPED RIGHT NOW...</div>')

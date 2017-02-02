@@ -71,7 +71,7 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Article.objects.filter(status=Article.PUBLISHED)
+    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED])
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
