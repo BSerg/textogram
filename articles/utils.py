@@ -292,8 +292,7 @@ def process_content(content):
         meta = block.pop('__meta', {})
         meta_generator = ContentBlockMetaGenerator.get_instance(block)
         if meta_generator:
-            if meta_generator.get_content_hash() != meta.get('hash'):
-                block['__meta'] = meta_generator.get_meta()
+            block['__meta'] = meta_generator.get_meta()
     is_valid = True
     for field, params in ROOT_VALIDATION_CFG.items():
         try:
@@ -337,7 +336,6 @@ def content_to_html(content):
                     html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
                 else:
                     html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
-
             elif block.get('type') == ArticleContentType.COLUMNS:
                 _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
                 html.append(_html % {

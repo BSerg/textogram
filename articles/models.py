@@ -11,7 +11,7 @@ from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
 from articles.utils import process_content, content_to_html
-from articles.validation import ContentValidator, ContentSizeValidator
+from articles.validation import ContentValidator, validate_content_size
 from common import upload_to
 
 
@@ -37,7 +37,7 @@ class Article(models.Model):
     )
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
-    slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=True)
+    slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
@@ -87,5 +87,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
+    print instance.content
     if instance.status == Article.PUBLISHED:
         instance.html = content_to_html(instance.content)
+        print 'HELLO', instance.html

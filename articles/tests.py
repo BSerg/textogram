@@ -109,14 +109,11 @@ class ContentMetaGeneratorTestCase(TestCase):
         self.assertDictEqual(meta, {'is_valid': True, 'hash': hashlib.md5(str(c1)).hexdigest()})
 
     def test_process_content(self):
-        content = {
-            'title': 'Hello World!',
-            'cover': None,
-            'blocks': [
-                {"type": 3, "id": "7f7d0105-d8ed-4b09-96f0-135d7e9791f8", "value": "Lorem Ipsum Tralala"},
-            ]
-        }
+        content = {"blocks": [{"type": 3, "id": "5e357b19-3e98-4c4a-84ae-2dcbc6457785", "value": "Sed porttitor lectus nibh. Sed porttitor lectus nibh. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus."}, {"type": 2, "id": "d6e4854e-3892-44f6-882e-5d59200b048a", "value": "Cras ultricies ligula sed magna dictum porta."}, {"type": 1, "id": "3e2c44e9-fae3-4f45-8a3c-20d717261035", "value": "Proin eget tortor risus. Curabitur arcu erat, accumsan id imperdiet et, porttitor at sem. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Donec rutrum congue leo eget malesuada. Vivamus suscipit tortor eget felis porttitor volutpat. Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Cras ultricies ligula sed magna dictum porta. Vivamus suscipit tortor eget felis porttitor volutpat. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Pellentesque in ipsum id orci porta dapibus.\n\nVivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Donec sollicitudin molestie malesuada. Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Donec sollicitudin molestie malesuada. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur aliquet quam id dui posuere blandit. Curabitur aliquet quam id dui posuere blandit. Curabitur arcu erat, accumsan id imperdiet et, porttitor at sem. Pellentesque in ipsum id orci porta dapibus. Nulla porttitor accumsan tincidunt."}, {"image": None, "type": 7, "id": "12c6b209-9cb2-4bf5-abb0-dbee00fe038a", "value": "Nulla porttitor accumsan tincidunt. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec velit neque, auctor sit amet aliquam vel, ullamcorper sit amet ligula. Cras ultricies ligula sed magna dictum porta. Nulla quis lorem ut libero malesuada feugiat."}], "__meta": {"is_valid": True}, "cover": {"image": "http://localhost:8000/data/images/26/4b/264b9286-fbd6-42dc-87d1-a9d5377aef22.jpg", "preview": "http://localhost:8000/data/cache/20/7c/207c0971bcd0b9e15eba03b4e5f094bb.jpg", "id": 254}, "title": "Hello"}
         process_content(content)
+        from pprint import pprint
+        pprint(content_to_html(content))
+
         self.assertDictEqual(content['__meta'], {'is_valid': True})
 
 
