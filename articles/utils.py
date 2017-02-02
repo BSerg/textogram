@@ -37,8 +37,8 @@ class EmbedHandler(object):
 class YoutubeEmbedHandler(EmbedHandler):
     TYPE = 'youtube'
     EMBED_URL_REGEX = [
-        r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)$',
-        r'^https://youtu\.be/(P<id>[\w\-_]+)$'
+        r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)',
+        r'^https://youtu\.be/(?P<id>[\w\-]+)'
     ]
 
     def __init__(self, url, width=800, height=450, **kwargs):
