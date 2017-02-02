@@ -87,7 +87,5 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
-    print instance.content
     if instance.status == Article.PUBLISHED:
         instance.html = content_to_html(instance.content)
-        print 'HELLO', instance.html
