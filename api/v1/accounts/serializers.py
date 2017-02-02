@@ -70,7 +70,6 @@ class MeUserSerializer(UserSerializer):
             return '+..'
         if len(phone) <= 7:
             return phone[0:3] + '...'
-        print len(phone[4: -3])
 
         return '%s %s %s %s' % (phone[0:2], phone[2:4], re.sub("\d", ".", phone[4: -3]), phone[-2:])
 
