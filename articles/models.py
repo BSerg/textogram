@@ -27,11 +27,13 @@ class Article(models.Model):
     DRAFT = 1
     PUBLISHED = 2
     DELETED = 3
+    SHARED = 4
 
     STATUSES = (
         (DRAFT, 'Черновик'),
         (PUBLISHED, 'Опубликовано'),
-        (DELETED, 'Удалено')
+        (DELETED, 'Удалено'),
+        (SHARED, 'Общедоступно')
     )
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
