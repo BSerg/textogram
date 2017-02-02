@@ -11,12 +11,16 @@ from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
-from articles.validation import process_content, ContentValidator, ContentSizeValidator
+from articles.validation import process_content, ContentValidator, ContentSizeValidator, validate_content_size
 from common import upload_to
 
 
 def _upload_to(instance, filename):
     return upload_to('images', instance, filename)
+
+
+def validate_content(content):
+    ContentValidator()(content)
 
 
 class Article(models.Model):
@@ -33,7 +37,7 @@ class Article(models.Model):
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
-                        validators=[ContentSizeValidator(), ContentValidator()])
+                        validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
     ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)

@@ -20,6 +20,12 @@ class ContentSizeValidator(object):
             raise ValidationError('Content size too large')
 
 
+def validate_content_size(content):
+    content_json = json.dumps(content)
+    if len(content_json) > 1024*1024:
+        raise ValidationError('Content size too large')
+
+
 class ContentBlockValidationError(Exception):
     def __init__(self, message, _type):
         super(ContentBlockValidationError, self).__init__(message)

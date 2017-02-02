@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'storages',
+    'sorl.thumbnail',
 ]
 
 INSTALLED_APPS += [
