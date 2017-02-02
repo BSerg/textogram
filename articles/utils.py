@@ -326,6 +326,17 @@ def content_to_html(content):
             elif block.get('type') == ArticleContentType.PHRASE:
                 html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
 
+            elif block.get('type') == ArticleContentType.PHOTO:
+                photos = []
+                for index, photo in enumerate(block.get('photos', [])):
+                    photos.append('<img class="%s" src="%s"/>' % ('photo photo_%d' % index, photo.get('preview') or photo.get('image')))
+                html.append(
+                    '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                        '_class': 'photos_%d' % len(block.get('photos', [])),
+                        'content': '\n'.join(photos)
+                    }
+                )
+
             elif block.get('type') == ArticleContentType.LIST:
                 html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
 
