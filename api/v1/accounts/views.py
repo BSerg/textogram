@@ -196,7 +196,7 @@ class ResetPasswordView(APIView):
                 code.save()
                 return Response({'hash': code.hash})
 
-        elif 'code' not in request.data.key() and 'hash' in request.data.keys():
+        elif 'code' not in request.data.keys() and 'hash' in request.data.keys():
             code = PhoneCode.objects.filter(phone=request.user.phone, hash=request.data.get('hash'), disabled=False).first()
             pattern_password = re.compile(PASSWORD_PATTERN)
             password = request.data.get('password', '')
