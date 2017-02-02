@@ -59,7 +59,7 @@ class YoutubeEmbedHandler(EmbedHandler):
 
     def get_embed(self):
         embed = '<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{id}" ' \
-                'frameborder="0" allowfullscreen/>'
+                'frameborder="0" allowfullscreen></iframe>'
         id = self._get_id()
         if id:
             return embed.format(width=self.width, height=self.height, id=id)
@@ -98,7 +98,7 @@ class VimeoEmbedHandler(EmbedHandler):
         r = re.match(self.EMBED_URL_REGEX[0], self.url)
         if r:
             id = r.group('id')
-            embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen/>'
+            embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen></iframe>'
             return embed.format(url=self.PLAYER_URL.format(id=id), width=self.width, height=self.height)
         else:
             raise EmbedHandlerError('%s handler error. URL is not valid' % self.TYPE.upper())
