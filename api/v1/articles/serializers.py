@@ -19,7 +19,7 @@ class ArticleImageSerializer(serializers.ModelSerializer):
     preview = serializers.SerializerMethodField()
 
     def get_preview(self, obj):
-        preview = get_thumbnail(obj.image, '300x300', quality=85)
+        preview = get_thumbnail(obj.image, '400x400', quality=90)
         request = self.context.get('request')
         if preview and request:
             return request.build_absolute_uri(preview.url)
