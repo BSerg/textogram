@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'logout/$', views.Logout.as_view()),
     url(r'auth/twitter/$', views.TwitterAuthView.as_view()),
     url(r'registration/$', views.RegistrationView.as_view()),
+    url(r'recover_password/$', views.RecoverPasswordView.as_view()),
     url(r'reset_password/$', views.ResetPasswordView.as_view()),
     url(r'set_phone/$', views.SetPhonePasswordView.as_view()),
     url(r'', include(router.urls))

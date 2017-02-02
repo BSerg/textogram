@@ -117,11 +117,6 @@ def send_message(phone, code):
 
 class RegistrationView(APIView):
 
-    # PHONE_PATTERN = '^\d{7,18}$'
-    # PASSWORD_PATTERN = '^[^\s]{5,}$'
-    # FIRST_NAME_PATTERN = '^[A-Za-zА-Яа-я][\w]+$'
-    # LAST_NAME_PATTERN = '^(\w+\s?)*$'
-
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -186,10 +181,37 @@ class RegistrationView(APIView):
 
 
 class ResetPasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if 'code' not in request.data.keys() and 'hash' not in request.data.keys():
+            code = PhoneCode.objects.create(phone=request.user.phone)
+            send_message(request.user.phone, code)
+            return Response({'msg', 'success'})
+        elif 'code' in request.data.keys() and 'hash' not in request.data.keys():
+            code = PhoneCode.objects.filter(phone=request.user.phone, code=request.data.get('code'),
+                                            disabled=False, is_confirmed=False).first()
+            if code and code.is_active():
+                code.is_confirmed = True
+                code.save()
+                return Response({'hash': code.hash})
+
+        elif 'code' not in request.data.key() and 'hash' in request.data.keys():
+            code = PhoneCode.objects.filter(phone=request.user.phone, hash=request.data.get('hash'), disabled=False).first()
+            pattern_password = re.compile(PASSWORD_PATTERN)
+            password = request.data.get('password', '')
+            if code and pattern_password.match(password):
+                user = request.user
+                user.set_password(password)
+                user.save()
+                return Response({'msg': 'password reset success'})
+
+        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
+
+
+class RecoverPasswordView(APIView):
 
     permission_classes = [permissions.AllowAny]
-
-    # PASSWORD_PATTERN = '^[^\s]{5,}$'
 
     def post(self, request):
         phone = request.data.get('phone')
