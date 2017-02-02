@@ -33,6 +33,13 @@ class IsArticleContentOwner(permissions.BasePermission):
         return obj.article.owner == request.user
 
 
+class WebVisor(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated() and request.method not in permissions.SAFE_METHODS:
+            return False
+        return True
+
+
 class IsArticleContentPhotoOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return obj.content_item.article.owner == request.user

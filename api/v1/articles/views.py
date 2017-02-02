@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
@@ -23,7 +23,7 @@ class ArticleSetPagination(PageNumberPagination):
 class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerForUnsafeRequests]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerForUnsafeRequests]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
