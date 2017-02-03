@@ -35,6 +35,8 @@ class PublicArticleSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
     cover = serializers.SerializerMethodField()
 
+    images = serializers.SerializerMethodField()
+
     def get_title(self, obj):
         return obj.content.get('title')
 
@@ -50,9 +52,13 @@ class PublicArticleSerializer(serializers.ModelSerializer):
         except AttributeError:
             return None
 
+    def get_images(self, obj):
+        return ArticleImageSerializer(
+            obj.images.all(), context={'request': self.context.get('request')}, many=True).data
+
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'html']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'html', 'images']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):
