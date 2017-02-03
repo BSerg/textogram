@@ -347,6 +347,7 @@ def content_to_html(content):
                     html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
                 else:
                     html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+
             elif block.get('type') == ArticleContentType.COLUMNS:
                 _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
                 html.append(_html % {
@@ -370,6 +371,29 @@ def content_to_html(content):
                 html.append('<div class="embed post">\n%s\n</div>' % block['__meta']['embed'])
 
             elif block.get('type') == ArticleContentType.DIALOG:
-                html.append('<div>DIALOGS ARE BEING DEVELOPED RIGHT NOW...</div>')
+                dialogue_html = '<div class="dialogue">\n%s\n</div>'
+                participant_data = {}
+                for participant in block.get('participants'):
+                    id = participant.get('id')
+                    if id:
+                        participant_data[id] = participant
+                dialogue_data = []
+                for remark in block.get('remarks'):
+                    if remark.get('participant_id') in participant_data:
+                        _participant = participant_data[remark.get('participant_id')]
+
+                        if _participant.get('is_interviewer'):
+                            remark_html = '<div class="remark question">\n%s\n</div>'
+                        else:
+                            remark_html = '<div class="remark">\n%s\n</div>'
+
+                        if _participant.get('avatar') and _participant['avatar'].get('image'):
+                            remark_html = remark_html % ('<img src="%s"/>\n%s' % (_participant['avatar']['image'], remark.get('value', '')))
+                        else:
+                            remark_html = remark_html % ('<span data-name="%s"></span>\n%s' % (_participant.get('name', ' ')[0], remark.get('value', '')))
+
+                        dialogue_data.append(remark_html)
+
+                html.append(dialogue_html % '\n'.join(dialogue_data))
 
     return '\n'.join(html)

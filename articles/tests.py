@@ -207,3 +207,29 @@ class ContentConverterTestCase(TestCase):
             content_to_html(c)
         )
 
+    def test_convert_dialogue(self):
+        c = self.base_content
+        c['blocks'].append({
+            'type': ArticleContentType.DIALOG,
+            'participants': [
+                {
+                    'id': 1,
+                    'name': 'Q',
+                    'avatar': {'id': 1, 'image': 'http://ya.ru/q.jpg'}
+                },
+                {
+                    'id': 2,
+                    'name': 'A',
+                    'avatar': {'id': 2, 'image': 'http://ya.ru/a.jpg'}
+                },
+
+            ],
+            'remarks': [
+                {'participant_id': 1, 'value': 'question'},
+                {'participant_id': 2, 'value': 'answer'},
+            ],
+            '__meta': {'is_valid': True}
+        })
+        from pprint import pprint
+        pprint(content_to_html(c))
+
