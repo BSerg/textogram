@@ -93,7 +93,6 @@ class MeUserSerializer(UserSerializer):
                             'phone', 'token']
 
 
-
 class PublicUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 

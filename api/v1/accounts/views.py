@@ -47,6 +47,13 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+
+        if self.request.query_params.get('subscribed_to'):
+            return User.objects.filter(subscriptions__author_id=self.request.query_params.get('subscribed_to'))
+
+        return self.queryset
+
     @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
     def subscribe(self, request, pk=None):
         try:

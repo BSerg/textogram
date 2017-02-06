@@ -104,7 +104,7 @@ class SocialLink(models.Model):
 
 
 class Subscription(models.Model):
-    user = models.ForeignKey(User, related_name='user', verbose_name='Пользователь')
+    user = models.ForeignKey(User, related_name='subscriptions', verbose_name='Пользователь')
     author = models.ForeignKey(User, related_name='author', verbose_name='Автор')
     subscribed_at = models.DateTimeField('Подписался', auto_now_add=True)
     is_active = models.BooleanField('Активно', default=True)
