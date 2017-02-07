@@ -1,12 +1,10 @@
 from __future__ import unicode_literals
 
-import hashlib
 import json
 
 from django.core.exceptions import ValidationError
 
 from articles import ArticleContentType
-from articles.utils import get_embed
 
 
 class ContentSizeValidator(object):
@@ -18,6 +16,12 @@ class ContentSizeValidator(object):
         content_json = json.dumps(content)
         if len(content_json) > self.size:
             raise ValidationError('Content size too large')
+
+
+def validate_content_size(content):
+    content_json = json.dumps(content)
+    if len(content_json) > 1024*1024:
+        raise ValidationError('Content size too large')
 
 
 class ContentBlockValidationError(Exception):
@@ -172,73 +176,3 @@ class ContentValidator(object):
 
     def __call__(self, content):
         self._root_validate(content)
-
-
-class ContentBlockMetaGenerator(object):
-    @classmethod
-    def get_instance(cls, content):
-        if content.get('type') in [ArticleContentType.VIDEO, ArticleContentType.AUDIO, ArticleContentType.POST]:
-            return EmbedBlockMetaGenerator(content, _type=content['type'])
-        return cls(content)
-
-    def __init__(self, content):
-        self.content = content
-
-    def is_valid(self):
-        is_valid = True
-        base_validation_cfg = BLOCK_BASE_VALIDATION_CFG.items()
-        validation_cfg = BLOCKS_VALIDATION_CFG.get(self.content.get('type'), {}).items()
-        for field, params in base_validation_cfg + validation_cfg:
-            try:
-                ContentValidator.validate_structure(self.content, field, params)
-            except ValidationError:
-                is_valid = False
-        return is_valid
-
-    def get_content_hash(self):
-        return hashlib.md5(str(self.content)).hexdigest()
-
-    def get_meta(self):
-        return {
-            'is_valid': self.is_valid(),
-            'hash': self.get_content_hash()
-        }
-
-
-class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
-    def __init__(self, content, _type=None):
-        super(EmbedBlockMetaGenerator, self).__init__(content)
-        self.type = _type
-
-    def get_meta(self):
-        meta = super(EmbedBlockMetaGenerator, self).get_meta()
-        if self.is_valid():
-            if self.content['type'] == ArticleContentType.VIDEO:
-                embed = get_embed(self.content['value'], type='video')
-            else:
-                embed = get_embed(self.content['value'])
-            meta['embed'] = embed
-        return meta
-
-
-def process_content(content):
-    for block in content.get('blocks', []):
-        meta = block.pop('__meta', {})
-        meta_generator = ContentBlockMetaGenerator.get_instance(block)
-        if meta_generator:
-            if meta_generator.get_content_hash() != meta.get('hash'):
-                block['__meta'] = meta_generator.get_meta()
-    is_valid = True
-    for field, params in ROOT_VALIDATION_CFG.items():
-        try:
-            ContentValidator.validate_structure(content, field, params)
-        except ValidationError as e:
-            print e
-            is_valid = False
-    if is_valid:
-        for block in content.get('blocks', []):
-            block_is_valid = block.get('__meta', {}).get('is_valid')
-            if block_is_valid is not None and not block_is_valid:
-                is_valid = False
-    content['__meta'] = {'is_valid': is_valid}
-    return content

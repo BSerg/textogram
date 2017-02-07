@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
@@ -23,7 +23,7 @@ class ArticleSetPagination(PageNumberPagination):
 class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerForUnsafeRequests]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerForUnsafeRequests]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -61,18 +61,19 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
         if user == 'me':
             subscriptions = Subscription.objects.filter(user=self.request.user)
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED)
-        else:
+        elif user is not None:
             if self.request.user.id == int(user):
                 return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
             else:
                 return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
+        else:
+            return Article.objects.none()
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Article.objects.filter(status=Article.PUBLISHED)
+    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED])
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
-    # pagination_class = ArticleSetPagination
     lookup_field = 'slug'
 
 
