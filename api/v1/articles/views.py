@@ -63,7 +63,7 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif user is not None:
             if self.request.user.id == int(user):
-                return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED, link_access=False)
+                return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
             else:
                 return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
         else:
