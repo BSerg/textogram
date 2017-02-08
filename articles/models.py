@@ -37,7 +37,7 @@ class Article(models.Model):
     )
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
-    slug = models.SlugField('Машинное имя', unique=True, db_index=True, editable=False)
+    slug = models.SlugField('Машинное имя', max_length=200, unique=True, db_index=True, editable=False)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
