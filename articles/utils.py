@@ -328,18 +328,26 @@ def content_to_html(content):
 
             elif block.get('type') == ArticleContentType.PHOTO:
                 photos = []
-                for index, photo in enumerate(block.get('photos', [])):
-                    photos.append(
-                        '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                        (photo.get('id', 0), photo.get('caption', ''), 'photo photo_%d' % index,
-                         photo.get('preview') or photo.get('image'))
+                if len(block.get('photos', [])) == 1:
+                    if block['photos'][0].get('caption'):
+                        _photo_html = '<div class="single_photo">\n<img src="%s" />\n<div class="caption">%s</div>\n</div>'
+                        html.append(_photo_html % (block['photos'][0]['image'], block['photos'][0]['caption']))
+                    else:
+                        _photo_html = '<div class="single_photo">\n<img src="%s" />\n</div>'
+                        html.append(_photo_html % block['photos'][0]['image'])
+                else:
+                    for index, photo in enumerate(block.get('photos', [])):
+                        photos.append(
+                            '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
+                            (photo.get('id', 0), photo.get('caption', ''), 'photo photo_%d' % index,
+                             photo.get('preview') or photo.get('image'))
+                        )
+                    html.append(
+                        '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                            '_class': 'photos_%d' % len(block.get('photos', [])),
+                            'content': '\n'.join(photos)
+                        }
                     )
-                html.append(
-                    '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
-                        '_class': 'photos_%d' % len(block.get('photos', [])),
-                        'content': '\n'.join(photos)
-                    }
-                )
 
             elif block.get('type') == ArticleContentType.LIST:
                 html.append(markdown.markdown(block.get('value'), safe_mode='escape'))

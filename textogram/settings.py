@@ -190,6 +190,8 @@ FACEBOOK_REDIRECT_URI = ''
 GOOGLE_CLIENT_ID = ''
 GOOGLE_API_KEY = ''
 
+THUMBNAIL_SIZE = '600x600'
+
 try:
     from local_settings import *
 except ImportError:
