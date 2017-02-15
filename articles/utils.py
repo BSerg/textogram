@@ -340,7 +340,7 @@ def content_to_html(content):
                         photos.append(
                             '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
                             (photo.get('id', 0), photo.get('caption', ''), 'photo photo_%d' % index,
-                             photo.get('preview') or photo.get('image'))
+                             photo.get('preview') or photo.get('image', ''))
                         )
                     html.append(
                         '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
