@@ -339,7 +339,7 @@ def content_to_html(content):
                     for index, photo in enumerate(block.get('photos', [])):
                         photos.append(
                             '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                            (photo.get('id', 0), photo.get('caption', ''), 'photo photo_%d' % index or -1,
+                            (photo.get('id') or 0, photo.get('caption', ''), 'photo photo_%d' % index,
                              photo.get('preview') or photo.get('image', ''))
                         )
                     html.append(
