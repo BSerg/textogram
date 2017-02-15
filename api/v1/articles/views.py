@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import viewsets, mixins, permissions
 from rest_framework.decorators import detail_route
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
-from articles.models import Article, ArticleImage
+from articles.models import Article, ArticleImage, ArticleView
 from accounts.models import Subscription
 
 
@@ -75,6 +76,21 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        fingerprint = request.META.get('HTTP_X_FINGERPRINT')
+        if fingerprint:
+            if request.user.is_authenticated() and ArticleView.objects.filter(article=instance, user=request.user).exists():
+                ArticleView.objects.filter(article=instance, user=request.user).update(views_count=F('views_count') + 1)
+            elif request.user.is_authenticated():
+                ArticleView.objects.create(article=instance, user=request.user, fingerprint=fingerprint)
+            elif ArticleView.objects.filter(article=instance, fingerprint=fingerprint).exists():
+                ArticleView.objects.filter(article=instance, fingerprint=fingerprint).update(views_count=F('views_count') + 1)
+            else:
+                ArticleView.objects.create(article=instance, fingerprint=fingerprint)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):

@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
@@ -41,6 +41,7 @@ class Article(models.Model):
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
+    views_cached = models.PositiveIntegerField('Просмотры', default=0)
     ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -61,6 +62,22 @@ class ArticleImage(models.Model):
     article = models.ForeignKey(Article, verbose_name='Статья', related_name='images')
     image = models.ImageField('Обложка', upload_to=_upload_to)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+
+
+class ArticleView(models.Model):
+    article = models.ForeignKey(Article, verbose_name='Статья', related_name='views')
+    user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь', blank=True, null=True)
+    fingerprint = models.CharField('Цифровой отпечаток клиента', max_length=255)
+    views_count = models.PositiveIntegerField('Просмотры пользователя', default=0)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    last_modified = models.DateTimeField('Дата последнего обновления', auto_now=True)
+
+    def __unicode__(self):
+        return self.fingerprint
+
+    class Meta:
+        verbose_name = 'Просмотр'
+        verbose_name_plural = 'Просмотры'
 
 
 @receiver(pre_save, sender=Article)
@@ -89,3 +106,11 @@ def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
     if instance.status == Article.PUBLISHED or instance.status == Article.SHARED:
         instance.html = content_to_html(instance.content)
+
+
+@receiver(post_save, sender=ArticleView)
+def update_views_cached(sender, instance, created, **kwargs):
+    if created and instance.article.status == Article.PUBLISHED:
+        article = instance.article
+        article.views_cached += 1
+        article.save()

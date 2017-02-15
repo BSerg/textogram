@@ -35,8 +35,8 @@ class PublicArticleSerializer(serializers.ModelSerializer):
     owner = PublicUserSerializer(read_only=True)
     title = serializers.SerializerMethodField()
     cover = serializers.SerializerMethodField()
-
     images = serializers.SerializerMethodField()
+    views = serializers.IntegerField(source='views_cached')
 
     def get_title(self, obj):
         return obj.content.get('title')
@@ -59,7 +59,7 @@ class PublicArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'html', 'images']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):
