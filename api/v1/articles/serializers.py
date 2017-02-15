@@ -31,12 +31,13 @@ class ArticleImageSerializer(serializers.ModelSerializer):
         extra_kwargs = {'article': {'write_only': True}}
 
 
-class PublicArticleSerializer(serializers.ModelSerializer):
+class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     owner = PublicUserSerializer(read_only=True)
     title = serializers.SerializerMethodField()
     cover = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_cached')
+    url = serializers.SerializerMethodField()
 
     def get_title(self, obj):
         return obj.content.get('title')
@@ -57,9 +58,12 @@ class PublicArticleSerializer(serializers.ModelSerializer):
         return ArticleImageSerializer(
             obj.images.all(), context={'request': self.context.get('request')}, many=True).data
 
+    def get_url(self, obj):
+        return self.context['request'].build_absolute_uri('/articles/%s/' % obj.slug)
+
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):
