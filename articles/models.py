@@ -50,7 +50,7 @@ class Article(models.Model):
     deleted_at = models.DateTimeField('Дата удаления', blank=True, null=True)
 
     def __unicode__(self):
-        return str(self.id)
+        return self.content.get('title') or 'Статья #%d' % self.id
 
     class Meta:
         ordering = ['-published_at', '-created_at']

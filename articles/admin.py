@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from articles.models import Article
+from articles.models import Article, ArticleView
 
 
 class ArticleAdmin(admin.ModelAdmin):
@@ -11,3 +11,9 @@ class ArticleAdmin(admin.ModelAdmin):
         return obj.content.get('title')
 
 admin.site.register(Article, ArticleAdmin)
+
+
+class ArticleViewAdmin(admin.ModelAdmin):
+    list_display = ['article', 'user', 'fingerprint', 'views_count', 'created_at', 'last_modified']
+
+admin.site.register(ArticleView, ArticleViewAdmin)
