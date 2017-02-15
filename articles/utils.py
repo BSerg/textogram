@@ -391,6 +391,9 @@ def content_to_html(content):
                         participant_data[id] = participant
                 dialogue_data = []
                 for remark in block.get('remarks'):
+                    if not remark.get('value'):
+                        continue
+
                     if remark.get('participant_id') in participant_data:
                         _participant = participant_data[remark.get('participant_id')]
 
