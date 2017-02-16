@@ -59,12 +59,16 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.query_params.get('user')
-        if user == 'me':
+        if user == 'me' and not self.request.query_params.get('drafts'):
             subscriptions = Subscription.objects.filter(user=self.request.user)
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif user is not None:
             if self.request.user.id == int(user):
-                return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
+                print self.request.query_params
+                if self.request.query_params.get('drafts'):
+                    return Article.objects.filter(owner__id=int(user), status=Article.DRAFT)
+                else:
+                    return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
             else:
                 return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
         else:
