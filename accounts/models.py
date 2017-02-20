@@ -38,6 +38,7 @@ class User(AbstractUser):
     social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)
     uid = models.CharField('UID Соцсети', max_length=255, blank=True)
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
+    number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)
     phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
     phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
 
@@ -146,7 +147,6 @@ class PhoneCode(models.Model):
 
     class Meta:
         ordering = ('-created_at', )
-
 
 
 @receiver(post_save, sender=Subscription)

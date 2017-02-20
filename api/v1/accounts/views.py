@@ -51,6 +51,9 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
 
         if self.request.query_params.get('subscribed_to'):
             return User.objects.filter(subscriptions__author_id=self.request.query_params.get('subscribed_to'))
+        elif self.request.query_params.get('subscribed_by'):
+            subscriptions = Subscription.objects.filter(user=self.request.user).values_list('author', flat=True)
+            return User.objects.filter(pk__in=subscriptions)
 
         return self.queryset
 

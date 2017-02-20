@@ -64,7 +64,6 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif user is not None:
             if self.request.user.id == int(user):
-                print self.request.query_params
                 if self.request.query_params.get('drafts'):
                     return Article.objects.filter(owner__id=int(user), status=Article.DRAFT)
                 else:

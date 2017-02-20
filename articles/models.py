@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db import models
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
@@ -114,3 +114,18 @@ def update_views_cached(sender, instance, created, **kwargs):
         article = instance.article
         article.views_cached += 1
         article.save()
+
+
+@receiver(pre_save, sender=Article)
+def set_status_changed_articles(sender, instance, **kwargs):
+    current_status = Article.objects.get(pk=instance.id).status
+
+    if instance.status != current_status:
+        instance.status_changed = True
+
+
+@receiver(post_save, sender=Article)
+def recount_published_articles(sender, instance, **kwargs):
+    if hasattr(instance, 'status_changed'):
+        print instance.status_changed
+
