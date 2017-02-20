@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
 import hashlib
@@ -342,12 +343,18 @@ def content_to_html(content):
                             (photo.get('id') or 0, photo.get('caption', ''), 'photo photo_%d' % index,
                              photo.get('preview') or photo.get('image', ''))
                         )
-                    html.append(
-                        '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
-                            '_class': 'photos_%d' % len(block.get('photos', [])),
-                            'content': '\n'.join(photos)
-                        }
-                    )
+                    if len(block.get('photos', [])) <= 6:
+                        html.append(
+                            '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                                '_class': 'photos_%d' % len(block.get('photos', [])),
+                                'content': '\n'.join(photos)
+                            }
+                        )
+                    else:
+                        html.append(
+                            '<div class="photos">\n%s\n<div style="clear: both" class="caption">%s</div>\n</div>' %
+                            ('\n'.join(photos), 'Галерея из %d фото' % len(block.get('photos', [])))
+                        )
 
             elif block.get('type') == ArticleContentType.LIST:
                 html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
