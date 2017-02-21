@@ -330,10 +330,11 @@ def content_to_html(content):
             elif block.get('type') == ArticleContentType.PHOTO:
                 photos = []
                 for index, photo in enumerate(block.get('photos', [])):
+                    photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
+                        photo.get('preview') or photo.get('image', '')
                     photos.append(
                         '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                        (photo.get('id') or 0, photo.get('caption', ''), 'photo photo_%d' % index,
-                         photo.get('preview') or photo.get('image', ''))
+                        (photo.get('id') or 0, photo.get('caption', ''), 'photo photo_%d' % index, photo_url)
                     )
 
                 if len(block.get('photos', [])) == 1:
