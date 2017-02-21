@@ -41,6 +41,7 @@ class User(AbstractUser):
     number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)
     phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
     phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
+    description = models.CharField('Описание', max_length=255, blank=True, default='')
 
     class Meta:
         verbose_name = 'Пользователь'

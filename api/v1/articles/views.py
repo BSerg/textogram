@@ -14,6 +14,8 @@ from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializ
 from articles.models import Article, ArticleImage, ArticleView
 from accounts.models import Subscription
 
+from rest_framework.status import HTTP_400_BAD_REQUEST
+
 
 class ArticleSetPagination(PageNumberPagination):
     page_size = 50

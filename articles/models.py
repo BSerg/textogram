@@ -118,14 +118,17 @@ def update_views_cached(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=Article)
 def set_status_changed_articles(sender, instance, **kwargs):
-    current_status = Article.objects.get(pk=instance.id).status
+    if instance.id:
+        current_status = Article.objects.get(pk=instance.id).status
 
-    if instance.status != current_status:
-        instance.status_changed = True
+        if instance.status != current_status:
+            instance.status_changed = True
 
 
 @receiver(post_save, sender=Article)
 def recount_published_articles(sender, instance, **kwargs):
     if hasattr(instance, 'status_changed'):
-        print instance.status_changed
+        user = instance.owner
+        user.number_of_published_articles_cached = Article.objects.filter(status=Article.PUBLISHED, owner=user).count()
+        user.save()
 
