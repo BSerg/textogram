@@ -311,8 +311,8 @@ def content_to_html(content):
     if content.get('__meta', {}).get('is_valid'):
         for block in content.get('blocks'):
 
-            if not block.get('__meta', {}).get('is_valid'):
-                continue
+            # if not block.get('__meta', {}).get('is_valid'):
+            #     continue
 
             if block.get('type') == ArticleContentType.TEXT:
                 html.append(
