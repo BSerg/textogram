@@ -8,6 +8,7 @@ import markdown
 import requests
 from django.core.exceptions import ValidationError
 
+from advertisement.models import Banner
 from articles import ArticleContentType
 from articles.validation import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
 from textogram.settings import VK_ACCESS_TOKEN
@@ -306,7 +307,7 @@ def process_content(content):
 
 # CONTENT CONVERTER
 
-def content_to_html(content):
+def content_to_html(content, ads_enabled=False):
     html = []
     if content.get('__meta', {}).get('is_valid'):
         for block in content.get('blocks'):
@@ -424,5 +425,22 @@ def content_to_html(content):
                         dialogue_data.append(remark_html)
 
                 html.append(dialogue_html % '\n'.join(dialogue_data))
+
+    if len(html) and ads_enabled:
+        ad_300x250 = Banner.objects.filter(identifier='300x250').first()
+        ad_x250 = Banner.objects.filter(identifier='x250').first()
+        ad_728x90 = Banner.objects.filter(identifier='728x90').first()
+
+        if len(html) >= 8 and ad_728x90:
+            html.insert(4, '<div class="ad ad_728x90">%s</div>' % ad_728x90.code)
+
+        if ad_x250:
+            html.insert(0, '<div class="ad ad_x250">%s</div>' % ad_x250.code)
+
+        if ad_300x250:
+            html.append('<div class="ad ad_300x250">%s</div>' % ad_300x250.code)
+
+        if ad_728x90:
+            html.append('<div class="ad ad_728x90">%s</div>' % ad_728x90.code)
 
     return '\n'.join(html)

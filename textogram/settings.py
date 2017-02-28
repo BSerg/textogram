@@ -51,6 +51,7 @@ INSTALLED_APPS += [
     'common',
     'articles',
     'notifications',
+    'advertisement',
 ]
 
 MIDDLEWARE = [

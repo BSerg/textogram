@@ -63,7 +63,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url', 'ads_enabled']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

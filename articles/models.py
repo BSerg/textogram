@@ -105,7 +105,7 @@ def update_slug(sender, instance, **kwargs):
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
     if instance.status == Article.PUBLISHED or instance.status == Article.SHARED:
-        instance.html = content_to_html(instance.content)
+        instance.html = content_to_html(instance.content, ads_enabled=instance.ads_enabled)
 
 
 @receiver(post_save, sender=ArticleView)
