@@ -378,7 +378,7 @@ def content_to_html(content, ads_enabled=False):
             elif block.get('type') == ArticleContentType.COLUMNS:
                 _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
                 html.append(_html % {
-                    'left': '<img src="%s"/>' % block.get('image', {}).get('image', ''),
+                    'left': '<img src="%s"/>' % (block.get('image') or {}).get('image', ''),
                     'right': markdown.markdown(block.get('value'), safe_mode='escape')
                 })
 
