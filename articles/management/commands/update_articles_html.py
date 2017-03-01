@@ -13,4 +13,5 @@ class Command(BaseCommand):
         for article in Article.objects.filter(content__isnull=False):
             article.content = process_content(article.content)
             article.html = content_to_html(article.content)
+            article.save()
         self.stdout.write(self.style.SUCCESS('Articles successfully updated'))
