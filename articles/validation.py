@@ -43,6 +43,7 @@ PHOTO_VALIDATION_CFG = {
     'id': {IS_REQUIRED: True, NULLABLE: True, TYPE: int},
     'image': {IS_REQUIRED: True, TYPE: (str, unicode)},
     'caption': {IS_REQUIRED: False, TYPE: (str, unicode), MAX_LENGTH: 200},
+    'size': {IS_REQUIRED: False, TYPE: (str, unicode)}
 }
 
 BLOCK_BASE_VALIDATION_CFG = {

@@ -331,17 +331,22 @@ def content_to_html(content, ads_enabled=False):
             elif block.get('type') == ArticleContentType.PHOTO:
                 photos = []
                 for index, photo in enumerate(block.get('photos', [])):
+                    photo_class = 'photo photo_%d' % index
                     photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
                         photo.get('preview') or photo.get('image', '')
                     photos.append(
                         '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                        (photo.get('id') or 0, photo.get('caption', ''), 'photo photo_%d' % index, photo_url)
+                        (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
                     )
 
                 if len(block.get('photos', [])) == 1:
                     if block['photos'][0].get('caption'):
+                        photo_class = 'photos photos_1'
+                        if photo.get('size'):
+                            photo_class += ' photo_%s' % photo.get('size')
                         html.append(
-                            '<div class="photos photos_1">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                            '<div class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                                '_class': photo_class,
                                 'content': '\n'.join(photos),
                                 'caption': block['photos'][0]['caption']
                             }
