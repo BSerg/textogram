@@ -42,7 +42,7 @@ STRUCTURE_LIST = 'STRUCTURE_LIST'
 PHOTO_VALIDATION_CFG = {
     'id': {IS_REQUIRED: True, NULLABLE: True, TYPE: int},
     'image': {IS_REQUIRED: True, TYPE: (str, unicode)},
-    'caption': {IS_REQUIRED: False, TYPE: (str, unicode), MAX_LENGTH: 200},
+    'caption': {IS_REQUIRED: False, TYPE: (str, unicode)},
     'size': {IS_REQUIRED: False, TYPE: (str, unicode)}
 }
 
@@ -69,30 +69,30 @@ ROOT_VALIDATION_CFG = {
 
 BLOCKS_VALIDATION_CFG = {
     ArticleContentType.TEXT: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 3000}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.HEADER: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 100}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.LEAD: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 400}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.PHOTO: {
         'photos': {IS_REQUIRED: True, STRUCTURE_LIST: PHOTO_VALIDATION_CFG}
     },
     ArticleContentType.QUOTE: {
         'image': {IS_REQUIRED: True, NULLABLE: True, STRUCTURE: PHOTO_VALIDATION_CFG},
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 500}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.PHRASE: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 200}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.LIST: {
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 3000}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.COLUMNS: {
         'image': {IS_REQUIRED: True, STRUCTURE: PHOTO_VALIDATION_CFG},
-        'value': {IS_REQUIRED: True, MAX_LENGTH: 300}
+        'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.VIDEO: {
         'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
@@ -113,7 +113,7 @@ BLOCKS_VALIDATION_CFG = {
                     NULLABLE: True,
                     STRUCTURE: PHOTO_VALIDATION_CFG
                 },
-                'name': {IS_REQUIRED: True, MAX_LENGTH: 200},
+                'name': {IS_REQUIRED: True, TYPE: (str, unicode)},
                 'is_interviewer': {TYPE: bool}
             }
         },
@@ -121,7 +121,7 @@ BLOCKS_VALIDATION_CFG = {
             IS_REQUIRED: True,
             STRUCTURE_LIST: {
                 'participant_id': {IS_REQUIRED: True, TYPE: int},
-                'value': {IS_REQUIRED: True, MAX_LENGTH: 1000}
+                'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
             }
         }
     },

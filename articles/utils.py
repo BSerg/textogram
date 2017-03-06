@@ -312,12 +312,12 @@ def content_to_html(content, ads_enabled=False):
     if content.get('__meta', {}).get('is_valid'):
         for block in content.get('blocks'):
 
-            # if not block.get('__meta', {}).get('is_valid'):
-            #     continue
+            if not block.get('__meta', {}).get('is_valid'):
+                continue
 
             if block.get('type') == ArticleContentType.TEXT:
                 html.append(
-                    markdown.markdown(block.get('value'), safe_mode='escape',extensions=['markdown.extensions.attr_list']))
+                    markdown.markdown(block.get('value'), safe_mode='escape', extensions=['markdown.extensions.attr_list']))
 
             elif block.get('type') == ArticleContentType.HEADER:
                 html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
