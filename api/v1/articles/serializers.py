@@ -43,8 +43,14 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
         return obj.content.get('title')
 
     def get_cover(self, obj):
+        if 'cover_clipped' in obj.content:
+            cover = obj.content['cover_clipped']
+        elif 'cover' in obj.content:
+            cover = obj.content['cover']
+        else:
+            return None
         try:
-            cover_id = obj.content.get('cover', {}).get('id')
+            cover_id = cover.get('id')
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.images.get(pk=cover_id).image.url)
