@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
+import base64
+
+from django.core.files.base import ContentFile
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import viewsets, mixins, permissions
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -14,7 +17,7 @@ from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializ
 from articles.models import Article, ArticleImage, ArticleView
 from accounts.models import Subscription
 
-from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -46,10 +49,21 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return Response(ArticleSerializer(article).data)
 
 
-class ArticleImageViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = ArticleImage.objects.all()
     serializer_class = ArticleImageSerializer
     permission_classes = [permissions.IsAuthenticated, IsArticleContentOwner]
+
+    @list_route(methods=['POST'])
+    def base64(self, request, **kwargs):
+        article_id = request.data.get('article')
+        data = request.data.get('image')
+        format, imgstr = data.split(';base64,')
+        ext = format.split('/')[-1]
+        data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+        im = ArticleImage(article_id=article_id, image=data)
+        im.save()
+        return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
 
 
 class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):

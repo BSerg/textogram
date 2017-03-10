@@ -60,7 +60,13 @@ ROOT_VALIDATION_CFG = {
     'cover': {
         IS_REQUIRED: True,
         NULLABLE: True,
-        STRUCTURE: PHOTO_VALIDATION_CFG},
+        STRUCTURE: PHOTO_VALIDATION_CFG
+    },
+    'cover_clipped': {
+        IS_REQUIRED: False,
+        NULLABLE: True,
+        STRUCTURE: PHOTO_VALIDATION_CFG
+    },
     'blocks': {
         IS_REQUIRED: True,
         STRUCTURE_LIST: BLOCK_BASE_VALIDATION_CFG
