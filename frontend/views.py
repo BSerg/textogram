@@ -20,7 +20,7 @@ class ArticleView(DetailView):
         if len(article.content.get('blocks')) and article.content['blocks'][0].get('type') == ArticleContentType.LEAD:
             description = article.content['blocks'][0].get('value')[:200]
         ctx['description'] = description
-        ctx['image'] = self.request.build_absolute_uri(article.content.get('cover_clipped', {}).get('image') or
-                                                       article.content.get('cover', {}).get('image'))
+        im = article.content.get('cover_clipped') or article.content.get('cover')
+        ctx['image'] = self.request.build_absolute_uri(im['image']) if im and im.get('image')else None
         ctx['url'] = self.request.build_absolute_uri(reverse('article', kwargs={'slug': article.slug}))
         return ctx
