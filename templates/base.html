@@ -6,8 +6,10 @@
     <base target="_blank">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Textius</title>
+    <title>{% block title %}Textius{% endblock %}</title>
+    <meta name="description" content="Page description. No longer than 155 characters." />
     <link href="{% static 'bundle.css' %}" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <!--TWTTR-->
@@ -61,5 +63,6 @@
     </script>
     <noscript><div><img src="https://mc.yandex.ru/watch/42507499" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <!-- /Yandex.Metrika counter -->
+    {% block extra_body %}{% endblock %}
 </body>
 </html>
