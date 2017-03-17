@@ -15,7 +15,10 @@
     <meta property="og:type" content="article" />
     <meta property="og:title" content="{{ article.content.title }}" />
     {% if url %}<meta property="og:url" content="{{ url }}" />{% endif %}
-    {% if image %}<meta property="og:image" content="{{ image }}" />{% endif %}
+    {% if image %}
+        <meta property="og:image" content="{{ image }}" />
+        <meta property="og:image:url" content="{{ image }}" />
+    {% endif %}
     {% if description %}<meta property="og:description" content="{{ description }}" />{% endif %}
 {#    <meta property="og:site_name" content="Site Name, i.e. Moz" />#}
 {#    <meta property="fb:admins" content="Facebook numeric ID" />#}
