@@ -23,3 +23,17 @@
 {#    <meta property="og:site_name" content="Site Name, i.e. Moz" />#}
 {#    <meta property="fb:admins" content="Facebook numeric ID" />#}
 {% endblock %}
+
+{% block app_html %}
+    <div style="visibility: hidden">
+        <div class="title_block">
+            <h1>{{ article.content.title }}</h1>
+            {% if image %}
+                <img src="{{ image }}" alt="">
+            {% endif %}
+        </div>
+        <div class="content">
+            {{ article.html|safe }}
+        </div>
+    </div>
+{% endblock %}

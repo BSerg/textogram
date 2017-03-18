@@ -29,7 +29,7 @@
         return t;
         }(document, "script", "twitter-wjs"));
     </script>
-    <div id="app"></div>
+    <div id="app">{% block app_html %}{% endblock %}</div>
     <div id="vk_api_transport"></div>
     <script type="text/javascript" src="{% static 'bundle.js' %}"></script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
