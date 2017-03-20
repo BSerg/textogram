@@ -1,6 +1,7 @@
 #!coding:utf-8
 from __future__ import unicode_literals
 
+import uuid
 from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
@@ -80,6 +81,24 @@ class ArticleView(models.Model):
         verbose_name_plural = 'Просмотры'
 
 
+class ArticlePreview(models.Model):
+    article = models.ForeignKey(Article, verbose_name='Статья', related_name='previews')
+    uid = models.UUIDField('UID', default=uuid.uuid4, editable=False)
+    is_permanent = models.BooleanField('Постоянная', default=False)
+    is_active = models.BooleanField('Активна', default=True)
+    views_count = models.PositiveIntegerField('Просмотры', default=0)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    last_modified = models.DateTimeField('Дата последнего обновления', auto_now=True)
+
+    def __unicode__(self):
+        return self.uid
+
+    class Meta:
+        unique_together = ('article', 'is_permanent')
+        verbose_name = 'Превью'
+        verbose_name_plural = 'Превью'
+
+
 @receiver(pre_save, sender=Article)
 def update_slug(sender, instance, **kwargs):
     db_instance = Article.objects.get(pk=instance.id) if instance.id else None
@@ -131,4 +150,3 @@ def recount_published_articles(sender, instance, **kwargs):
         user = instance.owner
         user.number_of_published_articles_cached = Article.objects.filter(status=Article.PUBLISHED, owner=user).count()
         user.save()
-

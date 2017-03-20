@@ -6,6 +6,11 @@ from articles.models import Article
 from textogram.settings import DEBUG
 
 
+class IsOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.owner == request.user
+
+
 class IsOwnerForUnsafeRequests(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if DEBUG and obj.status == Article.SHARED:

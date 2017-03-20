@@ -11,10 +11,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
-from articles.models import Article, ArticleImage, ArticleView
+from articles.models import Article, ArticleImage, ArticleView, ArticlePreview
 from accounts.models import Subscription
 
 from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
@@ -128,3 +128,9 @@ class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
         draft.status = Article.DELETED
         draft.save()
         return Response({'msg': 'deleted'})
+
+
+class ArticlePreviewView(viewsets.ReadOnlyModelViewSet):
+    queryset = Article.objects.filter(status=Article.DRAFT)
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    serializer_class = PublicArticleSerializer

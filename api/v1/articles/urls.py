@@ -14,4 +14,5 @@ urlpatterns = [
     url(r'', include(router.urls)),
     url('^articles/$', views.PublicArticleListViewSet.as_view({'get': 'list'}), name='articles_list'),
     url('^articles/(?P<slug>[\w\-]+)/$', views.PublicArticleViewSet.as_view({'get': 'retrieve'}), name='article'),
+    url('^articles/(?P<pk>\d+)/preview/$', views.ArticlePreviewView.as_view({'get': 'retrieve'}), name='article_preview')
 ]
