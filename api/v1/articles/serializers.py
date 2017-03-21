@@ -76,12 +76,47 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
 
     lead = serializers.SerializerMethodField()
 
+    def get_cover(self, obj):
+
+        cover = None
+
+        if 'cover_clipped' in obj.content:
+            cover = obj.content['cover_clipped']
+        elif 'cover' in obj.content:
+            cover = obj.content['cover']
+        cover_url = None
+        if cover:
+            try:
+                cover_id = cover.get('id')
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.images.get(pk=cover_id).image.url)
+                cover_url = obj.images.get(pk=cover_id).image.url
+            except (ArticleImage.DoesNotExist, AttributeError):
+                pass
+        else:
+            try:
+                for c in obj.content.get('blocks', []):
+                    if c.get('type') == ArticleContentType.PHOTO:
+                        for img in c.get('photos', []):
+                            if img.get('image'):
+                                cover_url = img.get('image')
+                                return cover_url
+                        # return c.get('value')
+            except (AttributeError, TypeError):
+                pass
+
+        return cover_url
+
     def get_lead(self, obj):
         try:
             for c in obj.content.get('blocks', []):
                 if c.get('type') == ArticleContentType.LEAD:
                     return c.get('value')
-        except AttributeError, TypeError:
+            for c in obj.content.get('blocks', []):
+                if c.get('type') == ArticleContentType.TEXT:
+                    return c.get('value')
+        except (AttributeError, TypeError):
             pass
         return ''
 
