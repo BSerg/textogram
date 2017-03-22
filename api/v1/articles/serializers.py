@@ -69,12 +69,15 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url', 'ads_enabled']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url',
+                  'ads_enabled']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):
 
     lead = serializers.SerializerMethodField()
+    is_draft = serializers.SerializerMethodField()
+    last_modified = serializers.SerializerMethodField()
 
     def get_cover(self, obj):
 
@@ -120,8 +123,15 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
             pass
         return ''
 
+    def get_is_draft(self, obj):
+        return obj.status == Article.DRAFT or None
+
+    def get_last_modified(self, obj):
+        return obj.last_modified if obj.status == Article.DRAFT else None
+
     class Meta(PublicArticleSerializer.Meta):
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access', 'is_draft',
+                  'last_modified']
 
 
 class DraftArticleSerializer(PublicArticleSerializerMin):
@@ -132,4 +142,4 @@ class DraftArticleSerializer(PublicArticleSerializerMin):
         return True
 
     class Meta(PublicArticleSerializerMin.Meta):
-        fields = PublicArticleSerializerMin.Meta.fields + ['is_draft', 'last_modified']
+        fields = PublicArticleSerializerMin.Meta.fields + ['last_modified']
