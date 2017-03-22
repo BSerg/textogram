@@ -21,7 +21,7 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 
 
 class ArticleSetPagination(PageNumberPagination):
-    page_size = 3
+    page_size = 50
     page_size_query_param = 'page_size'
     max_page_size = 100
 
