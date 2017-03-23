@@ -439,6 +439,9 @@ def content_to_html(content, ads_enabled=False):
         if len(html) >= 8 and ad_728x90:
             html.insert(4, '<div class="ad ad_728x90">%s</div>' % ad_728x90.code)
 
+        if len(html) >= 8 and ad_728x90:
+            html.insert(4, '<div class="ad ad_x250">%s</div>' % ad_x250.code)
+
         # if ad_x250:
         #     html.insert(0, '<div class="ad ad_x250">%s</div>' % ad_x250.code)
 
