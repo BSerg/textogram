@@ -66,7 +66,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
         return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
 
 
-class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
+class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Article.objects.filter(status=Article.PUBLISHED, link_access=False)
     serializer_class = PublicArticleSerializerMin
     permission_classes = [permissions.AllowAny]
@@ -74,18 +74,31 @@ class PublicArticleListViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
     def get_queryset(self):
-        user = self.request.query_params.get('user')
-        if user == 'me' and not self.request.query_params.get('drafts'):
+
+        if self.request.query_params.get('feed') and self.request.user.is_authenticated:
             subscriptions = Subscription.objects.filter(user=self.request.user)
             return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
-        elif user is not None:
-            if self.request.user.id == int(user):
-                if self.request.query_params.get('drafts'):
-                    return Article.objects.filter(owner__id=int(user), status=Article.DRAFT)
-                else:
-                    return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
+        elif self.request.query_params.get('drafts') and self.request.user.is_authenticated:
+            return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+        elif self.request.query_params.get('user'):
+            try:
+                user_id = int(self.request.query_params.get('user'))
+            except ValueError:
+                return Article.objects.none()
+
+            if self.request.user.is_authenticated and self.request.user.id == user_id:
+                return Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
+                return Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+
+        # elif user is not None:
+        #     if self.request.user.id == int(user):
+        #         if self.request.query_params.get('drafts'):
+        #             return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+        #         else:
+        #             return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
+        #     else:
+        #         return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
         else:
             return Article.objects.none()
 
