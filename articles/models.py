@@ -123,7 +123,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
-    if instance.status == Article.PUBLISHED or instance.status == Article.SHARED:
+    if instance.status != Article.DELETED:
         instance.html = content_to_html(instance.content, ads_enabled=instance.ads_enabled)
 
 
