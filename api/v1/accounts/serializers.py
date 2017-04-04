@@ -53,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
-                  'social_links', 'subscribers', 'number_of_articles']
+                  'social_links', 'subscribers', 'number_of_articles', 'description']
 
 
 class MeUserSerializer(UserSerializer):
@@ -94,7 +94,7 @@ class MeUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['phone', 'token']
         read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
-                            'phone', 'token']
+                            'phone', 'token', 'description']
 
 
 class PublicUserSerializer(UserSerializer):
@@ -107,7 +107,7 @@ class PublicUserSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
         fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'is_subscribed',
-                  'number_of_articles']
+                  'number_of_articles', 'description']
 
 
 class PublicMultiAccountSerializer(serializers.ModelSerializer):
