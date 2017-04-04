@@ -343,7 +343,7 @@ class Login(APIView):
 
 class Logout(APIView):
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         return Response({'msg': 'logged out'})
