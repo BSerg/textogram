@@ -38,6 +38,7 @@ class User(AbstractUser):
     social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)
     uid = models.CharField('UID Соцсети', max_length=255, blank=True)
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
+    number_of_subscriptions_cached = models.IntegerField('Кол-во подпиcок', default=0, editable=False)
     number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)
     phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
     phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
@@ -155,6 +156,13 @@ class PhoneCode(models.Model):
 def recount_subscribers(sender, instance, **kwargs):
     user = instance.author
     user.number_of_subscribers_cached = sender.objects.filter(author=user).count()
+    user.save()
+
+
+@receiver(post_save, sender=Subscription)
+def recount_subscriptions(sender, instance, **kwargs):
+    user = instance.user
+    user.number_of_subscriptions_cached = sender.objects.filter(user=user).count()
     user.save()
 
 

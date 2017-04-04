@@ -36,6 +36,7 @@ class UserSerializer(serializers.ModelSerializer):
     social_links = serializers.SerializerMethodField()
     subscribers = serializers.SerializerMethodField()
     number_of_articles = serializers.SerializerMethodField()
+    subscriptions = serializers.SerializerMethodField()
 
     def get_social_links(self, obj):
         return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False), many=True).data
@@ -50,10 +51,13 @@ class UserSerializer(serializers.ModelSerializer):
     def get_number_of_articles(self, obj):
         return obj.number_of_published_articles_cached
 
+    def get_subscriptions(self, obj):
+        return obj.number_of_subscriptions_cached
+
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
-                  'social_links', 'subscribers', 'number_of_articles', 'description']
+                  'social_links', 'subscribers', 'subscriptions', 'number_of_articles', 'description']
 
 
 class MeUserSerializer(UserSerializer):
@@ -94,7 +98,7 @@ class MeUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['phone', 'token']
         read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
-                            'phone', 'token', 'description']
+                            'subscriptions', 'phone', 'token', 'description']
 
 
 class PublicUserSerializer(UserSerializer):
@@ -106,8 +110,8 @@ class PublicUserSerializer(UserSerializer):
         return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
 
     class Meta(UserSerializer.Meta):
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'is_subscribed',
-                  'number_of_articles', 'description']
+        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
+                  'is_subscribed', 'number_of_articles', 'description']
 
 
 class PublicMultiAccountSerializer(serializers.ModelSerializer):
