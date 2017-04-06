@@ -160,6 +160,7 @@ def recount_subscribers(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Subscription)
+@receiver(post_delete, sender=Subscription)
 def recount_subscriptions(sender, instance, **kwargs):
     user = instance.user
     user.number_of_subscriptions_cached = sender.objects.filter(user=user).count()
