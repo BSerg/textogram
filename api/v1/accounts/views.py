@@ -21,10 +21,17 @@ import re
 
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
+from rest_framework.pagination import PageNumberPagination
 
 import requests
 import requests_oauthlib
 from textogram.settings import TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_KEY_SECRET
+
+
+class PublicUserPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -46,13 +53,48 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(is_active=True)
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = PublicUserPagination
 
     def get_queryset(self):
 
+        first_name_param = ''
+        last_name_param = ''
+        search_string_list = []
+        search_string = self.request.query_params.get('search_string')
+        if search_string:
+            search_string = self.request.query_params.get('search_string')
+            search_string_list = search_string.split(" ")
+            first_name_param = search_string_list[0]
+            last_name_param = " ".join(search_string_list[1:])
+
         if self.request.query_params.get('subscribed_to'):
-            return User.objects.filter(subscriptions__author_id=self.request.query_params.get('subscribed_to'))
+
+            queryset_params = {'subscriptions__author_id': self.request.query_params.get('subscribed_to')}
+            if first_name_param and len(search_string_list) == 1:
+                queryset_params['subscriptions__user__first_name__istartswith'] = first_name_param
+
+            elif first_name_param and len(search_string_list) > 1 and not last_name_param:
+                queryset_params['subscriptions__user__first_name__iexact'] = first_name_param
+            elif first_name_param and last_name_param:
+                queryset_params['subscriptions__user__first_name__iexact'] = first_name_param
+                queryset_params['subscriptions__user__last_name__istartswith'] = last_name_param
+
+            return User.objects.filter(**queryset_params)
+
         elif self.request.query_params.get('subscribed_by'):
-            subscriptions = Subscription.objects.filter(user=self.request.user).values_list('author', flat=True)
+
+            queryset_params = {'user__pk': self.request.query_params.get('subscribed_by')}
+
+            if first_name_param and len(search_string_list) == 1:
+                queryset_params['author__first_name__istartswith'] = first_name_param
+
+            elif first_name_param and len(search_string_list) > 1 and not last_name_param:
+                queryset_params['author__first_name__iexact'] = first_name_param
+            elif first_name_param and last_name_param:
+                queryset_params['author__first_name__iexact'] = first_name_param
+                queryset_params['author__last_name__istartswith'] = last_name_param
+
+            subscriptions = Subscription.objects.filter(**queryset_params).values_list('author', flat=True)
             return User.objects.filter(pk__in=subscriptions)
 
         return self.queryset
