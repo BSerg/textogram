@@ -1,8 +1,17 @@
 from django.urls import reverse
-from django.views.generic import DetailView
+from django.views.generic import DetailView, TemplateView
 
 from articles import ArticleContentType
 from articles.models import Article
+
+from textogram.settings import DEBUG
+
+
+class BaseTemplateView(TemplateView):
+    def get_context_data(self, **kwargs):
+        ctx = super(BaseTemplateView, self).get_context_data(**kwargs)
+        ctx['debug'] = DEBUG
+        return ctx
 
 
 class ArticleView(DetailView):
@@ -23,4 +32,5 @@ class ArticleView(DetailView):
         im = article.content.get('cover_clipped') or article.content.get('cover')
         ctx['image'] = self.request.build_absolute_uri(im['image']) if im and im.get('image')else None
         ctx['url'] = self.request.build_absolute_uri(reverse('article', kwargs={'slug': article.slug}))
+        ctx['debug'] = DEBUG
         return ctx

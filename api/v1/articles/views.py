@@ -48,6 +48,26 @@ class ArticleViewSet(viewsets.ModelViewSet):
         article.save()
         return Response(ArticleSerializer(article).data)
 
+    @detail_route(methods=['POST'])
+    def restore_published(self, request, **kwargs):
+        article = self.get_object()
+        if article.status == Article.DELETED and article.published_at:
+            article.status = Article.PUBLISHED
+            article.deleted_at = None
+            article.save()
+            return Response(ArticleSerializer(article).data)
+        return Response(status=HTTP_400_BAD_REQUEST)
+
+    @detail_route(methods=['POST'])
+    def restore_draft(self, request, **kwargs):
+        article = self.get_object()
+        if article.status == Article.DELETED:
+            article.status = Article.DRAFT
+            article.deleted_at = None
+            article.save()
+            return Response(ArticleSerializer(article).data)
+        return Response(status=HTTP_400_BAD_REQUEST)
+
 
 class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = ArticleImage.objects.all()
@@ -90,15 +110,6 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 return Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
                 return Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
-
-        # elif user is not None:
-        #     if self.request.user.id == int(user):
-        #         if self.request.query_params.get('drafts'):
-        #             return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
-        #         else:
-        #             return Article.objects.filter(owner__id=int(user), status=Article.PUBLISHED)
-        #     else:
-        #         return Article.objects.filter(owner__id=int(user), link_access=False, status=Article.PUBLISHED)
         else:
             return Article.objects.none()
 

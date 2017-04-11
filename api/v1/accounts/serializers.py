@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 
 from rest_framework.validators import ValidationError
 from accounts.models import User, MultiAccountUser, MultiAccount, SocialLink, Subscription
+from articles.models import Article
 
 import PIL.Image as Image
 
@@ -63,6 +64,10 @@ class UserSerializer(serializers.ModelSerializer):
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
     phone = serializers.SerializerMethodField()
+    drafts = serializers.SerializerMethodField()
+
+    def get_drafts(self, obj):
+        return Article.objects.filter(owner=obj, status=Article.DRAFT).count()
 
     def get_social_links(self, obj):
         return MeSocialLinkSerializer(SocialLink.objects.filter(user=obj), many=True).data
@@ -96,9 +101,9 @@ class MeUserSerializer(UserSerializer):
         raise ValidationError('image format wrong')
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ['phone', 'token']
+        fields = UserSerializer.Meta.fields + ['phone', 'token', 'drafts']
         read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
-                            'subscriptions', 'phone', 'token', 'description']
+                            'subscriptions', 'phone', 'token', 'description', 'drafts']
 
 
 class PublicUserSerializer(UserSerializer):
