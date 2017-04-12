@@ -12,18 +12,22 @@ from notifications.models import Notification
 
 class NotificationPagination(PageNumberPagination):
     page_query_param = 'page'
-    page_size = 100
+    page_size = 10
     page_size_query_param = 'page_size'
 
 
-class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     queryset = Notification.objects.all()
     permission_classes = [IsAuthenticated]
     pagination_class = NotificationPagination
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        qs = Notification.objects.filter(user=self.request.user)
+        if self.request.query_params.get('new_after'):
+            qs.filter(pk__gt=self.request.query_params.get('new_after'))
+
+        return qs
 
     @list_route(methods=['GET'])
     def check_new(self, request):
@@ -31,12 +35,12 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         obj = qs.first()
         return Response({'count': qs.count(), 'last': NotificationSerializer(qs.first()).data if obj else None})
 
-    @detail_route(methods=['POST'])
-    def mark_read(self, request, pk=None):
-        obj = self.get_object()
-        obj.is_read = True
-        obj.save()
-        return Response(NotificationSerializer(obj).data)
+    # @detail_route(methods=['POST'])
+    # def mark_read(self, request, pk=None):
+    #     obj = self.get_object()
+    #     obj.is_read = True
+    #     obj.save()
+    #     return Response(NotificationSerializer(obj).data)
 
     @list_route(methods=['POST'])
     def mark_read_all(self, requet):
