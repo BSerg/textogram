@@ -158,7 +158,7 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         user = self.request.user
         url = request.data.get('url')
         social = request.data.get('social')
-        current_link = SocialLink.objects.filter(social=social, user=user).first()
+        current_link = SocialLink.objects.filter(social=social, user=user, is_auth=False).first()
         if current_link:
             return Response(MeSocialLinkSerializer(current_link).data)
         validate = URLValidator()
