@@ -77,7 +77,7 @@ class SocialLink(models.Model):
     GOOGLE = 'google'
     ODNOKLASSNIKI = 'OK'
     YOUTUBE = 'Youtube'
-    WEB = 'Web'
+    WEB = 'web'
 
     SOCIALS = (
         (VK, 'В контакте'),
@@ -185,14 +185,14 @@ def get_social_type(url):
     return None
 
 
-@receiver(pre_save, sender=SocialLink)
-def set_social(sender, instance, **kwargs):
-    url = instance.url
-
-    for p in SOCIAL_PATTERNS:
-        pattern = re.compile(p[1])
-        if pattern.match(url):
-            instance.social = p[0]
+# @receiver(pre_save, sender=SocialLink)
+# def set_social(sender, instance, **kwargs):
+#     url = instance.url
+#
+#     for p in SOCIAL_PATTERNS:
+#         pattern = re.compile(p[1])
+#         if pattern.match(url):
+#             instance.social = p[0]
 
 
 @receiver(pre_save, sender=PhoneCode)

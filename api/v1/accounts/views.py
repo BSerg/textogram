@@ -13,7 +13,8 @@ from rest_framework import mixins
 
 from accounts.models import User, Subscription, SocialLink, PhoneCode
 from api.v1.accounts.permissions import IsAdminOrOwner
-from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, MeSocialLinkSerializer, SubscriptionSerializer
+from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, \
+    MeSocialLinkSerializer, SubscriptionSerializer
 
 from django.core.validators import URLValidator
 from django.forms import ValidationError
@@ -133,6 +134,17 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
         return Subscription.objects.filter(user=self.request.user)
 
 
+SOCIAL_PATTERNS = [
+    (SocialLink.VK, '^(http:\/\/|https:\/\/)?(www\.)?vk\.com\/(\w|\d)+?\/?$'),
+    (SocialLink.FB, '(?:(?:http|https):\/\/)?(?:www.)?facebook.com\/(?:(?:\w)*#!\/)?(?:pages\/)?(?:[?\w\-]*\/)?(?:profile.php\?id=(?=\d.*))?([\w\-]*)?'),
+    (SocialLink.TWITTER, 'http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/?'),
+    (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
+
+    (SocialLink.GOOGLE, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
+    (SocialLink.TELEGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
+]
+
+
 class SocialLinksViewSet(viewsets.ModelViewSet):
 
     serializer_class = MeSocialLinkSerializer
@@ -145,11 +157,25 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user = self.request.user
         url = request.data.get('url')
+        social = request.data.get('social')
+        current_link = SocialLink.objects.filter(social=social, user=user).first()
+        if current_link:
+            return Response(MeSocialLinkSerializer(current_link).data)
         validate = URLValidator()
         try:
             validate(url)
-            link, created = SocialLink.objects.get_or_create(user=user, url=request.data.get('url'))
-            return Response(MeSocialLinkSerializer(link).data)
+            if social == SocialLink.WEB:
+                link, created = SocialLink.objects.get_or_create(user=user, social=SocialLink.WEB, url=url)
+                return Response(MeSocialLinkSerializer(link).data)
+            else:
+                for p in SOCIAL_PATTERNS:
+                    if social == p[0]:
+                        pattern = re.compile(p[1])
+                        if pattern.match(url):
+                            link, created = SocialLink.objects.get_or_create(user=user, social=social, url=url)
+                            return Response(MeSocialLinkSerializer(link).data)
+            return Response({'msg': 'url and social do not match'}, status=HTTP_400_BAD_REQUEST)
+
         except ValidationError:
             return Response({'msg': 'url incorrect'}, status=HTTP_400_BAD_REQUEST)
 

@@ -20,7 +20,7 @@ class SocialLinkSerializer(serializers.ModelSerializer):
 class MeSocialLinkSerializer(SocialLinkSerializer):
     class Meta(SocialLinkSerializer.Meta):
         fields = ['id', 'social', 'url', 'is_auth', 'is_hidden']
-        read_only_fields = ['is_auth', 'is_hidden']
+        read_only_fields = ['id', 'is_auth']
 
 
 class MultiAccountSerializer(serializers.ModelSerializer):
@@ -137,6 +137,4 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ['author']
-
-
 
