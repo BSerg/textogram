@@ -91,7 +91,7 @@ class MeUserSerializer(UserSerializer):
 
     def validate_avatar(self, value):
         try:
-            if value.content_type == 'image/jpeg' and value.size <= 1024 * 1024:
+            if value.content_type in ['image/jpeg', 'image/png'] and value.size <= 1024 * 1024:
                 i = Image.open(value)
                 width, height = i.size
                 if width <= 400 and width == height:
@@ -103,7 +103,7 @@ class MeUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['phone', 'token', 'drafts']
         read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
-                            'subscriptions', 'phone', 'token', 'description', 'drafts']
+                            'subscriptions', 'phone', 'token', 'drafts']
 
 
 class PublicUserSerializer(UserSerializer):
