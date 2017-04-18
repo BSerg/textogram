@@ -16,6 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from django.contrib import admin
+from url_shortener.views import UrlShortDetailView
 
 from textogram.settings import DEBUG, MEDIA_URL, MEDIA_ROOT
 
@@ -23,6 +24,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include('api.urls')),
     url(r'', include('frontend.urls')),
+    url(r'^(?P<code>\w{4,})$', UrlShortDetailView.as_view())
 ]
 
 if DEBUG:
