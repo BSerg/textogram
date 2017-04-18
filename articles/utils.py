@@ -290,11 +290,16 @@ class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
 
 
 def process_content(content):
+    temp_blocks = []
     for block in content.get('blocks', []):
         meta = block.pop('__meta', {})
+        if meta and meta.get('deleted'):
+            continue
         meta_generator = ContentBlockMetaGenerator.get_instance(block)
         if meta_generator:
             block['__meta'] = meta_generator.get_meta()
+        temp_blocks.append(block)
+    content['blocks'] = temp_blocks
     is_valid = True
     for field, params in ROOT_VALIDATION_CFG.items():
         try:
