@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'django.contrib.sitemaps',
     'react',
     'rest_framework',
     'rest_framework.authtoken',
@@ -52,6 +54,7 @@ INSTALLED_APPS += [
     'articles',
     'notifications',
     'advertisement',
+    'url_shortener',
 ]
 
 MIDDLEWARE = [
@@ -85,6 +88,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'textogram.wsgi.application'
 
+SITE_ID = 1
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
