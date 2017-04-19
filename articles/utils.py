@@ -22,6 +22,7 @@ class EmbedHandlerError(Exception):
 class EmbedHandler(object):
     TYPE = None
     EMBED_URL_REGEX = []
+    EMBED_CODE_REGEX = []
 
     def __init__(self, url, **kwargs):
         self.url = url
@@ -31,11 +32,22 @@ class EmbedHandler(object):
         return cls.TYPE
 
     @classmethod
-    def is_valid(cls, url):
+    def url_valid(cls, url):
         for regex in cls.EMBED_URL_REGEX:
             if re.match(regex, url):
                 return True
         return False
+
+    @classmethod
+    def code_valid(cls, code):
+        for regex in cls.EMBED_CODE_REGEX:
+            if re.match(regex, code):
+                return True
+        return False
+
+    @classmethod
+    def is_valid(cls, value):
+        return cls.url_valid(value) or cls.code_valid(value)
 
     def get_embed(self):
         raise NotImplementedError
@@ -70,20 +82,27 @@ class YoutubeEmbedHandler(EmbedHandler):
 class TwitterEmbedHandler(EmbedHandler):
     TYPE = 'twitter_video'
     EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+$']
+    EMBED_CODE_REGEX = [
+        r'^<blockquote class="twitter-tweet" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
+        r'^<blockquote class="twitter-video" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$'
+    ]
 
     def __init__(self, url, type=None, **kwargs):
         super(TwitterEmbedHandler, self).__init__(url, **kwargs)
         self.type = type
 
     def get_embed(self):
-        url = 'https://publish.twitter.com/oembed?align=center%(extra)s&url=%(url)s'
-        r = requests.get(url % {'extra': '&widget_type=video' if self.type == 'video' else '', 'url': self.url})
-        if r.status_code != 200:
-            raise EmbedHandlerError('%s handler error. Twitter api not availabe' % self.TYPE.upper())
-        data = r.json()
-        if 'html' not in data:
-            raise EmbedHandlerError('%s handler error. Twitter api response error' % self.TYPE.upper())
-        return data['html']
+        if self.url_valid(self.url):
+            url = 'https://publish.twitter.com/oembed?align=center%(extra)s&url=%(url)s'
+            r = requests.get(url % {'extra': '&widget_type=video' if self.type == 'video' else '', 'url': self.url})
+            if r.status_code != 200:
+                raise EmbedHandlerError('%s handler error. Twitter api not availabe' % self.TYPE.upper())
+            data = r.json()
+            if 'html' not in data:
+                raise EmbedHandlerError('%s handler error. Twitter api response error' % self.TYPE.upper())
+            return data['html']
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class VimeoEmbedHandler(EmbedHandler):
@@ -146,6 +165,17 @@ class FacebookEmbedHandler(EmbedHandler):
 
     def _get_embed(self):
         return '<div className="fb-post" data-href=%s/>' % self.url
+
+
+class VkEmbedHandler(EmbedHandler):
+    TYPE = 'vk'
+    EMBED_CODE_REGEX = [
+        r'^<div id="vk_post_-?\d+_\d+"></div>\s*<script type="text/javascript">[^<]+</script>$',
+        r'^<iframe src="\/\/vk\.com\/video_ext\.php\?oid=\d+&id=\d+&hash=\w+&hd=\d" width="\d+" height="\d+" frameborder="0" allowfullscreen><\/iframe>$'
+    ]
+
+    def get_embed(self):
+        return self.url
 
 
 class VkVideoEmbedHandler(EmbedHandler):
@@ -223,6 +253,7 @@ EMBED_HANDLERS = [
     VimeoEmbedHandler,
     InstagramEmbedHandler,
     FacebookEmbedHandler,
+    VkEmbedHandler,
     VkVideoEmbedHandler,
     SoundCloudEmbedHandler,
     PromoDjEmbedHandler,
