@@ -1,9 +1,13 @@
 from __future__ import unicode_literals
 
+from collections import defaultdict
+
 from rest_framework import serializers
 from sorl.thumbnail import get_thumbnail
 
+from advertisement.models import Banner
 from api.v1.accounts.serializers import PublicUserSerializer
+from api.v1.advertisement.serializers import BannerSerializer
 from articles.models import Article, ArticleImage
 from articles import ArticleContentType
 from textogram.settings import THUMBNAIL_SIZE
@@ -38,6 +42,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     images = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_cached')
     url = serializers.SerializerMethodField()
+    advertisement = serializers.SerializerMethodField()
 
     def get_title(self, obj):
         return obj.content.get('title')
@@ -67,10 +72,21 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     def get_url(self, obj):
         return self.context['request'].build_absolute_uri('/articles/%s/' % obj.slug)
 
+    def get_advertisement(self, obj):
+        if not obj.ads_enabled:
+            return
+        
+        banners = Banner.objects.filter(is_active=True)
+        if banners.exists():
+            _banners = defaultdict(lambda: [])
+            for banner in banners:
+                _banners[banner.identifier].append(BannerSerializer(banner).data)
+            return _banners
+
     class Meta:
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url',
-                  'ads_enabled']
+                  'ads_enabled', 'advertisement']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

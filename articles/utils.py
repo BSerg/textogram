@@ -8,6 +8,7 @@ import markdown
 import requests
 from django.core.exceptions import ValidationError
 
+from advertisement import BannerID
 from advertisement.models import Banner
 from articles import ArticleContentType
 from articles.validation import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
@@ -343,148 +344,150 @@ def process_content(content):
 
 # CONTENT CONVERTER
 
+def _get_banner_code(_id):
+    return '<div class="banner %s"></div>' % _id
+
+
 def content_to_html(content, ads_enabled=False):
+    if not content.get('__meta', {}).get('is_valid'):
+        return
+
     html = []
-    if content.get('__meta', {}).get('is_valid'):
-        for block in content.get('blocks'):
+    validated_content_blocks = [block for block in content.get('blocks') if block.get('__meta', {}).get('is_valid')]
 
-            if not block.get('__meta', {}).get('is_valid'):
-                continue
+    for index, block in enumerate(validated_content_blocks):
+        banner_inserted = False
 
-            if block.get('type') == ArticleContentType.TEXT:
-                html.append(
-                    markdown.markdown(block.get('value'), safe_mode='escape', extensions=['markdown.extensions.attr_list']))
+        if block.get('type') == ArticleContentType.TEXT:
+            text_html = markdown.markdown(block.get('value'), safe_mode='escape')
+            html.append(text_html)
+        elif block.get('type') == ArticleContentType.HEADER:
+            html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
 
-            elif block.get('type') == ArticleContentType.HEADER:
-                html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
+        elif block.get('type') == ArticleContentType.LEAD:
+            html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
 
-            elif block.get('type') == ArticleContentType.LEAD:
-                html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+        elif block.get('type') == ArticleContentType.PHRASE:
+            html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
 
-            elif block.get('type') == ArticleContentType.PHRASE:
-                html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+        elif block.get('type') == ArticleContentType.PHOTO:
+            photos = []
+            for index, photo in enumerate(block.get('photos', [])):
+                photo_class = 'photo photo_%d' % index
+                photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
+                    photo.get('preview') or photo.get('image', '')
+                photos.append(
+                    '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
+                    (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
+                )
 
-            elif block.get('type') == ArticleContentType.PHOTO:
-                photos = []
-                for index, photo in enumerate(block.get('photos', [])):
-                    photo_class = 'photo photo_%d' % index
-                    photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
-                        photo.get('preview') or photo.get('image', '')
-                    photos.append(
-                        '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                        (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
-                    )
-
-                if len(block.get('photos', [])) == 1:
-                    if block['photos'][0].get('caption'):
-                        photo_class = 'photos photos_1'
-                        if photo.get('size'):
-                            photo_class += ' photo_%s' % photo.get('size')
-                        html.append(
-                            '<div class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
-                                '_class': photo_class,
-                                'content': '\n'.join(photos),
-                                'caption': block['photos'][0]['caption']
-                            }
-                        )
-                    else:
-                        html.append(
-                            '<div class="photos photos_1">\n%s\n<div style="clear: both"></div>\n</div>' %
-                            '\n'.join(photos)
-                        )
-                elif len(block.get('photos', [])) <= 6:
+            if len(block.get('photos', [])) == 1:
+                if block['photos'][0].get('caption'):
+                    photo_class = 'photos photos_1'
+                    if photo.get('size'):
+                        photo_class += ' photo_%s' % photo.get('size')
                     html.append(
-                        '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
-                            '_class': 'photos_%d' % len(block.get('photos', [])),
-                            'content': '\n'.join(photos)
+                        '<div class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                            '_class': photo_class,
+                            'content': '\n'.join(photos),
+                            'caption': block['photos'][0]['caption']
                         }
                     )
                 else:
                     html.append(
-                        '<div class="photos">\n%s\n<div style="clear: both" class="caption">%s</div>\n</div>' %
-                        ('\n'.join(photos), 'Галерея из %d фото' % len(block.get('photos', [])))
+                        '<div class="photos photos_1">\n%s\n<div style="clear: both"></div>\n</div>' %
+                        '\n'.join(photos)
                     )
+            elif len(block.get('photos', [])) <= 6:
+                html.append(
+                    '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                        '_class': 'photos_%d' % len(block.get('photos', [])),
+                        'content': '\n'.join(photos)
+                    }
+                )
+            else:
+                html.append(
+                    '<div class="photos">\n%s\n<div style="clear: both" class="caption">%s</div>\n</div>' %
+                    ('\n'.join(photos), 'Галерея из %d фото' % len(block.get('photos', [])))
+                )
 
-            elif block.get('type') == ArticleContentType.LIST:
-                html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
+        elif block.get('type') == ArticleContentType.LIST:
+            html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
 
-            elif block.get('type') == ArticleContentType.QUOTE:
-                if block.get('image') and block['image'].get('image'):
-                    _image_html = '<img src="%s"/>' % block['image']['image']
-                    _html = '<blockquote class="personal">\n%s\n%s\n</blockquote>'
-                    html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
+        elif block.get('type') == ArticleContentType.QUOTE:
+            if block.get('image') and block['image'].get('image'):
+                _image_html = '<img src="%s"/>' % block['image']['image']
+                _html = '<blockquote class="personal">\n%s\n%s\n</blockquote>'
+                html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
+            else:
+                html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+
+        elif block.get('type') == ArticleContentType.COLUMNS:
+            _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
+            html.append(_html % {
+                'left': '<img src="%s"/>' % (block.get('image') or {}).get('image', ''),
+                'right': markdown.markdown(block.get('value'), safe_mode='escape')
+            })
+
+        elif block.get('type') == ArticleContentType.VIDEO:
+            if not block.get('__meta', {}).get('embed'):
+                continue
+            html.append('<div class="embed video">\n%s\n</div>' % block['__meta']['embed'])
+
+        elif block.get('type') == ArticleContentType.AUDIO:
+            if not block.get('__meta', {}).get('embed'):
+                continue
+            html.append('<div class="embed audio">\n%s\n</div>' % block['__meta']['embed'])
+
+        elif block.get('type') == ArticleContentType.POST:
+            if not block.get('__meta', {}).get('embed'):
+                continue
+            html.append('<div class="embed post">\n%s\n</div>' % block['__meta']['embed'])
+
+        elif block.get('type') == ArticleContentType.DIALOG:
+            dialogue_html = '<div class="dialogue">\n%s\n</div>'
+            participant_data = {}
+            for participant in block.get('participants'):
+                id = participant.get('id')
+                if id:
+                    participant_data[id] = participant
+            dialogue_data = []
+            for remark in block.get('remarks'):
+                if not remark.get('value'):
+                    continue
+
+                if remark.get('participant_id') in participant_data:
+                    _participant = participant_data[remark.get('participant_id')]
+
+                    if _participant.get('is_interviewer'):
+                        remark_html = '<div class="remark question">\n%s\n</div>'
+                    else:
+                        remark_html = '<div class="remark">\n%s\n</div>'
+
+                    if _participant.get('avatar') and _participant['avatar'].get('image'):
+                        remark_html = remark_html % ('<img src="%s"/>\n%s' % (_participant['avatar']['image'], remark.get('value', '')))
+                    else:
+                        remark_html = remark_html % ('<span data-name="%s"></span>\n%s' % (_participant.get('name', ' ')[0], remark.get('value', '')))
+
+                    dialogue_data.append(remark_html)
+
+            html.append(dialogue_html % '\n'.join(dialogue_data))
+
+        # CONTENT BANNERS INJECTING
+        if ads_enabled and not banner_inserted and len(validated_content_blocks) >= 8 and index % 3 == 0 and index <= len(validated_content_blocks) - 3:
+            next_block = validated_content_blocks[index + 1]
+            if block['type'] == ArticleContentType.TEXT:
+                text_html = html.pop()
+                r_paragraph = re.compile(r'</p>\s*<p>')
+                sub_paragraph = r_paragraph.search(text_html, int(0.3 * len(text_html)), int(0.5 * len(text_html)))
+                if sub_paragraph:
+                    position_index = sub_paragraph.start() + 4
+                    text_html = text_html[:position_index] + _get_banner_code(BannerID.BANNER_CONTENT_INLINE) + \
+                                text_html[position_index:]
+                    html.append(text_html)
                 else:
-                    html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
-
-            elif block.get('type') == ArticleContentType.COLUMNS:
-                _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
-                html.append(_html % {
-                    'left': '<img src="%s"/>' % (block.get('image') or {}).get('image', ''),
-                    'right': markdown.markdown(block.get('value'), safe_mode='escape')
-                })
-
-            elif block.get('type') == ArticleContentType.VIDEO:
-                if not block.get('__meta', {}).get('embed'):
-                    continue
-                html.append('<div class="embed video">\n%s\n</div>' % block['__meta']['embed'])
-
-            elif block.get('type') == ArticleContentType.AUDIO:
-                if not block.get('__meta', {}).get('embed'):
-                    continue
-                html.append('<div class="embed audio">\n%s\n</div>' % block['__meta']['embed'])
-
-            elif block.get('type') == ArticleContentType.POST:
-                if not block.get('__meta', {}).get('embed'):
-                    continue
-                html.append('<div class="embed post">\n%s\n</div>' % block['__meta']['embed'])
-
-            elif block.get('type') == ArticleContentType.DIALOG:
-                dialogue_html = '<div class="dialogue">\n%s\n</div>'
-                participant_data = {}
-                for participant in block.get('participants'):
-                    id = participant.get('id')
-                    if id:
-                        participant_data[id] = participant
-                dialogue_data = []
-                for remark in block.get('remarks'):
-                    if not remark.get('value'):
-                        continue
-
-                    if remark.get('participant_id') in participant_data:
-                        _participant = participant_data[remark.get('participant_id')]
-
-                        if _participant.get('is_interviewer'):
-                            remark_html = '<div class="remark question">\n%s\n</div>'
-                        else:
-                            remark_html = '<div class="remark">\n%s\n</div>'
-
-                        if _participant.get('avatar') and _participant['avatar'].get('image'):
-                            remark_html = remark_html % ('<img src="%s"/>\n%s' % (_participant['avatar']['image'], remark.get('value', '')))
-                        else:
-                            remark_html = remark_html % ('<span data-name="%s"></span>\n%s' % (_participant.get('name', ' ')[0], remark.get('value', '')))
-
-                        dialogue_data.append(remark_html)
-
-                html.append(dialogue_html % '\n'.join(dialogue_data))
-
-    if len(html) and ads_enabled:
-        ad_300x250 = Banner.objects.filter(identifier='300x250').first()
-        ad_x250 = Banner.objects.filter(identifier='x250').first()
-        ad_728x90 = Banner.objects.filter(identifier='728x90').first()
-
-        if len(html) >= 8 and ad_728x90:
-            html.insert(4, '<div class="ad ad_728x90">%s</div>' % ad_728x90.code)
-
-        if len(html) >= 8 and ad_728x90:
-            html.insert(4, '<div class="ad ad_x250">%s</div>' % ad_x250.code)
-
-        # if ad_x250:
-        #     html.insert(0, '<div class="ad ad_x250">%s</div>' % ad_x250.code)
-
-        if ad_300x250:
-            html.append('<div class="ad ad_300x250">%s</div>' % ad_300x250.code)
-
-        if ad_728x90:
-            html.append('<div class="ad ad_728x90">%s</div>' % ad_728x90.code)
+                    html.append(_get_banner_code(BannerID.BANNER_CONTENT))
+            elif block['type'] != ArticleContentType.PHOTO and next_block['type'] != ArticleContentType.PHOTO:
+                html.append(_get_banner_code(BannerID.BANNER_CONTENT))
 
     return '\n'.join(html)
