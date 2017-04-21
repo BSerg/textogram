@@ -522,6 +522,7 @@ def content_to_html(content, ads_enabled=False):
 
             if content_length_increment >= banner_interval:
                 banner_injected = False
+                prev_block = validated_content_blocks[index - 1] if len(validated_content_blocks) and index - 1 else None
                 next_block = validated_content_blocks[index + 1] if len(validated_content_blocks) - 1 >= index + 1 else None
 
                 if block['type'] == ArticleContentType.TEXT:
@@ -541,7 +542,8 @@ def content_to_html(content, ads_enabled=False):
                         or next_block and next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
                     pass
 
-                elif block['type'] == ArticleContentType.HEADER:
+                elif block['type'] == ArticleContentType.HEADER and prev_block \
+                        and prev_block['type'] not in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
                     header_html = html.pop()
                     html.append(_get_banner_code(BannerID.BANNER_CONTENT))
                     html.append(header_html)
