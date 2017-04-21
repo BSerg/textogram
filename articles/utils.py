@@ -523,7 +523,7 @@ def content_to_html(content, ads_enabled=False):
                 next_block = validated_content_blocks[index + 1] if len(validated_content_blocks) - 1 >= index + 1 else None
 
                 if block['type'] == ArticleContentType.TEXT:
-                    if block_length >= banner_interval or next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
+                    if block_length >= banner_interval or next_block and next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
                         text_html = html.pop()
                         max_injections = max(1, math.ceil(block_length / banner_interval) - 1)
                         text_html, text_injected = _inject_banner_to_text(text_html, max_injections=max_injections)
