@@ -539,7 +539,7 @@ def content_to_html(content, ads_enabled=False):
                 elif tail_length < banner_interval \
                         or block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO] \
                         or next_block and next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
-                    continue
+                    pass
 
                 elif block['type'] == ArticleContentType.HEADER:
                     header_html = html.pop()
