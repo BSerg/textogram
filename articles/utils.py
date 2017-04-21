@@ -390,9 +390,9 @@ def content_to_html(content, ads_enabled=False):
 
     html = []
     validated_content_blocks = [block for block in content.get('blocks') if block.get('__meta', {}).get('is_valid')]
-
+    content_length = sum([_get_block_length(block) for block in validated_content_blocks])
     content_length_increment = 0
-    content_weightlength = 0
+    _content_length = 0
     banner_interval = 1.0 / BANNER_DENSITY
 
     for index, block in enumerate(validated_content_blocks):
@@ -515,8 +515,10 @@ def content_to_html(content, ads_enabled=False):
         # CONTENT BANNERS INJECTING
         if ads_enabled:
             block_length = _get_block_length(block)
-            content_weightlength += block_length
+            _content_length += block_length
             content_length_increment += block_length
+
+            tail_length = content_length - _content_length
 
             if content_length_increment >= banner_interval:
                 banner_injected = False
@@ -530,18 +532,18 @@ def content_to_html(content, ads_enabled=False):
                         html.append(text_html)
                         if text_injected:
                             banner_injected = True
-                    else:
+                    elif tail_length >= banner_interval:
                         html.append(_get_banner_code(BannerID.BANNER_CONTENT))
                         banner_injected = True
+
+                elif tail_length < banner_interval or block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
+                    continue
 
                 elif block['type'] == ArticleContentType.HEADER:
                     header_html = html.pop()
                     html.append(_get_banner_code(BannerID.BANNER_CONTENT))
                     html.append(header_html)
                     banner_injected = True
-
-                elif block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
-                    pass
 
                 else:
                     html.append(_get_banner_code(BannerID.BANNER_CONTENT))
