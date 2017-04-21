@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import hashlib
+import math
 import re
 
 import markdown
@@ -9,7 +10,6 @@ import requests
 from django.core.exceptions import ValidationError
 
 from advertisement import BannerID
-from advertisement.models import Banner
 from articles import ArticleContentType
 from articles.validation import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
 from textogram.settings import VK_ACCESS_TOKEN
@@ -225,7 +225,6 @@ class PromoDjEmbedHandler(EmbedHandler):
 
     def get_embed(self):
         id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
-        print id
         iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
                  'frameborder="0" allowfullscreen></iframe>'
         return iframe % {'id': id}
@@ -348,15 +347,55 @@ def _get_banner_code(_id):
     return '<div class="banner %s"></div>' % _id
 
 
+def _get_block_length(block):
+    if block['type'] == ArticleContentType.LEAD:
+        return float(len(block['value'])) / 1000
+    elif block['type'] == ArticleContentType.TEXT:
+        return float(len(block['value'])) / 2000
+    elif block['type'] == ArticleContentType.HEADER:
+        return 0.1
+    elif block['type'] in [ArticleContentType.QUOTE, ArticleContentType.COLUMNS, ArticleContentType.LIST]:
+        return max(float(len(block['value'])) / 1500, 0.2)
+    elif block['type'] == ArticleContentType.PHOTO:
+        return 1
+    else:
+        return 0.5
+
+
+def _inject_banner_to_text(text_html, max_injections=1):
+    r_paragraph = re.compile(r'</p>\s*<p>')
+    interval = float(len(text_html)) / (max_injections + 1)
+    injected = False
+
+    for i in xrange(int(max_injections)):
+        start_position = interval * (i + 1) - interval / 4
+        end_position = interval * (i + 1) + interval / 4
+        sub_paragraph = r_paragraph.search(text_html, int(start_position), int(end_position))
+        if sub_paragraph:
+            position_index = sub_paragraph.start() + 4
+            text_html = text_html[:position_index] + _get_banner_code(BannerID.BANNER_CONTENT_INLINE) + \
+                        text_html[position_index:]
+            injected = True
+
+    return text_html, injected
+
+
+BANNER_DENSITY = 0.5
+
+
 def content_to_html(content, ads_enabled=False):
+
     if not content.get('__meta', {}).get('is_valid'):
         return
 
     html = []
     validated_content_blocks = [block for block in content.get('blocks') if block.get('__meta', {}).get('is_valid')]
 
+    content_length_increment = 0
+    content_weightlength = 0
+    banner_interval = 1.0 / BANNER_DENSITY
+
     for index, block in enumerate(validated_content_blocks):
-        banner_inserted = False
 
         if block.get('type') == ArticleContentType.TEXT:
             text_html = markdown.markdown(block.get('value'), safe_mode='escape')
@@ -474,20 +513,41 @@ def content_to_html(content, ads_enabled=False):
             html.append(dialogue_html % '\n'.join(dialogue_data))
 
         # CONTENT BANNERS INJECTING
-        if ads_enabled and not banner_inserted and len(validated_content_blocks) >= 8 and index % 3 == 0 and index <= len(validated_content_blocks) - 3:
-            next_block = validated_content_blocks[index + 1]
-            if block['type'] == ArticleContentType.TEXT:
-                text_html = html.pop()
-                r_paragraph = re.compile(r'</p>\s*<p>')
-                sub_paragraph = r_paragraph.search(text_html, int(0.3 * len(text_html)), int(0.5 * len(text_html)))
-                if sub_paragraph:
-                    position_index = sub_paragraph.start() + 4
-                    text_html = text_html[:position_index] + _get_banner_code(BannerID.BANNER_CONTENT_INLINE) + \
-                                text_html[position_index:]
-                    html.append(text_html)
+        if ads_enabled:
+            block_length = _get_block_length(block)
+            content_weightlength += block_length
+            content_length_increment += block_length
+
+            if content_length_increment >= banner_interval:
+                banner_injected = False
+                next_block = validated_content_blocks[index + 1] if len(validated_content_blocks) - 1 >= index + 1 else None
+
+                if block['type'] == ArticleContentType.TEXT:
+                    if block_length >= banner_interval or next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
+                        text_html = html.pop()
+                        max_injections = max(1, math.ceil(block_length / banner_interval) - 1)
+                        text_html, text_injected = _inject_banner_to_text(text_html, max_injections=max_injections)
+                        html.append(text_html)
+                        if text_injected:
+                            banner_injected = True
+                    else:
+                        html.append(_get_banner_code(BannerID.BANNER_CONTENT))
+                        banner_injected = True
+
+                elif block['type'] == ArticleContentType.HEADER:
+                    header_html = html.pop()
+                    html.append(_get_banner_code(BannerID.BANNER_CONTENT))
+                    html.append(header_html)
+                    banner_injected = True
+
+                elif block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
+                    pass
+
                 else:
                     html.append(_get_banner_code(BannerID.BANNER_CONTENT))
-            elif block['type'] != ArticleContentType.PHOTO and next_block['type'] != ArticleContentType.PHOTO:
-                html.append(_get_banner_code(BannerID.BANNER_CONTENT))
+                    banner_injected = True
+
+                if banner_injected:
+                    content_length_increment = 0
 
     return '\n'.join(html)
