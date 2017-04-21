@@ -536,7 +536,9 @@ def content_to_html(content, ads_enabled=False):
                         html.append(_get_banner_code(BannerID.BANNER_CONTENT))
                         banner_injected = True
 
-                elif tail_length < banner_interval or block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
+                elif tail_length < banner_interval \
+                        or block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO] \
+                        or next_block and next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
                     continue
 
                 elif block['type'] == ArticleContentType.HEADER:
