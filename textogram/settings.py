@@ -197,6 +197,13 @@ GOOGLE_API_KEY = ''
 
 THUMBNAIL_SIZE = '600x600'
 
+# CONTENT SETTINGS
+
+BANNER_DENSITY = 0.5
+
+
+
+
 try:
     from local_settings import *
 except ImportError:

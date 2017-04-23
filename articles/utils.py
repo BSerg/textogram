@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from advertisement import BannerID
 from articles import ArticleContentType
 from articles.validation import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
-from textogram.settings import VK_ACCESS_TOKEN
+from textogram.settings import VK_ACCESS_TOKEN, BANNER_DENSITY
 
 
 class EmbedHandlerError(Exception):
@@ -378,9 +378,6 @@ def _inject_banner_to_text(text_html, max_injections=1):
             injected = True
 
     return text_html, injected
-
-
-BANNER_DENSITY = 0.5
 
 
 def content_to_html(content, ads_enabled=False):
