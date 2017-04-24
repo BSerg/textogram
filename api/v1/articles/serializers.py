@@ -39,6 +39,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     owner = PublicUserSerializer(read_only=True)
     title = serializers.SerializerMethodField()
     cover = serializers.SerializerMethodField()
+    inverted_theme = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_cached')
     url = serializers.SerializerMethodField()
@@ -83,10 +84,13 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
                 _banners[banner.identifier].append(BannerSerializer(banner).data)
             return _banners
 
+    def get_inverted_theme(self, obj):
+        return obj.content.get('inverted_theme')
+
     class Meta:
         model = Article
-        fields = ['id', 'slug', 'owner', 'title', 'cover', 'published_at', 'views', 'html', 'images', 'url',
-                  'ads_enabled', 'advertisement']
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'html',
+                  'images', 'url', 'ads_enabled', 'advertisement']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

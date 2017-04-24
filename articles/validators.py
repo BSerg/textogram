@@ -61,7 +61,8 @@ ROOT_VALIDATION_CFG = {
     'blocks': {
         IS_REQUIRED: True,
         STRUCTURE_LIST: BLOCK_BASE_VALIDATION_CFG
-    }
+    },
+    'inverted_theme': {IS_REQUIRED: False, TYPE: bool}
 }
 
 BLOCKS_VALIDATION_CFG = {
