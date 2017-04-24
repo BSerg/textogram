@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 import articles.models
-import articles.validation
+import articles.validators
 import django.contrib.postgres.fields.jsonb
 from django.db import migrations
 
@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='article',
             name='content',
-            field=django.contrib.postgres.fields.jsonb.JSONField(default={b'blocks': [], b'cover': None, b'title': ''}, validators=[articles.validation.validate_content_size, articles.models.validate_content], verbose_name='\u041a\u043e\u043d\u0442\u0435\u043d\u0442'),
+            field=django.contrib.postgres.fields.jsonb.JSONField(default={b'blocks': [], b'cover': None, b'title': ''}, validators=[articles.validators.validate_content_size, articles.models.validate_content], verbose_name='\u041a\u043e\u043d\u0442\u0435\u043d\u0442'),
         ),
     ]

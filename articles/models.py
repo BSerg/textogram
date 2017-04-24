@@ -12,7 +12,7 @@ from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
 from articles.utils import process_content, content_to_html
-from articles.validation import ContentValidator, validate_content_size
+from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 
 

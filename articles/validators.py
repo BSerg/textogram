@@ -7,15 +7,10 @@ from django.core.exceptions import ValidationError
 from articles import ArticleContentType
 
 
-class ContentSizeValidator(object):
-
-    def __init__(self, size=1024*1024):
-        self.size = size
-
-    def __call__(self, content):
-        content_json = json.dumps(content)
-        if len(content_json) > self.size:
-            raise ValidationError('Content size too large')
+class ContentBlockValidationError(Exception):
+    def __init__(self, message, _type):
+        super(ContentBlockValidationError, self).__init__(message)
+        self.type = _type
 
 
 def validate_content_size(content):
@@ -24,11 +19,7 @@ def validate_content_size(content):
         raise ValidationError('Content size too large')
 
 
-class ContentBlockValidationError(Exception):
-    def __init__(self, message, _type):
-        super(ContentBlockValidationError, self).__init__(message)
-        self.type = _type
-
+# CONTENT STRUCTURE VALIDATOR
 
 IS_REQUIRED = 'REQUIRED'
 MAX_LENGTH = 'MAX_LENGTH'
