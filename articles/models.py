@@ -67,8 +67,9 @@ class ArticleImage(models.Model):
 
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, verbose_name='Статья', related_name='views')
-    user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь', blank=True, null=True)
-    fingerprint = models.CharField('Цифровой отпечаток клиента', max_length=255)
+    user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь',
+                             blank=True, null=True, db_index=True)
+    fingerprint = models.CharField('Цифровой отпечаток клиента', max_length=255, db_index=True)
     views_count = models.PositiveIntegerField('Просмотры пользователя', default=0)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     last_modified = models.DateTimeField('Дата последнего обновления', auto_now=True)

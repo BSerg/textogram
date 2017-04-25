@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 INSTALLED_APPS += [
+    'textogram',
     'accounts',
     'common',
     'articles',
@@ -173,6 +174,10 @@ REST_FRAMEWORK = {
     )
 }
 
+REST_FRAMEWORK_EXTENSIONS = {
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 15
+}
+
 # SOCIALS
 
 VK_APP_ID = ''
@@ -201,8 +206,19 @@ THUMBNAIL_SIZE = '600x600'
 
 BANNER_DENSITY = 0.5
 
+# ARTICLE NEW AGE, HOURS
 
+NEW_ARTICLE_AGE = 24
 
+# RQ
+
+RQ_HIGH_QUEUE = 'high'
+RQ_LOW_QUEUE = 'low'
+RQ_QUEUES = [RQ_HIGH_QUEUE, RQ_LOW_QUEUE]
+RQ_HOST = 'localhost'
+RQ_PORT = 6379
+RQ_DB = 0
+RQ_TIMEOUT = 60 * 10
 
 try:
     from local_settings import *

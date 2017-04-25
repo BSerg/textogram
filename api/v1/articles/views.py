@@ -3,21 +3,26 @@ from __future__ import unicode_literals
 import base64
 
 from django.core.files.base import ContentFile
-from django.db.models import F
 from django.utils import timezone
+from redis import Redis
 from rest_framework import viewsets, mixins, permissions
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
+from rest_framework_extensions.cache.decorators import cache_response
+from rq import Queue
 
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, WebVisor, IsOwner
+from accounts.models import Subscription
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
-from articles.models import Article, ArticleImage, ArticleView, ArticlePreview
-from accounts.models import Subscription
-
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
+from articles.models import Article, ArticleImage
+from articles.tasks import register_article_view
+from articles.utils import get_article_cache_key
+from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
+from textogram.settings import RQ_PORT
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -115,25 +120,38 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED])
+    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED]).select_related('owner').prefetch_related('images')
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
+
+    @cache_response(key_func=get_article_cache_key)
+    def _retrieve(self, instance, request, *args, **kwargs):
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         fingerprint = request.META.get('HTTP_X_FINGERPRINT')
         if fingerprint:
-            if request.user.is_authenticated() and ArticleView.objects.filter(article=instance, user=request.user).exists():
-                ArticleView.objects.filter(article=instance, user=request.user).update(views_count=F('views_count') + 1)
-            elif request.user.is_authenticated():
-                ArticleView.objects.create(article=instance, user=request.user, fingerprint=fingerprint)
-            elif ArticleView.objects.filter(article=instance, fingerprint=fingerprint).exists():
-                ArticleView.objects.filter(article=instance, fingerprint=fingerprint).update(views_count=F('views_count') + 1)
-            else:
-                ArticleView.objects.create(article=instance, fingerprint=fingerprint)
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+            if instance.published_at:
+                delta = timezone.now() - instance.published_at
+                hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
+
+                if hours <= NEW_ARTICLE_AGE:
+                    q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                              default_timeout=RQ_TIMEOUT)
+                else:
+                    q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                              default_timeout=RQ_TIMEOUT)
+
+                job = q.enqueue(
+                    register_article_view,
+                    instance.id,
+                    request.user.id if request.user.is_authenticated else None,
+                    fingerprint
+                )
+        return self._retrieve(instance, request, *args, **kwargs)
 
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
