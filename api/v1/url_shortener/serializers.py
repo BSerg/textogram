@@ -10,7 +10,6 @@ class UrlShortSerializer(serializers.ModelSerializer):
 
     def get_shortened_url(self, obj):
         current_site = Site.objects.get_current()
-
         return 'http://%s/%s' % (current_site.domain, obj.code)
 
     class Meta:
