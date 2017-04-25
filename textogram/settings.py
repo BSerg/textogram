@@ -82,6 +82,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'frontend.processors.debug_processor',
+                'frontend.processors.is_lentach_processor',
             ],
         },
     },
@@ -90,6 +92,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'textogram.wsgi.application'
 
 SITE_ID = 1
+
+IS_LENTACH = False
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases

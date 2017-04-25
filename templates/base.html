@@ -6,8 +6,9 @@
     <base target="_blank">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>{% block title %}Textius{% endblock %}</title>
+    <title>{% block title %}{% if IS_LENTACH %}Лентач{% else %}Textius{% endif %}{% endblock %}</title>
     <meta name="description" content="{% block description %}{% endblock %}" />
+    <meta name="keywords" content="{% block keywords %}{% endblock %}" />
     <link href="{% static 'bundle.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
