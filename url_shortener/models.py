@@ -9,7 +9,7 @@ from django.db.models.signals import pre_save
 
 class UrlShort(models.Model):
 
-    url = models.URLField('URL')
+    url = models.URLField('URL', db_index=True)
     code = models.CharField('Код', max_length=10, editable=False, unique=True, default='')
     created_at = models.DateTimeField('Создан', editable=False, auto_now_add=True)
     count = models.IntegerField('Перходы', editable=False, default=0)
