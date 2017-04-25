@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import base64
 
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from redis import Redis
@@ -42,6 +43,12 @@ class ArticleViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.status = Article.DELETED
         instance.save()
+
+    def update(self, request, *args, **kwargs):
+        article = self.get_object()
+        if 'article__%s' % article.slug in cache:
+            cache.delete('article__%s' % article.slug)
+        return super(ArticleViewSet, self).update(request, *args, **kwargs)
 
     @detail_route(methods=['POST'])
     def publish(self, request, **kwargs):
