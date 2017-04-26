@@ -21,7 +21,6 @@ from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializ
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
-from articles.utils import get_article_cache_key
 from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
 from textogram.settings import RQ_PORT
 
@@ -133,7 +132,10 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
-    @cache_response(key_func=get_article_cache_key)
+    def get_article_cache_key(self, view_instance, view_method, request, args, kwargs):
+        return 'article__%s' % kwargs.get('slug', 'undefined')
+
+    @cache_response(key_func='get_article_cache_key')
     def _retrieve(self, instance, request, *args, **kwargs):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
