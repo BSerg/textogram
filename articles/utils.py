@@ -519,8 +519,8 @@ def content_to_html(content, ads_enabled=False):
 
             if content_length_increment >= banner_interval:
                 banner_injected = False
-                prev_block = validated_content_blocks[index - 1] if len(validated_content_blocks) and index - 1 else None
-                next_block = validated_content_blocks[index + 1] if len(validated_content_blocks) - 1 >= index + 1 else None
+                prev_block = validated_content_blocks[index - 1] if (len(validated_content_blocks) - 1 >= index - 1) else None
+                next_block = validated_content_blocks[index + 1] if (len(validated_content_blocks) - 1 >= index + 1) else None
 
                 if block['type'] == ArticleContentType.TEXT:
                     if block_length >= banner_interval or next_block and next_block['type'] in [ArticleContentType.PHOTO, ArticleContentType.VIDEO]:
