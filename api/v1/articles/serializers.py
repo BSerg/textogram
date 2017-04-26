@@ -43,6 +43,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     images = serializers.SerializerMethodField()
     views = serializers.IntegerField(source='views_cached')
     url = serializers.SerializerMethodField()
+    short_url = serializers.SerializerMethodField()
     advertisement = serializers.SerializerMethodField()
 
     def get_title(self, obj):
@@ -71,7 +72,10 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
             obj.images.all(), context={'request': self.context.get('request')}, many=True).data
 
     def get_url(self, obj):
-        return self.context['request'].build_absolute_uri('/articles/%s/' % obj.slug)
+        return obj.get_absolute_url()
+
+    def get_short_url(self, obj):
+        return obj.get_short_url()
 
     def get_advertisement(self, obj):
         if not obj.ads_enabled:
@@ -90,7 +94,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'html',
-                  'images', 'url', 'ads_enabled', 'advertisement']
+                  'images', 'url', 'short_url', 'ads_enabled', 'advertisement']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

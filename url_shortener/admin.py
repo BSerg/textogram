@@ -1,6 +1,13 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
 from .models import UrlShort
 
 
-admin.site.register(UrlShort)
+class UrlShortAdmin(admin.ModelAdmin):
+    list_display = ['url', 'article', 'code', 'short_url', 'created_at']
+
+    def short_url(self, obj):
+        return mark_safe('<a target="_blank" href="%(url)s">%(url)s</a>' % {'url': obj.get_short_url()})
+
+admin.site.register(UrlShort, UrlShortAdmin)

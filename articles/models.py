@@ -5,15 +5,18 @@ import uuid
 from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
+from django.contrib.sites.models import Site
 from django.db import models
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
+from django.urls import reverse
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 
 from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
+from url_shortener.models import UrlShort
 
 
 def _upload_to(instance, filename):
@@ -49,6 +52,17 @@ class Article(models.Model):
     published_at = models.DateTimeField('Дата публикации', blank=True, null=True)
     last_modified = models.DateTimeField('Дата последнего изменения', auto_now=True)
     deleted_at = models.DateTimeField('Дата удаления', blank=True, null=True)
+
+    def get_absolute_url(self):
+        if self.slug:
+            return 'http://%s%s' % (Site.objects.get_current().domain, reverse('article', kwargs={'slug': self.slug}))
+
+    def get_short_url(self):
+        if hasattr(self, 'short_url'):
+            short_url = self.short_url
+        else:
+            short_url = UrlShort.objects.create(article=self)
+        return 'http://%s/%s/' % (Site.objects.get_current().domain, short_url.code)
 
     def __unicode__(self):
         return self.content.get('title') or 'Статья #%d' % self.id
@@ -151,3 +165,9 @@ def recount_published_articles(sender, instance, **kwargs):
         user = instance.owner
         user.number_of_published_articles_cached = Article.objects.filter(status=Article.PUBLISHED, owner=user).count()
         user.save()
+
+
+@receiver(post_save, sender=Article)
+def create_short_url(sender, instance, created, **kwargs):
+    if instance.slug and not hasattr(instance, 'short_url'):
+        UrlShort.objects.create(article=instance)

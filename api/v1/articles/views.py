@@ -127,7 +127,8 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED]).select_related('owner').prefetch_related('images')
+    queryset = Article.objects.filter(status__in=[Article.PUBLISHED, Article.SHARED])\
+        .select_related('owner').prefetch_related('images', 'short_url')
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
