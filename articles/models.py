@@ -62,7 +62,7 @@ class Article(models.Model):
             short_url = self.short_url
         else:
             short_url = UrlShort.objects.create(article=self)
-        return 'http://%s/%s/' % (Site.objects.get_current().domain, short_url.code)
+        return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': short_url.code}))
 
     def __unicode__(self):
         return self.content.get('title') or 'Статья #%d' % self.id
