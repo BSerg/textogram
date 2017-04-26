@@ -25,15 +25,15 @@
 {% endblock %}
 
 {% block app_html %}
-    <div style="visibility: hidden">
+    {% if IS_BOT %}
         <div class="title_block">
             <h1>{{ article.content.title }}</h1>
             {% if image %}
-                <img src="{{ image }}" alt="">
+                <img src="{{ image }}" alt="{{ article.content.title }}">
             {% endif %}
         </div>
         <div class="content">
             {{ article.html|safe }}
         </div>
-    </div>
+    {% endif %}
 {% endblock %}

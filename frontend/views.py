@@ -3,6 +3,7 @@ from django.views.generic import DetailView, TemplateView
 
 from articles import ArticleContentType
 from articles.models import Article
+from frontend.processors import is_bot_processor
 
 from textogram.settings import DEBUG
 
@@ -24,7 +25,6 @@ class ArticleView(DetailView):
     def get_context_data(self, **kwargs):
         article = self.get_object()
         ctx = super(ArticleView, self).get_context_data(**kwargs)
-
         description = None
         if len(article.content.get('blocks')) and article.content['blocks'][0].get('type') == ArticleContentType.LEAD:
             description = article.content['blocks'][0].get('value')

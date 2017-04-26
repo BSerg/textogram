@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'frontend.processors.debug_processor',
                 'frontend.processors.is_lentach_processor',
+                'frontend.processors.is_bot_processor',
             ],
         },
     },
@@ -223,6 +224,23 @@ RQ_HOST = 'localhost'
 RQ_PORT = 6379
 RQ_DB = 0
 RQ_TIMEOUT = 60 * 10
+
+# Search bot list
+
+BOT_USER_AGENTS = [
+    'aolbuild',
+    'baidu',
+    'bingbot',
+    'bingpreview',
+    'msnbot',
+    'duckduckgo',
+    'adsbot-google',
+    'googlebot',
+    'mediapartners-google',
+    'teoma',
+    'slurp',
+    'yandex'
+]
 
 try:
     from local_settings import *
