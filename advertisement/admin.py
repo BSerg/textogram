@@ -4,6 +4,6 @@ from advertisement.models import Banner
 
 
 class BannerAdmin(admin.ModelAdmin):
-    list_display = ['identifier', 'description', 'weight', 'is_active']
+    list_display = ['identifier', 'is_mobile', 'description', 'weight', 'is_active']
 
 admin.site.register(Banner, BannerAdmin)

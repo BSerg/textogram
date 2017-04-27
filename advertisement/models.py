@@ -9,6 +9,7 @@ from advertisement import BannerID
 class Banner(models.Model):
     BANNER_IDS = ((value, value) for value in BannerID.__dict__.values() if value and value.startswith('banner'))
     identifier = models.CharField('Идентификатор', choices=BANNER_IDS, max_length=255)
+    is_mobile = models.BooleanField('Мобильная версия', default=False, help_text='Баннер для мобильной версии сайта')
     description = models.CharField('Описание', max_length=255, blank=True)
     code = models.TextField('Код баннера', blank=True)
     is_active = models.BooleanField('Активно', default=False)
