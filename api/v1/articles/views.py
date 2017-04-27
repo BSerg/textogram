@@ -135,7 +135,8 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     def get_article_cache_key(self, view_instance, view_method, request, args, kwargs):
         return 'article__%s' % kwargs.get('slug', 'undefined')
 
-    @cache_response(key_func='get_article_cache_key')
+    # @cache_response(key_func='get_article_cache_key')
+    @cache_response()
     def _retrieve(self, instance, request, *args, **kwargs):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
