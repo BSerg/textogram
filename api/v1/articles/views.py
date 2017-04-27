@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import base64
+import json
 
 from django.core.cache import cache
 from django.core.files.base import ContentFile
@@ -12,7 +13,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
-from rest_framework_extensions.cache.decorators import cache_response
 from rq import Queue
 
 from accounts.models import Subscription
@@ -21,6 +21,7 @@ from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializ
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
+from articles.utils import get_article_cache_key
 from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
 from textogram.settings import RQ_PORT
 
@@ -45,8 +46,9 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         article = self.get_object()
-        if 'article__%s' % article.slug in cache:
-            cache.delete('article__%s' % article.slug)
+        cache_key = get_article_cache_key(article.slug)
+        if cache_key in cache:
+            cache.delete(cache_key)
         return super(ArticleViewSet, self).update(request, *args, **kwargs)
 
     @detail_route(methods=['POST'])
@@ -132,36 +134,36 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
-    def get_article_cache_key(self, view_instance, view_method, request, args, kwargs):
-        return 'article__%s' % kwargs.get('slug', 'undefined')
-
-    @cache_response(key_func='get_article_cache_key')
-    def _retrieve(self, instance, request, *args, **kwargs):
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        fingerprint = request.META.get('HTTP_X_FINGERPRINT')
-        if fingerprint:
-            if instance.published_at:
-                delta = timezone.now() - instance.published_at
-                hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
+        cache_key = get_article_cache_key(kwargs.get('slug', 'undefined'))
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(json.loads(cached_data))
+        else:
+            instance = self.get_object()
+            fingerprint = request.META.get('HTTP_X_FINGERPRINT')
+            if fingerprint:
+                if instance.published_at:
+                    delta = timezone.now() - instance.published_at
+                    hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
 
-                if hours <= NEW_ARTICLE_AGE:
-                    q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
-                else:
-                    q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
+                    if hours <= NEW_ARTICLE_AGE:
+                        q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                                  default_timeout=RQ_TIMEOUT)
+                    else:
+                        q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                                  default_timeout=RQ_TIMEOUT)
 
-                job = q.enqueue(
-                    register_article_view,
-                    instance.id,
-                    request.user.id if request.user.is_authenticated else None,
-                    fingerprint
-                )
-        return self._retrieve(instance, request, *args, **kwargs)
+                    job = q.enqueue(
+                        register_article_view,
+                        instance.id,
+                        request.user.id if request.user.is_authenticated else None,
+                        fingerprint
+                    )
+            serializer = self.get_serializer(instance)
+            data = serializer.data
+            cache.set(cache_key, json.dumps(data))
+            return Response(data)
 
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):

@@ -555,5 +555,5 @@ def content_to_html(content, ads_enabled=False):
     return '\n'.join(html)
 
 
-def get_article_cache_key(view_instance, view_method, request, args, kwargs):
-    return 'article__%s' % kwargs.get('slug', 'undefined')
+def get_article_cache_key(key, prefix='article'):
+    return '%s__%s' % (prefix, key)
