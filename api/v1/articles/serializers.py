@@ -72,7 +72,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
             obj.images.all(), context={'request': self.context.get('request')}, many=True).data
 
     def get_url(self, obj):
-        return obj.get_absolute_url()
+        return obj._get_absolute_url()
 
     def get_short_url(self, obj):
         return obj.get_short_url()

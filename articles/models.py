@@ -55,6 +55,10 @@ class Article(models.Model):
 
     def get_absolute_url(self):
         if self.slug:
+            return reverse('article', kwargs={'slug': self.slug})
+
+    def _get_absolute_url(self):
+        if self.slug:
             return 'http://%s%s' % (Site.objects.get_current().domain, reverse('article', kwargs={'slug': self.slug}))
 
     def get_short_url(self):

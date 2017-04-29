@@ -16,9 +16,12 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from django.contrib import admin
-from url_shortener.views import UrlShortDetailView
+from django.contrib.sitemaps.views import sitemap as sitemap_views
+from django.views.decorators.cache import cache_page
 
+from articles.sitemaps import ArticleSitemap
 from textogram.settings import DEBUG, MEDIA_URL, MEDIA_ROOT
+from url_shortener.views import UrlShortDetailView
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -26,6 +29,18 @@ urlpatterns = [
     url(r'', include('frontend.urls')),
     url(r'^(?P<code>\w{4,})/?$', UrlShortDetailView.as_view(), name='short_url')
 ]
+
+sitemaps = {
+    'articles': ArticleSitemap
+}
+
+urlpatterns += [
+    url(r'^sitemap\.xml$', cache_page(86400)(sitemap_views), {'sitemaps': sitemaps})
+]
+
+handler404 = 'frontend.views.handler404'
+handler500 = 'frontend.views.handler500'
+
 
 if DEBUG:
     urlpatterns += static(MEDIA_URL, document_root=MEDIA_ROOT)
