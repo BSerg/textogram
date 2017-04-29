@@ -38,7 +38,7 @@
     <title>{% block title %}{% if IS_LENTACH %}Лентач{% else %}Textius{% endif %}{% endblock %}</title>
     <meta name="description" content="{% block description %}{% endblock %}" />
     <meta name="keywords" content="{% block keywords %}{% endblock %}" />
-    <link href="{% static 'bundle.css' %}" rel="stylesheet">
+    <link href="{% static 'bundle.css' %}{% if STATIC_REVISION %}?{{ STATIC_REVISION }}{% endif %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -64,7 +64,7 @@
     {% if debug %}
         <script type="text/javascript" src="{% static 'vendor.js' %}"></script>
     {% endif %}
-    <script type="text/javascript" src="{% static 'bundle.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bundle.js' %}{% if STATIC_REVISION %}?{{ STATIC_REVISION }}{% endif %}"></script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
     <script src="//platform.instagram.com/en_US/embeds.js"></script>
     <!-- Yandex.Metrika counter -->
