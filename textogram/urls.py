@@ -27,7 +27,8 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include('api.urls')),
     url(r'', include('frontend.urls')),
-    url(r'^(?P<code>\w{4,})/?$', UrlShortDetailView.as_view(), name='short_url')
+    url(r'^(?P<code>\w{4,})/?$', UrlShortDetailView.as_view(), name='short_url'),
+    url(r'^statistics/', include('statistics.urls'))
 ]
 
 sitemaps = {

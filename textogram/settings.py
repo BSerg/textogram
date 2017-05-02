@@ -244,6 +244,13 @@ BOT_USER_AGENTS = [
 
 STATIC_REVISION = 1
 
+# Yandex API
+
+YANDEX_APP_ID = ''
+YANDEX_PASSWORD = ''
+YANDEX_ACCESS_TOKEN = ''
+YANDEX_CALLBACK_URL = ''
+
 try:
     from local_settings import *
 except ImportError:
