@@ -20,7 +20,7 @@ from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleConte
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
-from articles.tasks import register_article_view
+from articles.tasks import register_article_view, _register_article_view
 from articles.utils import get_article_cache_key
 from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
 from textogram.settings import RQ_PORT
@@ -135,35 +135,26 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
         fingerprint = request.META.get('HTTP_X_FINGERPRINT')
+
         if fingerprint:
-            if instance.published_at:
-                delta = timezone.now() - instance.published_at
-                hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
-
-                if hours <= NEW_ARTICLE_AGE:
-                    q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
-                else:
-                    q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
-
-                job = q.enqueue(
-                    register_article_view,
-                    instance.id,
-                    request.user.id if request.user.is_authenticated() else None,
-                    fingerprint
-                )
+            q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                      default_timeout=RQ_TIMEOUT)
+            job = q.enqueue(
+                _register_article_view,
+                kwargs.get('slug'),
+                request.user.id if request.user.is_authenticated() else None,
+                fingerprint
+            )
 
         cache_key = get_article_cache_key(kwargs.get('slug', 'undefined'))
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(json.loads(cached_data))
         else:
-            serializer = self.get_serializer(instance)
+            serializer = self.get_serializer(self.get_object())
             data = serializer.data
-            cache.set(cache_key, json.dumps(data))
+            cache.set(cache_key, json.dumps(serializer.data))
             return Response(data)
 
 
