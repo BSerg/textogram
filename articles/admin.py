@@ -14,6 +14,6 @@ admin.site.register(Article, ArticleAdmin)
 
 
 class ArticleViewAdmin(admin.ModelAdmin):
-    list_display = ['article', 'user', 'fingerprint', 'views_count', 'created_at', 'last_modified']
+    list_display = ['article', 'user', 'fingerprint', 'monetization_enabled', 'created_at']
 
 admin.site.register(ArticleView, ArticleViewAdmin)
