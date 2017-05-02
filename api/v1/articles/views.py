@@ -152,7 +152,7 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
                 job = q.enqueue(
                     register_article_view,
                     instance.id,
-                    request.user.id if request.user.is_authenticated else None,
+                    request.user.id if request.user.is_authenticated() else None,
                     fingerprint
                 )
 
