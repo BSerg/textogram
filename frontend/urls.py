@@ -7,7 +7,6 @@ from frontend.views import ArticleView
 urlpatterns = [
     url(r'articles/new/?$', BaseTemplateView.as_view(template_name='index.html'), name='article_new'),
     url(r'articles/(?P<slug>[\-\w]+)/?$', ArticleView.as_view(), name='article'),
-    url(r'^(login|articles/[\-\w]+/edit|articles/(?P<id>\d+)/preview|profile/\w+|drafts|manage|auth/twitter|url_shorten)?/?$',
+    url(r'^(login|articles/[\-\w]+/edit|articles/(?P<id>\d+)/preview|id\d+|profile/\w+|drafts|manage|auth/twitter|url_shorten)?/?$',
         BaseTemplateView.as_view(template_name='index.html')),
-
 ]
