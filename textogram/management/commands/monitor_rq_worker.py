@@ -1,13 +1,8 @@
 from __future__ import unicode_literals
 
-import cmd
-import os
-
 from django.core.management.base import BaseCommand
 from redis.client import StrictRedis
-from rq import Connection, Worker
 from rq import Queue
-from rq.cli import info
 
 from textogram import settings
 
