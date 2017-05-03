@@ -20,9 +20,9 @@ from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleConte
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
 from articles.models import Article, ArticleImage
-from articles.tasks import register_article_view, _register_article_view
+from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
-from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
+from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
 from textogram.settings import RQ_PORT
 
 
@@ -91,12 +91,15 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
     def base64(self, request, **kwargs):
         article_id = request.data.get('article')
         data = request.data.get('image')
-        format, imgstr = data.split(';base64,')
-        ext = format.split('/')[-1]
-        data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        im = ArticleImage(article_id=article_id, image=data)
-        im.save()
-        return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+        try:
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+            im = ArticleImage(article_id=article_id, image=data)
+            im.save()
+            return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+        except:
+            return Response(status=HTTP_400_BAD_REQUEST)
 
 
 class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -141,7 +144,7 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
             q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
                       default_timeout=RQ_TIMEOUT)
             job = q.enqueue(
-                _register_article_view,
+                register_article_view,
                 kwargs.get('slug'),
                 request.user.id if request.user.is_authenticated() else None,
                 fingerprint
