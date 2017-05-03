@@ -17,6 +17,7 @@ from slugify import slugify
 from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
+from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
 from url_shortener.models import UrlShort
 
 
@@ -47,12 +48,19 @@ class Article(models.Model):
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
     views_cached = models.PositiveIntegerField('Просмотры', default=0)
-    ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)
+
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     published_at = models.DateTimeField('Дата публикации', blank=True, null=True)
     last_modified = models.DateTimeField('Дата последнего изменения', auto_now=True)
     deleted_at = models.DateTimeField('Дата удаления', blank=True, null=True)
+
+    ads_enabled = models.BooleanField('Реклама включена', default=True)
+    paywall_enabled = models.BooleanField('Paywall включен', default=False)
+    paywall_price = models.DecimalField('Базовая стоимость доступа [PAYWALL]', max_digits=8, decimal_places=2,
+                                        default=0)
+    paywall_currency = models.CharField('Валюта [PAYWALL]', choices=PAYWALL_CURRENCIES, max_length=3,
+                                        default=PAYWALL_CURRENCY_RUR)
 
     def get_absolute_url(self):
         if self.slug:

@@ -242,7 +242,22 @@ BOT_USER_AGENTS = [
     'yandex'
 ]
 
+# Static revision number
+
 STATIC_REVISION = 1
+
+# Paywall
+
+PAYWALL_ENABLED = False
+
+PAYWALL_CURRENCY_USD = 'USD'
+PAYWALL_CURRENCY_RUR = 'RUR'
+PAYWALL_CURRENCY_EUR = 'EUR'
+PAYWALL_CURRENCIES = (
+    ('Ruble', PAYWALL_CURRENCY_RUR),
+    ('US Dollar', PAYWALL_CURRENCY_USD),
+    ('Euro', PAYWALL_CURRENCY_EUR),
+)
 
 try:
     from local_settings import *
