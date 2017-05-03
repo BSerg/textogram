@@ -55,6 +55,7 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = PublicUserPagination
+    lookup_field = 'nickname'
 
     def get_queryset(self):
 
@@ -101,9 +102,11 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
         return self.queryset
 
     @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, *args, **kwargs):
         try:
-            author = User.objects.get(pk=pk)
+
+            author = self.get_object()
+            print author
             Subscription.objects.get_or_create(user=request.user, author=author)
             return Response({'msg': 'subscribed successfully'})
 
@@ -111,9 +114,9 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'author not found'}, status=HTTP_404_NOT_FOUND)
 
     @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
-    def un_subscribe(self, request, pk=None):
+    def un_subscribe(self, request, *args, **kwargs):
         try:
-            author = User.objects.get(pk=pk)
+            author = self.get_object()
             subscription = Subscription.objects.get(user=request.user, author=author)
             subscription.delete()
             return Response({'msg': 'unSubscribed successfully'})

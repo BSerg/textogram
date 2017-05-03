@@ -57,7 +57,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
+        fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
                   'social_links', 'subscribers', 'subscriptions', 'number_of_articles', 'description']
 
 
@@ -115,7 +115,7 @@ class PublicUserSerializer(UserSerializer):
         return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
 
     class Meta(UserSerializer.Meta):
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
+        fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
                   'is_subscribed', 'number_of_articles', 'description']
 
 
