@@ -1,3 +1,5 @@
+from django.shortcuts import render_to_response
+from django.template import RequestContext
 from django.urls import reverse
 from django.views.generic import DetailView, TemplateView
 
@@ -34,3 +36,15 @@ class ArticleView(DetailView):
         ctx['url'] = self.request.build_absolute_uri(reverse('article', kwargs={'slug': article.slug}))
         ctx['debug'] = DEBUG
         return ctx
+
+
+def handler404(request):
+    response = render_to_response('index.html', context=RequestContext(request))
+    response.status_code = 404
+    return response
+
+
+def handler500(request):
+    response = render_to_response('index.html', context=RequestContext(request))
+    response.status_code = 500
+    return response

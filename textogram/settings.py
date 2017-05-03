@@ -242,6 +242,8 @@ BOT_USER_AGENTS = [
     'yandex'
 ]
 
+STATIC_REVISION = 1
+
 try:
     from local_settings import *
 except ImportError:

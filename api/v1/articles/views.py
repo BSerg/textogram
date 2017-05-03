@@ -135,31 +135,32 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
     def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        fingerprint = request.META.get('HTTP_X_FINGERPRINT')
+        if fingerprint:
+            if instance.published_at:
+                delta = timezone.now() - instance.published_at
+                hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
+
+                if hours <= NEW_ARTICLE_AGE:
+                    q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                              default_timeout=RQ_TIMEOUT)
+                else:
+                    q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                              default_timeout=RQ_TIMEOUT)
+
+                job = q.enqueue(
+                    register_article_view,
+                    instance.id,
+                    request.user.id if request.user.is_authenticated() else None,
+                    fingerprint
+                )
+
         cache_key = get_article_cache_key(kwargs.get('slug', 'undefined'))
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(json.loads(cached_data))
         else:
-            instance = self.get_object()
-            fingerprint = request.META.get('HTTP_X_FINGERPRINT')
-            if fingerprint:
-                if instance.published_at:
-                    delta = timezone.now() - instance.published_at
-                    hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
-
-                    if hours <= NEW_ARTICLE_AGE:
-                        q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                                  default_timeout=RQ_TIMEOUT)
-                    else:
-                        q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                                  default_timeout=RQ_TIMEOUT)
-
-                    job = q.enqueue(
-                        register_article_view,
-                        instance.id,
-                        request.user.id if request.user.is_authenticated else None,
-                        fingerprint
-                    )
             serializer = self.get_serializer(instance)
             data = serializer.data
             cache.set(cache_key, json.dumps(data))

@@ -18,7 +18,7 @@ class UrlShortDetailView(DetailView):
     def get(self, request, *args, **kwargs):
         url_short = self.get_object()
         if url_short.article:
-            redirect_url = url_short.article.get_absolute_url()
+            redirect_url = url_short.article._get_absolute_url()
         else:
             redirect_url = url_short.url
         url_short.count += 1
