@@ -68,3 +68,16 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class PaywallTransaction(Transaction):
+    customer = models.ForeignKey('accounts.User', verbose_name='Плательщик')
+    order = models.ForeignKey('PaywallOrder', verbose_name='Заказ')
+
+    def __init__(self, *args, **kwargs):
+        super(PaywallTransaction, self).__init__(*args, **kwargs)
+        self._meta.get_field('type').default = Transaction.Type.PAYWALL
+
+
+class PaywallOrder(models.Model):
+    pass
