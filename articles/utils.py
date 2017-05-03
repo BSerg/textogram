@@ -381,6 +381,8 @@ def _inject_banner_to_text(text_html, max_injections=1):
 
 
 def content_to_html(content, ads_enabled=False):
+    
+    safe_mode = 'remove'
 
     if not content.get('__meta', {}).get('is_valid'):
         return
@@ -395,16 +397,16 @@ def content_to_html(content, ads_enabled=False):
     for index, block in enumerate(validated_content_blocks):
 
         if block.get('type') == ArticleContentType.TEXT:
-            text_html = markdown.markdown(block.get('value'), safe_mode='escape')
+            text_html = markdown.markdown(block.get('value'), safe_mode=safe_mode)
             html.append(text_html)
         elif block.get('type') == ArticleContentType.HEADER:
-            html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
+            html.append(markdown.markdown('## %s' % block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.LEAD:
-            html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.PHRASE:
-            html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.PHOTO:
             photos = []
@@ -448,21 +450,21 @@ def content_to_html(content, ads_enabled=False):
                 )
 
         elif block.get('type') == ArticleContentType.LIST:
-            html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append(markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.QUOTE:
             if block.get('image') and block['image'].get('image'):
                 _image_html = '<img src="%s"/>' % block['image']['image']
                 _html = '<blockquote class="personal">\n%s\n%s\n</blockquote>'
-                html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
+                html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode=safe_mode)))
             else:
-                html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+                html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.COLUMNS:
             _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
             html.append(_html % {
                 'left': '<img src="%s"/>' % (block.get('image') or {}).get('image', ''),
-                'right': markdown.markdown(block.get('value'), safe_mode='escape')
+                'right': markdown.markdown(block.get('value'), safe_mode=safe_mode)
             })
 
         elif block.get('type') == ArticleContentType.VIDEO:
