@@ -250,3 +250,21 @@ class RegistrationViewCase(APITestCase):
             'password_again': '2     3',
         })
         self.assertEqual(client_reg.status_code, 400)
+
+
+class NicknamesTestCase(APITestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.account = User.objects.create(
+            username='test',
+            first_name='Иван',
+            last_name='Петров',
+            avatar='/tmp/avatar.jpg',
+            social='vk',
+            uid='12345'
+        )
+        self.token = Token.objects.create(user=self.account)
+
+    def test_nickname_change(self):
+        print 'good'
+        print self.account.nickname
