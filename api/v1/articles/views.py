@@ -16,12 +16,13 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rq import Queue
 
 from accounts.models import Subscription
-from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
+from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner, PaywallAllowed
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
-    PublicArticleSerializerMin, DraftArticleSerializer
+    PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
+from payment.models import PaywallOrder
 from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
 from textogram.settings import RQ_PORT
 
@@ -136,6 +137,14 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
+
+    def get_serializer_class(self):
+        article = self.get_object()
+        if article.paywall_enabled:
+            if not self.request.user.is_authenticated() or (
+                            article.owner != self.request.user and PaywallOrder.objects.filter()):
+                return PublicArticleLimitedSerializer
+        return super(PublicArticleViewSet, self).get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
         fingerprint = request.META.get('HTTP_X_FINGERPRINT')

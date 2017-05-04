@@ -72,7 +72,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
             obj.images.all(), context={'request': self.context.get('request')}, many=True).data
 
     def get_url(self, obj):
-        return obj._get_absolute_url()
+        return obj.get_full_url()
 
     def get_short_url(self, obj):
         return obj.get_short_url()
@@ -95,6 +95,12 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'html',
                   'images', 'url', 'short_url', 'ads_enabled', 'advertisement']
+
+
+class PublicArticleLimitedSerializer(PublicArticleSerializer):
+    class Meta(PublicArticleSerializer.Meta):
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme',
+                  'published_at', 'views', 'url', 'short_url', 'paywall_enabled', 'paywall_price', 'paywall_currency']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

@@ -56,6 +56,7 @@ INSTALLED_APPS += [
     'notifications',
     'advertisement',
     'url_shortener',
+    'payment',
 ]
 
 MIDDLEWARE = [

@@ -51,7 +51,7 @@ class PaywallOrder(models.Model):
     article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='paywall_orders')
     customer = models.ForeignKey('accounts.User', verbose_name='Плательщик')
     status = models.PositiveSmallIntegerField('Статус', choices=STATUS, default=PROCESSING)
-    price_cached = models.DecimalField('Цена', max_length=10, decimal_places=2, default=0)
+    price_cached = models.DecimalField('Цена', max_digits=10, decimal_places=2, default=0)
     currency = models.CharField('Валюта', max_length=3, choices=PAYWALL_CURRENCIES,
                                 default=PAYWALL_CURRENCY_RUR, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -80,7 +80,7 @@ class Transaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     payment_account = models.ForeignKey(PaymentAccount, verbose_name='Кошелек', related_name='transactions')
     type = models.CharField('Тип', max_length=20, choices=TYPE)
-    value = models.DecimalField('Сумма', max_length=10, decimal_places=2)
+    value = models.DecimalField('Сумма', max_digits=10, decimal_places=2)
     currency = models.CharField('Валюта', max_length=3, choices=PAYWALL_CURRENCIES,
                                 default=PAYWALL_CURRENCY_RUR, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)

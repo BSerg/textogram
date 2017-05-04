@@ -35,6 +35,7 @@ class ArticleView(DetailView):
         ctx['image'] = self.request.build_absolute_uri(im['image']) if im and im.get('image')else None
         ctx['url'] = self.request.build_absolute_uri(reverse('article', kwargs={'slug': article.slug}))
         ctx['debug'] = DEBUG
+        ctx['paywall_enabled'] = article.paywall_enabled
         return ctx
 
 

@@ -33,7 +33,9 @@
             {% endif %}
         </div>
         <div class="content">
-            {{ article.html|safe }}
+            {% if not paywall_enabled %}
+                {{ article.html|safe }}
+            {% endif %}
         </div>
     {% endif %}
 {% endblock %}

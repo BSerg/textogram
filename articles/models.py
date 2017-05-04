@@ -66,7 +66,7 @@ class Article(models.Model):
         if self.slug:
             return reverse('article', kwargs={'slug': self.slug})
 
-    def _get_absolute_url(self):
+    def get_full_url(self):
         if self.slug:
             return 'http://%s%s' % (Site.objects.get_current().domain, reverse('article', kwargs={'slug': self.slug}))
 
