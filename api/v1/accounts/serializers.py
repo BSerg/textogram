@@ -10,6 +10,7 @@ from articles.models import Article
 
 import PIL.Image as Image
 
+from textogram.settings import FORBIDDEN_NICKNAMES
 
 class SocialLinkSerializer(serializers.ModelSerializer):
     class Meta:
@@ -61,10 +62,32 @@ class UserSerializer(serializers.ModelSerializer):
                   'social_links', 'subscribers', 'subscriptions', 'number_of_articles', 'description']
 
 
+def nickname_validator(nickname):
+    if not nickname or (len(nickname) not in range(4, 21)):
+        raise ValidationError({'nickname': ['incorrect']})
+
+    for n in FORBIDDEN_NICKNAMES:
+        if re.search('^%s$' % n, nickname):
+            raise ValidationError({'nickname': ['forbidden']})
+
+    if not re.search('^[A-Za-z\d_]+$', nickname):
+        raise ValidationError({'nickname': ['forbidden']})
+
+    return nickname.lower()
+
+
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
     phone = serializers.SerializerMethodField()
     drafts = serializers.SerializerMethodField()
+
+    def update(self, instance, validated_data):
+        nickname = validated_data.get('nickname') or ''
+        if nickname:
+            validated_data['nickname'] = nickname_validator(nickname)
+
+        instance = super(MeUserSerializer, self).update(instance, validated_data)
+        return instance
 
     def get_drafts(self, obj):
         return Article.objects.filter(owner=obj, status=Article.DRAFT).count()

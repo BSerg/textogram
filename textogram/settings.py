@@ -253,8 +253,11 @@ FORBIDDEN_NICKNAMES = [
     'logout',
     'manage',
     'manager',
-
-
+    'nick',
+    'nickname',
+    'nickname\w+',
+    'check_nickname',
+    '\d\w*',
 
 ]
 

@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate, APIClient
 
 from accounts.models import User, MultiAccount, MultiAccountUser, PhoneCode
 from api.v1.accounts.serializers import UserSerializer, PublicUserSerializer
-from api.v1.accounts.views import PublicUserViewSet, UserViewSet, RegistrationView
+from api.v1.accounts.views import PublicUserViewSet, UserViewSet, RegistrationView, MeUserViewSet
 
 
 class AccountSerializerTestCase(TestCase):
@@ -265,6 +265,175 @@ class NicknamesTestCase(APITestCase):
         )
         self.token = Token.objects.create(user=self.account)
 
-    def test_nickname_change(self):
-        print 'good'
+    def test_default_nickname(self):
+        self.assertEqual(self.account.nickname, 'id1')
+
+    def test_nickname_too_short(self):
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'gss'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_nickname_too_long(self):
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'dsjsjsjenddmmkkjsjkls'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_nickname_forbidden(self):
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'admin'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'id33'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'feed'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'manage'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': '23mssd'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'вавыы'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': 'super cool'})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': ''})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_nickname_correct(self):
+        nickname = 'nagibator_xxx'
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
         print self.account.nickname
+        self.assertEqual(response.status_code, 200)
+
+    def test_nickname_lowercase(self):
+        nickname = 'Mihail'
+        request = self.factory.patch('/api/v1/users/me/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = MeUserViewSet.as_view({'patch': 'partial_update'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(nickname, response.data.get('nickname'))
+        self.assertEqual(nickname.lower(), response.data.get('nickname'))
+
+
+class CheckNicknamesTestCase(APITestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.account = User.objects.create(
+            username='test1',
+            first_name='Иван',
+            last_name='Петров',
+            avatar='/tmp/avatar.jpg',
+            social='vk',
+            uid='12345'
+        )
+        self.account.nickname = 'test1'
+        self.account.save()
+        self.another_account = User.objects.create(
+            username='test2',
+            first_name='Иван',
+            last_name='Петров',
+            avatar='/tmp/avatar.jpg',
+            social='vk',
+            uid='6789',
+        )
+        self.another_account.nickname = 'testtest'
+        self.another_account.save()
+        self.token = Token.objects.create(user=self.account)
+
+    def test_param_correct(self):
+        nickname = 'test1'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 200)
+
+    def test_already_exists(self):
+        nickname = 'testtest'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+    def test_own_nickname(self):
+        nickname = 'test1'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 200)
+
+    def test_param_empty_or_incorrect_or_forbidden(self):
+        nickname = ''
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        nickname = 'dse'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        nickname = 'fskfaksdjfsnfjdnsjfndfnasdnflkndsaklfnasdlnfdasnflkadsnfa'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        nickname = 'admin'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)
+
+        nickname = 'feed'
+        request = self.factory.get('/api/v1/users/check_nickname/', {'nickname': nickname})
+        force_authenticate(request, self.account, self.token)
+        response = PublicUserViewSet.as_view({'get': 'check_nickname'})(request)
+        response.render()
+        self.assertEqual(response.status_code, 400)

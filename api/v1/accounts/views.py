@@ -16,6 +16,8 @@ from api.v1.accounts.permissions import IsAdminOrOwner
 from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, \
     MeSocialLinkSerializer, SubscriptionSerializer
 
+from api.v1.accounts.serializers import nickname_validator
+
 from django.core.validators import URLValidator
 from django.forms import ValidationError
 import re
@@ -125,6 +127,16 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'author not found'}, status=HTTP_404_NOT_FOUND)
         except Subscription.DoesNotExist:
             return Response({'msg': 'not subscribed'}, status=HTTP_404_NOT_FOUND)
+
+    @list_route(methods=['GET'], permission_classes=[permissions.IsAuthenticated])
+    def check_nickname(self, request, *args, **kwargs):
+        nickname = nickname_validator(request.query_params.get('nickname'))
+        try:
+            if User.objects.get(nickname=nickname) != self.request.user:
+                return Response({'error': 'already exists'}, status=HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            pass
+        return Response({'nickname': nickname})
 
 
 class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
