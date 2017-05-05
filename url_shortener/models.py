@@ -8,6 +8,7 @@ from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import pre_save
 
+from textogram.settings import IS_LENTACH
 
 class UrlShort(models.Model):
     url = models.URLField('URL', db_index=True, blank=True)
@@ -37,7 +38,7 @@ def create_code(sender, instance, **kwargs):
     if not instance.code:
         length = 4
         while True:
-            code = str(uuid4())[0: length]
+            code = ('!' if not IS_LENTACH else '') + str(uuid4())[0: length]
             if not UrlShort.objects.filter(code=code):
                 instance.code = code
                 break

@@ -155,7 +155,7 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
 
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access', 'is_draft',
-                  'last_modified']
+                  'last_modified', 'inverted_theme']
 
 
 class DraftArticleSerializer(PublicArticleSerializerMin):

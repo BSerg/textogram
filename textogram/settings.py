@@ -242,6 +242,25 @@ BOT_USER_AGENTS = [
     'yandex'
 ]
 
+FORBIDDEN_NICKNAMES = [
+    'admin\w*',
+    'api',
+    'articles?',
+    'drafts',
+    'id\d+',
+    'feed',
+    'login',
+    'logout',
+    'manage',
+    'manager',
+    'nick',
+    'nickname',
+    'nickname\w+',
+    'check_nickname',
+    '\d\w*',
+
+]
+
 STATIC_REVISION = 1
 
 try:
