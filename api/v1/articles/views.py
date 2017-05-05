@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 import base64
 import json
 
+# from django.db import models
+from django.db.models.functions import Cast
+
+from django.core.exceptions import FieldError
+
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -108,11 +113,13 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_queryset(self):
 
+        qs = None
+
         if self.request.query_params.get('feed') and self.request.user.is_authenticated:
             subscriptions = Subscription.objects.filter(user=self.request.user)
-            return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
+            qs = Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif self.request.query_params.get('drafts') and self.request.user.is_authenticated:
-            return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+            qs = Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
         elif self.request.query_params.get('user'):
             try:
                 user_id = int(self.request.query_params.get('user'))
@@ -120,11 +127,16 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 return Article.objects.none()
 
             if self.request.user.is_authenticated and self.request.user.id == user_id:
-                return Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
+                qs = Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                return Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
-        else:
-            return Article.objects.none()
+                qs = Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+
+        if qs and self.request.query_params.get('search'):
+            try:
+                qs = qs.filter(title__isontains=self.request.query_params.get('search'))
+            except FieldError as e:
+                pass
+        return qs or Article.objects.none()
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
