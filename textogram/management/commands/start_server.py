@@ -1,8 +1,12 @@
+import os
+
 import bjoern
+import signal
 from django.core.management import BaseCommand
 
 from textogram.wsgi import application
 
+worker_pids = []
 
 class Command(BaseCommand):
     help = 'Start bjoern server'
@@ -22,7 +26,31 @@ class Command(BaseCommand):
             default=8000,
             help='Port',
         )
+        parser.add_argument(
+            '--workers',
+            type=int,
+            dest='workers',
+            default=1,
+            help='Number of workers',
+        )
 
     def handle(self, *args, **options):
-        bjoern.run(application, options['host'], options['port'])
+        bjoern.listen(application, options['host'], options['port'])
+        for _ in xrange(options['workers']):
+            pid = os.fork()
+            if pid > 0:
+                worker_pids.append(pid)
+            elif pid == 0:
+                try:
+                    bjoern.run()
+                except KeyboardInterrupt:
+                    pass
+                exit()
+
+        try:
+            for _ in xrange(options['workers']):
+                os.wait()
+        except KeyboardInterrupt:
+            for pid in worker_pids:
+                os.kill(pid, signal.SIGINT)
 
