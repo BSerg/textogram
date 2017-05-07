@@ -5,6 +5,15 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 
 
+def forwards_func(apps, schema_editor):
+    User = apps.get_model("accounts", "User")
+    db_alias = schema_editor.connection.alias
+    for user in User.objects.using(db_alias).filter(nickname__isnull=True):
+        if not user.nickname:
+            user.nickname = 'id%d' % user.id
+            user.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,4 +26,5 @@ class Migration(migrations.Migration):
             name='nickname',
             field=models.CharField(max_length=20, null=True, unique=True, verbose_name='\u041d\u0438\u043a\u043d\u0435\u0439\u043c'),
         ),
+        migrations.RunPython(forwards_func, migrations.RunPython.noop),
     ]
