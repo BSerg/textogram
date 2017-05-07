@@ -43,6 +43,7 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', max_length=200, unique=True, db_index=True, editable=False)
+    title = models.CharField('Заголовок', max_length=255, blank=True)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
@@ -141,6 +142,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
+    instance.title = instance.content.get('title') or ''
     if instance.status != Article.DELETED:
         instance.html = content_to_html(instance.content, ads_enabled=instance.ads_enabled)
 
