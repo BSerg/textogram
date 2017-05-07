@@ -8,6 +8,7 @@ from textogram.wsgi import application
 
 worker_pids = []
 
+
 class Command(BaseCommand):
     help = 'Start bjoern server'
 

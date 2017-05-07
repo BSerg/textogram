@@ -144,8 +144,8 @@ class InstagramEmbedHandler(EmbedHandler):
 class FacebookEmbedHandler(EmbedHandler):
     TYPE = 'fb'
     EMBED_URL_REGEX = [
-        r'^https://(www|ru-ru)\.facebook\.com/\w+/posts/\d+/?$',
-        r'^https://(www|ru-ru)\.facebook\.com/\w+/videos/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/posts/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/videos/\d+/?$',
     ]
 
     def __init__(self, url, type=None, **kwargs):
