@@ -1,14 +1,15 @@
 #!coding:utf-8
 from __future__ import unicode_literals
+
 from uuid import uuid4
 
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.dispatch import receiver
 from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.urls import reverse
 
-from textogram.settings import IS_LENTACH
 
 class UrlShort(models.Model):
     url = models.URLField('URL', db_index=True, blank=True)
@@ -19,7 +20,7 @@ class UrlShort(models.Model):
     count = models.IntegerField('Перходы', editable=False, default=0)
 
     def get_short_url(self):
-        return 'http://%s/%s/' % (Site.objects.get_current().domain, self.code)
+        return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': self.code}))
 
     def clean(self):
         if not self.url and not self.article:
@@ -38,7 +39,8 @@ def create_code(sender, instance, **kwargs):
     if not instance.code:
         length = 4
         while True:
-            code = ('!' if not IS_LENTACH else '') + str(uuid4())[0: length]
+            # code = ('!' if not IS_LENTACH else '') + str(uuid4())[0: length]
+            code = str(uuid4())[0: length]
             if not UrlShort.objects.filter(code=code):
                 instance.code = code
                 break

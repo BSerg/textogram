@@ -8,7 +8,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 from polymorphic.models import PolymorphicModel
