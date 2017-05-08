@@ -136,10 +136,10 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
         if qs and self.request.query_params.get('search'):
             try:
-                qs = qs.filter(title__isontains=self.request.query_params.get('search'))
+                qs = qs.filter(title__icontains=self.request.query_params.get('search'))
             except FieldError as e:
-                pass
-        return qs or Article.objects.none()
+                return Article.objects.none()
+        return qs
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
