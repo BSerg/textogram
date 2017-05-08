@@ -60,6 +60,9 @@ class YoutubeEmbedHandler(EmbedHandler):
         r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)',
         r'^https://youtu\.be/(?P<id>[\w\-]+)'
     ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe( width=\"\d+\")?( height=\"\d+\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w\-]+((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
+    ]
 
     def __init__(self, url, width=800, height=450, **kwargs):
         super(YoutubeEmbedHandler, self).__init__(url, **kwargs)
@@ -73,19 +76,21 @@ class YoutubeEmbedHandler(EmbedHandler):
                 return r.group('id')
 
     def get_embed(self):
-        embed = '<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{id}" ' \
-                'frameborder="0" allowfullscreen></iframe>'
-        id = self._get_id()
-        if id:
-            return embed.format(width=self.width, height=self.height, id=id)
+        if self.url_valid(self.url):
+            embed = '<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{id}" ' \
+                    'frameborder="0" allowfullscreen></iframe>'
+            id = self._get_id()
+            if id:
+                return embed.format(width=self.width, height=self.height, id=id)
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class TwitterEmbedHandler(EmbedHandler):
-    TYPE = 'twitter_video'
+    TYPE = 'twitter'
     EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+$']
     EMBED_CODE_REGEX = [
-        r'^<blockquote class="twitter-tweet" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
-        r'^<blockquote class="twitter-video" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$'
+        r'^<blockquote class="twitter-(tweet|video)" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
     ]
 
     def __init__(self, url, type=None, **kwargs):
@@ -109,6 +114,9 @@ class TwitterEmbedHandler(EmbedHandler):
 class VimeoEmbedHandler(EmbedHandler):
     TYPE = 'vimeo'
     EMBED_URL_REGEX = [r'^https://vimeo\.com/(?P<id>\d+)$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src=\"https:\/\/player\.vimeo\.com\/video\/\d+([\?&]\w+=\w+)*\" width=\"\d+\" height=\"\d+\"( frameborder=\"(0|1)\")?( (webkit|moz)?allowfullscreen)*><\/iframe>(\s*<p>(\s*.)+<\/p>)?$',
+    ]
     PLAYER_URL = '//player.vimeo.com/video/{id}'
 
     def __init__(self, url, width=800, height=450, **kwargs):
@@ -117,13 +125,16 @@ class VimeoEmbedHandler(EmbedHandler):
         self.height = height
 
     def get_embed(self):
-        r = re.match(self.EMBED_URL_REGEX[0], self.url)
-        if r:
-            id = r.group('id')
-            embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen></iframe>'
-            return embed.format(url=self.PLAYER_URL.format(id=id), width=self.width, height=self.height)
-        else:
-            raise EmbedHandlerError('%s handler error. URL is not valid' % self.TYPE.upper())
+        if self.url_valid(self.url):
+            r = re.match(self.EMBED_URL_REGEX[0], self.url)
+            if r:
+                id = r.group('id')
+                embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen></iframe>'
+                return embed.format(url=self.PLAYER_URL.format(id=id), width=self.width, height=self.height)
+            else:
+                raise EmbedHandlerError('%s handler error. URL is not valid' % self.TYPE.upper())
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class InstagramEmbedHandler(EmbedHandler):
@@ -259,6 +270,12 @@ EMBED_HANDLERS = [
     PromoDjEmbedHandler,
     YandexMusicEmbedHandler
 ]
+
+
+def get_handler(url, **kwargs):
+    for handler_class in EMBED_HANDLERS:
+        if handler_class.is_valid(url):
+            return handler_class(url, **kwargs)
 
 
 def get_embed(url, **kwargs):
