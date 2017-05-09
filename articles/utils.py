@@ -155,8 +155,7 @@ class InstagramEmbedHandler(EmbedHandler):
 class FacebookEmbedHandler(EmbedHandler):
     TYPE = 'fb'
     EMBED_URL_REGEX = [
-        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/posts/\d+/?$',
-        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/videos/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?$',
     ]
 
     def __init__(self, url, type=None, **kwargs):
@@ -183,7 +182,6 @@ class VkEmbedHandler(EmbedHandler):
     TYPE = 'vk'
     EMBED_CODE_REGEX = [
         r'^<div id="vk_post_-?\d+_\d+"></div>\s*<script type="text/javascript">[^<]+</script>$',
-        r'^<iframe src=\"\/\/vk\.com\/video_ext\.php\?oid=-?\d+&id=\d+&hash=\w+&hd=\d\"( width=\"\d+\")?( height=\"\d+\")?( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$'
     ]
 
     def get_embed(self):
@@ -193,6 +191,9 @@ class VkEmbedHandler(EmbedHandler):
 class VkVideoEmbedHandler(EmbedHandler):
     TYPE = 'vk_video'
     EMBED_URL_REGEX = [r'^https://vk\.com/video(?P<id>-?\d+_\d+)$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src=\"\/\/vk\.com\/video_ext\.php\?oid=-?\d+&id=\d+&hash=\w+&hd=\d\"( width=\"\d+\")?( height=\"\d+\")?( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$'
+    ]
     API_URL = 'https://api.vk.com/method/video.get?v=5.53&access_token=%(token)s&videos=%(id)s'
 
     def __init__(self, url, width=800, height=450, **kwargs):
@@ -201,44 +202,82 @@ class VkVideoEmbedHandler(EmbedHandler):
         self.height = height
 
     def get_embed(self):
-        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
-        r = requests.get(self.API_URL % {'token': VK_ACCESS_TOKEN, 'id': id})
-        if r.status_code != 200:
-            raise EmbedHandlerError('VK handler error. VK api is not available')
-        data = r.json()
-        if 'response' not in data or 'items' not in data['response']:
-            raise EmbedHandlerError('VK handler error. VK api response error')
-        items = data['response']['items']
-        if items:
-            _href = items[0]['player']
-            return '<iframe src="%s" width="%d" height="%d" frameborder="0" allowfullscreen></iframe>' \
-                   % (_href, self.width, self.height)
+        if self.url_valid(self.url):
+            id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+            r = requests.get(self.API_URL % {'token': VK_ACCESS_TOKEN, 'id': id})
+            if r.status_code != 200:
+                raise EmbedHandlerError('VK handler error. VK api is not available')
+            data = r.json()
+            if 'response' not in data or 'items' not in data['response']:
+                raise EmbedHandlerError('VK handler error. VK api response error')
+            items = data['response']['items']
+            if items:
+                _href = items[0]['player']
+                return '<iframe src="%s" width="%d" height="%d" frameborder="0" allowfullscreen></iframe>' \
+                       % (_href, self.width, self.height)
+        elif self.code_valid(self.url):
+            return self.url
+
+
+class CoubEmbedHandler(EmbedHandler):
+    TYPE = 'coub'
+    EMBED_URL_REGEX = [
+        r'^https?://coub\.com/view/(?P<id>\w+)$'
+    ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe src="//coub\.com/embed/\w+((\?|&)\w+=(true|false))*"( allowfullscreen="(true|false)")?( frameborder="(0|1)")?( width="\d+")?( height="\d+")?></iframe>(<script async src="//c-cdn\.coub\.com/embed-runner\.js"></script>)?$'
+    ]
+
+    def _get_id(self):
+        for regex in self.EMBED_URL_REGEX:
+            r = re.match(regex, self.url)
+            if r and r.group('id'):
+                return r.group('id')
+
+    def get_embed(self):
+        if self.url_valid(self.url):
+            _id = self._get_id()
+            return '<iframe src="//coub.com/embed/{id}?muted=false&autostart=false&originalSize=false&startWithHD=false" allowfullscreen="true" frameborder="0" width="640" height="360"></iframe>'.format(id=_id)
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class SoundCloudEmbedHandler(EmbedHandler):
     TYPE = 'soundcloud'
     EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/[\w\-]+$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe( width="\d+%?")?( height="\d+")?( scrolling="(yes|no)")?( frameborder="(yes|no)")? src="https://w\.soundcloud\.com/player/\?url=https(%3A|:)//api\.soundcloud\.com/tracks/\d+((&amp;|&)\w+=(\w+|true|false))*"></iframe>$'
+    ]
     API_URL = 'http://soundcloud.com/oembed'
 
     def get_embed(self):
-        r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
-        if r.status_code != 200:
-            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
-        data = r.json()
-        if 'html' not in data:
-            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
-        return data['html']
+        if self.url_valid(self.url):
+            r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
+            if r.status_code != 200:
+                raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
+            data = r.json()
+            if 'html' not in data:
+                raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
+            return data['html']
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class PromoDjEmbedHandler(EmbedHandler):
     TYPE = 'promodj'
     EMBED_URL_REGEX = [r'^http://promodj\.com/[\w\-.]+/tracks/(?P<id>\d+)/\w+$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src="//promodj\.com/embed/\d+/(cover|big)"( width="\d+%?")?( height="\d+")?( style="[^"]+")?( frameborder="(0|1)")?( allowfullscreen)?></iframe>$'
+    ]
 
     def get_embed(self):
-        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
-        iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
-                 'frameborder="0" allowfullscreen></iframe>'
-        return iframe % {'id': id}
+        if self.url_valid(self.url):
+            id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+            iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
+                     'frameborder="0" allowfullscreen></iframe>'
+            return iframe % {'id': id}
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class YandexMusicEmbedHandler(EmbedHandler):
@@ -246,16 +285,23 @@ class YandexMusicEmbedHandler(EmbedHandler):
     EMBED_URL_REGEX = [
         r'https://music\.yandex\.ru/album/(?P<album>\d+)(/track/(?P<track>\d+))?',
     ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe( frameborder="(0|1)")?( style="[^"]+")?( width="\d+")?( height="\d+")? src="https://music\.yandex\.ru/iframe/(#album/\d+/|#track/\d+/\d+)(/\w+)*/?">(\s*.)+</iframe>$'
+    ]
 
     def get_embed(self):
-        url_re = re.match(self.EMBED_URL_REGEX[0], self.url)
-        album, track = url_re.group('album'), url_re.group('track')
-        if not track:
-            return '<iframe frameborder="0" width="900" height="500" ' \
-                     'src="https://music.yandex.ru/iframe/#album/%(album)s/"></iframe>' % {'album': album}
-        else:
-            return '<iframe frameborder="0" width="600" height="100" ' \
-                     'src="https://music.yandex.ru/iframe/#track/%(track)s/%(album)s/"></iframe>' % {'album': album, 'track': track}
+        if self.url_valid(self.url):
+            url_re = re.match(self.EMBED_URL_REGEX[0], self.url)
+            album, track = url_re.group('album'), url_re.group('track')
+            if not track:
+                return '<iframe frameborder="0" width="900" height="500" ' \
+                         'src="https://music.yandex.ru/iframe/#album/%(album)s/"></iframe>' % {'album': album}
+            else:
+                return '<iframe frameborder="0" width="600" height="100" ' \
+                         'src="https://music.yandex.ru/iframe/#track/%(track)s/%(album)s/"></iframe>' % {'album': album, 'track': track}
+        elif self.code_valid(self.url):
+            return self.url
+
 
 
 EMBED_HANDLERS = [
@@ -266,6 +312,7 @@ EMBED_HANDLERS = [
     FacebookEmbedHandler,
     VkEmbedHandler,
     VkVideoEmbedHandler,
+    CoubEmbedHandler,
     SoundCloudEmbedHandler,
     PromoDjEmbedHandler,
     YandexMusicEmbedHandler
