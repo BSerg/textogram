@@ -183,7 +183,7 @@ class VkEmbedHandler(EmbedHandler):
     TYPE = 'vk'
     EMBED_CODE_REGEX = [
         r'^<div id="vk_post_-?\d+_\d+"></div>\s*<script type="text/javascript">[^<]+</script>$',
-        r'^<iframe src="\/\/vk\.com\/video_ext\.php\?oid=\d+&id=\d+&hash=\w+&hd=\d" width="\d+" height="\d+" frameborder="0" allowfullscreen><\/iframe>$'
+        r'^<iframe src=\"\/\/vk\.com\/video_ext\.php\?oid=-?\d+&id=\d+&hash=\w+&hd=\d\"( width=\"\d+\")?( height=\"\d+\")?( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$'
     ]
 
     def get_embed(self):
