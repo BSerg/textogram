@@ -38,6 +38,11 @@ class ArticleView(DetailView):
         return ctx
 
 
+class EditorView(DetailView):
+    queryset = Article.objects.filter(status__in=[Article.DRAFT, Article.PUBLISHED])
+    template_name = 'editor.html'
+
+
 def handler404(request):
     response = render_to_response('index.html', context=RequestContext(request))
     response.status_code = 404

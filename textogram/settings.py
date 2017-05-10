@@ -261,7 +261,9 @@ FORBIDDEN_NICKNAMES = [
 
 ]
 
+# App static revisions
 STATIC_REVISION = 1
+VENDOR_REVISION = 1
 
 try:
     from local_settings import *
