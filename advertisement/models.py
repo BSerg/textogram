@@ -26,7 +26,7 @@ class BannerGroup(models.Model):
 class Banner(models.Model):
     group = models.ForeignKey(BannerGroup, verbose_name='Группа', related_name='banners', blank=True, null=True)
     name = models.CharField('Название', max_length=255, blank=True)
-    code = models.TextField('Код баннера', unique=True)
+    code = models.TextField('Код баннера')
     width = models.PositiveSmallIntegerField('Ширина, px', blank=True, null=True)
     height = models.PositiveSmallIntegerField('Высота, px', blank=True, null=True)
     is_fullwidth = models.BooleanField('На всю ширину', default=False)
