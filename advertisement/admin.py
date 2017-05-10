@@ -1,9 +1,17 @@
+from __future__ import unicode_literals
 from django.contrib import admin
 
-from advertisement.models import Banner
+from advertisement.models import Banner, BannerGroup
 
 
-class BannerAdmin(admin.ModelAdmin):
-    list_display = ['identifier', 'is_mobile', 'description', 'weight', 'is_active']
+class BannerInline(admin.StackedInline):
+    model = Banner
+    extra = 0
 
-admin.site.register(Banner, BannerAdmin)
+
+class BannerGroupAdmin(admin.ModelAdmin):
+    list_display = ['identifier', 'is_mobile', 'is_active']
+    inlines = [BannerInline]
+
+
+admin.site.register(BannerGroup, BannerGroupAdmin)

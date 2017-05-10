@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 
+import random
 from collections import defaultdict
 
 from rest_framework import serializers
 from sorl.thumbnail import get_thumbnail
 
-from advertisement.models import Banner
+from advertisement.models import Banner, BannerGroup
 from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles.models import Article, ArticleImage
@@ -80,14 +81,30 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     def get_advertisement(self, obj):
         if not obj.ads_enabled:
             return
-        
-        banners = Banner.objects.filter(is_active=True)
-        if banners.exists():
-            _banners = defaultdict(lambda: [])
-            for banner in banners:
-                _banners[banner.identifier].append(BannerSerializer(banner).data)
-            return _banners
 
+        def get_weighted_choice(weighted_ids):
+            total = sum([w for _, w in weighted_ids])
+            r = random.uniform(0, total)
+            upto = 0
+            for _id, w in _weighted_ids:
+                if w + upto >= r:
+                    return _id
+                upto += w
+
+        groups = BannerGroup.objects.filter(is_active=True).prefetch_related('banners')
+        if groups.exists():
+            _banners = defaultdict(lambda: defaultdict(lambda: []))
+            for group in groups:
+                key = 'desktop' if not group.is_mobile else 'mobile'
+                if group.banners.filter(is_active=True, is_ab=False).exists():
+                    _banners[key][group.identifier] = BannerSerializer(group.banners.filter(is_active=True), many=True).data
+                if group.banners.filter(is_active=True, is_ab=True).exists():
+                    _weighted_ids = group.banners.filter(is_active=True, is_ab=True).values_list('id', 'weight')
+                    _id = get_weighted_choice(_weighted_ids)
+                    if _id:
+                        _banners[key][group.identifier].append(BannerSerializer(group.banners.get(pk=_id)).data)
+            return _banners
+        
     def get_inverted_theme(self, obj):
         return obj.content.get('inverted_theme')
 
