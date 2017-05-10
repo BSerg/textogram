@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 import base64
 import json
 
+# from django.db import models
+from django.db.models.functions import Cast
+
+from django.core.exceptions import FieldError
+
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -22,12 +27,12 @@ from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializ
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
-from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, NEW_ARTICLE_AGE, RQ_HIGH_QUEUE, RQ_LOW_QUEUE
+from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
 from textogram.settings import RQ_PORT
 
 
 class ArticleSetPagination(PageNumberPagination):
-    page_size = 50
+    page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -91,12 +96,15 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
     def base64(self, request, **kwargs):
         article_id = request.data.get('article')
         data = request.data.get('image')
-        format, imgstr = data.split(';base64,')
-        ext = format.split('/')[-1]
-        data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        im = ArticleImage(article_id=article_id, image=data)
-        im.save()
-        return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+        try:
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+            im = ArticleImage(article_id=article_id, image=data)
+            im.save()
+            return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+        except:
+            return Response(status=HTTP_400_BAD_REQUEST)
 
 
 class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -108,11 +116,13 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_queryset(self):
 
+        qs = None
+
         if self.request.query_params.get('feed') and self.request.user.is_authenticated:
             subscriptions = Subscription.objects.filter(user=self.request.user)
-            return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
+            qs = Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif self.request.query_params.get('drafts') and self.request.user.is_authenticated:
-            return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+            qs = Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
         elif self.request.query_params.get('user'):
             try:
                 user_id = int(self.request.query_params.get('user'))
@@ -120,11 +130,16 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 return Article.objects.none()
 
             if self.request.user.is_authenticated and self.request.user.id == user_id:
-                return Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
+                qs = Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                return Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
-        else:
-            return Article.objects.none()
+                qs = Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+
+        if qs and self.request.query_params.get('search'):
+            try:
+                qs = qs.filter(title__icontains=self.request.query_params.get('search'))
+            except FieldError as e:
+                return Article.objects.none()
+        return qs
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
@@ -135,35 +150,26 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
         fingerprint = request.META.get('HTTP_X_FINGERPRINT')
+
         if fingerprint:
-            if instance.published_at:
-                delta = timezone.now() - instance.published_at
-                hours = divmod(delta.days * 86400 + delta.seconds, 3600)[0]
-
-                if hours <= NEW_ARTICLE_AGE:
-                    q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
-                else:
-                    q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
-                              default_timeout=RQ_TIMEOUT)
-
-                job = q.enqueue(
-                    register_article_view,
-                    instance.id,
-                    request.user.id if request.user.is_authenticated() else None,
-                    fingerprint
-                )
+            q = Queue(RQ_HIGH_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB),
+                      default_timeout=RQ_TIMEOUT)
+            job = q.enqueue(
+                register_article_view,
+                kwargs.get('slug'),
+                request.user.id if request.user.is_authenticated() else None,
+                fingerprint
+            )
 
         cache_key = get_article_cache_key(kwargs.get('slug', 'undefined'))
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(json.loads(cached_data))
         else:
-            serializer = self.get_serializer(instance)
+            serializer = self.get_serializer(self.get_object())
             data = serializer.data
-            cache.set(cache_key, json.dumps(data))
+            cache.set(cache_key, json.dumps(serializer.data))
             return Response(data)
 
 

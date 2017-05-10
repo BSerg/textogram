@@ -40,9 +40,10 @@ class User(AbstractUser):
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
     number_of_subscriptions_cached = models.IntegerField('Кол-во подпиcок', default=0, editable=False)
     number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)
-    phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
+    phone = models.CharField('Телефон', max_length=20, null=True, blank=True)
     phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
     description = models.CharField('Описание', max_length=255, blank=True, default='')
+    nickname = models.CharField('Никнейм', max_length=20, null=True, unique=True)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -149,6 +150,13 @@ class PhoneCode(models.Model):
 
     class Meta:
         ordering = ('-created_at', )
+
+
+@receiver(post_save, sender=User)
+def create_nickname(sender, instance, **kwargs):
+    if kwargs.get('created'):
+        instance.nickname = 'id%s' % instance.id
+        instance.save()
 
 
 @receiver(post_save, sender=Subscription)

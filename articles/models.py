@@ -7,7 +7,8 @@ from uuid import uuid4
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django.db import models
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models import F
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 from polymorphic.models import PolymorphicModel
@@ -42,6 +43,7 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', max_length=200, unique=True, db_index=True, editable=False)
+    title = models.CharField('Заголовок', max_length=255, blank=True)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
@@ -85,12 +87,10 @@ class ArticleImage(models.Model):
 
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, verbose_name='Статья', related_name='views')
-    user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь',
-                             blank=True, null=True, db_index=True)
+    user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь', blank=True, null=True)
     fingerprint = models.CharField('Цифровой отпечаток клиента', max_length=255, db_index=True)
-    views_count = models.PositiveIntegerField('Просмотры пользователя', default=0)
+    monetization_enabled = models.BooleanField('Монетизируемый просмотр', default=False)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
-    last_modified = models.DateTimeField('Дата последнего обновления', auto_now=True)
 
     def __unicode__(self):
         return self.fingerprint
@@ -142,6 +142,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     instance.content = process_content(instance.content)
+    instance.title = instance.content.get('title') or ''
     if instance.status != Article.DELETED:
         instance.html = content_to_html(instance.content, ads_enabled=instance.ads_enabled)
 
@@ -149,9 +150,7 @@ def process_content_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=ArticleView)
 def update_views_cached(sender, instance, created, **kwargs):
     if created and instance.article.status == Article.PUBLISHED:
-        article = instance.article
-        article.views_cached += 1
-        article.save()
+        Article.objects.filter(pk=instance.article.id).update(views_cached=F('views_cached') + 1)
 
 
 @receiver(pre_save, sender=Article)

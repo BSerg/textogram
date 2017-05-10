@@ -23,13 +23,16 @@ from articles.sitemaps import ArticleSitemap
 from textogram.settings import DEBUG, MEDIA_URL, MEDIA_ROOT
 from url_shortener.views import UrlShortDetailView
 
+from textogram.settings import IS_LENTACH
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include('api.urls')),
     url(r'', include('frontend.urls')),
-    url(r'^(?P<code>\w{4,})/?$', UrlShortDetailView.as_view(), name='short_url'),
+    url(r'^%s(?P<code>\w{4,})/?$' % ('!' if not IS_LENTACH else ''), UrlShortDetailView.as_view(), name='short_url')
     url(r'^statistics/', include('statistics.urls'))
 ]
+
 
 sitemaps = {
     'articles': ArticleSitemap

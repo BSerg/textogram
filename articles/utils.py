@@ -60,6 +60,9 @@ class YoutubeEmbedHandler(EmbedHandler):
         r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)',
         r'^https://youtu\.be/(?P<id>[\w\-]+)'
     ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe( width=\"\d+\")?( height=\"\d+\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w\-]+((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
+    ]
 
     def __init__(self, url, width=800, height=450, **kwargs):
         super(YoutubeEmbedHandler, self).__init__(url, **kwargs)
@@ -73,19 +76,21 @@ class YoutubeEmbedHandler(EmbedHandler):
                 return r.group('id')
 
     def get_embed(self):
-        embed = '<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{id}" ' \
-                'frameborder="0" allowfullscreen></iframe>'
-        id = self._get_id()
-        if id:
-            return embed.format(width=self.width, height=self.height, id=id)
+        if self.url_valid(self.url):
+            embed = '<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{id}" ' \
+                    'frameborder="0" allowfullscreen></iframe>'
+            id = self._get_id()
+            if id:
+                return embed.format(width=self.width, height=self.height, id=id)
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class TwitterEmbedHandler(EmbedHandler):
-    TYPE = 'twitter_video'
+    TYPE = 'twitter'
     EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+$']
     EMBED_CODE_REGEX = [
-        r'^<blockquote class="twitter-tweet" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
-        r'^<blockquote class="twitter-video" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$'
+        r'^<blockquote class="twitter-(tweet|video)" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
     ]
 
     def __init__(self, url, type=None, **kwargs):
@@ -109,6 +114,9 @@ class TwitterEmbedHandler(EmbedHandler):
 class VimeoEmbedHandler(EmbedHandler):
     TYPE = 'vimeo'
     EMBED_URL_REGEX = [r'^https://vimeo\.com/(?P<id>\d+)$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src=\"https:\/\/player\.vimeo\.com\/video\/\d+([\?&]\w+=\w+)*\" width=\"\d+\" height=\"\d+\"( frameborder=\"(0|1)\")?( (webkit|moz)?allowfullscreen)*><\/iframe>(\s*<p>(\s*.)+<\/p>)?$',
+    ]
     PLAYER_URL = '//player.vimeo.com/video/{id}'
 
     def __init__(self, url, width=800, height=450, **kwargs):
@@ -117,13 +125,16 @@ class VimeoEmbedHandler(EmbedHandler):
         self.height = height
 
     def get_embed(self):
-        r = re.match(self.EMBED_URL_REGEX[0], self.url)
-        if r:
-            id = r.group('id')
-            embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen></iframe>'
-            return embed.format(url=self.PLAYER_URL.format(id=id), width=self.width, height=self.height)
-        else:
-            raise EmbedHandlerError('%s handler error. URL is not valid' % self.TYPE.upper())
+        if self.url_valid(self.url):
+            r = re.match(self.EMBED_URL_REGEX[0], self.url)
+            if r:
+                id = r.group('id')
+                embed = '<iframe src="{url}" width="{width}" height="{height}" frameBorder="0" allowFullScreen></iframe>'
+                return embed.format(url=self.PLAYER_URL.format(id=id), width=self.width, height=self.height)
+            else:
+                raise EmbedHandlerError('%s handler error. URL is not valid' % self.TYPE.upper())
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class InstagramEmbedHandler(EmbedHandler):
@@ -144,8 +155,7 @@ class InstagramEmbedHandler(EmbedHandler):
 class FacebookEmbedHandler(EmbedHandler):
     TYPE = 'fb'
     EMBED_URL_REGEX = [
-        r'^https://(www|ru-ru)\.facebook\.com/\w+/posts/\d+/?$',
-        r'^https://(www|ru-ru)\.facebook\.com/\w+/videos/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?$',
     ]
 
     def __init__(self, url, type=None, **kwargs):
@@ -172,7 +182,6 @@ class VkEmbedHandler(EmbedHandler):
     TYPE = 'vk'
     EMBED_CODE_REGEX = [
         r'^<div id="vk_post_-?\d+_\d+"></div>\s*<script type="text/javascript">[^<]+</script>$',
-        r'^<iframe src="\/\/vk\.com\/video_ext\.php\?oid=\d+&id=\d+&hash=\w+&hd=\d" width="\d+" height="\d+" frameborder="0" allowfullscreen><\/iframe>$'
     ]
 
     def get_embed(self):
@@ -182,6 +191,9 @@ class VkEmbedHandler(EmbedHandler):
 class VkVideoEmbedHandler(EmbedHandler):
     TYPE = 'vk_video'
     EMBED_URL_REGEX = [r'^https://vk\.com/video(?P<id>-?\d+_\d+)$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src=\"\/\/vk\.com\/video_ext\.php\?oid=-?\d+&id=\d+&hash=\w+&hd=\d\"( width=\"\d+\")?( height=\"\d+\")?( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$'
+    ]
     API_URL = 'https://api.vk.com/method/video.get?v=5.53&access_token=%(token)s&videos=%(id)s'
 
     def __init__(self, url, width=800, height=450, **kwargs):
@@ -190,44 +202,82 @@ class VkVideoEmbedHandler(EmbedHandler):
         self.height = height
 
     def get_embed(self):
-        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
-        r = requests.get(self.API_URL % {'token': VK_ACCESS_TOKEN, 'id': id})
-        if r.status_code != 200:
-            raise EmbedHandlerError('VK handler error. VK api is not available')
-        data = r.json()
-        if 'response' not in data or 'items' not in data['response']:
-            raise EmbedHandlerError('VK handler error. VK api response error')
-        items = data['response']['items']
-        if items:
-            _href = items[0]['player']
-            return '<iframe src="%s" width="%d" height="%d" frameborder="0" allowfullscreen></iframe>' \
-                   % (_href, self.width, self.height)
+        if self.url_valid(self.url):
+            id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+            r = requests.get(self.API_URL % {'token': VK_ACCESS_TOKEN, 'id': id})
+            if r.status_code != 200:
+                raise EmbedHandlerError('VK handler error. VK api is not available')
+            data = r.json()
+            if 'response' not in data or 'items' not in data['response']:
+                raise EmbedHandlerError('VK handler error. VK api response error')
+            items = data['response']['items']
+            if items:
+                _href = items[0]['player']
+                return '<iframe src="%s" width="%d" height="%d" frameborder="0" allowfullscreen></iframe>' \
+                       % (_href, self.width, self.height)
+        elif self.code_valid(self.url):
+            return self.url
+
+
+class CoubEmbedHandler(EmbedHandler):
+    TYPE = 'coub'
+    EMBED_URL_REGEX = [
+        r'^https?://coub\.com/view/(?P<id>\w+)$'
+    ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe src="//coub\.com/embed/\w+((\?|&)\w+=(true|false))*"( allowfullscreen="(true|false)")?( frameborder="(0|1)")?( width="\d+")?( height="\d+")?></iframe>(<script async src="//c-cdn\.coub\.com/embed-runner\.js"></script>)?$'
+    ]
+
+    def _get_id(self):
+        for regex in self.EMBED_URL_REGEX:
+            r = re.match(regex, self.url)
+            if r and r.group('id'):
+                return r.group('id')
+
+    def get_embed(self):
+        if self.url_valid(self.url):
+            _id = self._get_id()
+            return '<iframe src="//coub.com/embed/{id}?muted=false&autostart=false&originalSize=false&startWithHD=false" allowfullscreen="true" frameborder="0" width="640" height="360"></iframe>'.format(id=_id)
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class SoundCloudEmbedHandler(EmbedHandler):
     TYPE = 'soundcloud'
     EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/[\w\-]+$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe( width="\d+%?")?( height="\d+")?( scrolling="(yes|no)")?( frameborder="(yes|no)")? src="https://w\.soundcloud\.com/player/\?url=https(%3A|:)//api\.soundcloud\.com/tracks/\d+((&amp;|&)\w+=(\w+|true|false))*"></iframe>$'
+    ]
     API_URL = 'http://soundcloud.com/oembed'
 
     def get_embed(self):
-        r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
-        if r.status_code != 200:
-            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
-        data = r.json()
-        if 'html' not in data:
-            raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
-        return data['html']
+        if self.url_valid(self.url):
+            r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
+            if r.status_code != 200:
+                raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
+            data = r.json()
+            if 'html' not in data:
+                raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
+            return data['html']
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class PromoDjEmbedHandler(EmbedHandler):
     TYPE = 'promodj'
     EMBED_URL_REGEX = [r'^http://promodj\.com/[\w\-.]+/tracks/(?P<id>\d+)/\w+$']
+    EMBED_CODE_REGEX = [
+        r'^<iframe src="//promodj\.com/embed/\d+/(cover|big)"( width="\d+%?")?( height="\d+")?( style="[^"]+")?( frameborder="(0|1)")?( allowfullscreen)?></iframe>$'
+    ]
 
     def get_embed(self):
-        id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
-        iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
-                 'frameborder="0" allowfullscreen></iframe>'
-        return iframe % {'id': id}
+        if self.url_valid(self.url):
+            id = re.match(self.EMBED_URL_REGEX[0], self.url).group('id')
+            iframe = '<iframe src="//promodj.com/embed/%(id)s/cover" width="100%%" height="300" ' \
+                     'frameborder="0" allowfullscreen></iframe>'
+            return iframe % {'id': id}
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class YandexMusicEmbedHandler(EmbedHandler):
@@ -235,16 +285,23 @@ class YandexMusicEmbedHandler(EmbedHandler):
     EMBED_URL_REGEX = [
         r'https://music\.yandex\.ru/album/(?P<album>\d+)(/track/(?P<track>\d+))?',
     ]
+    EMBED_CODE_REGEX = [
+        r'^<iframe( frameborder="(0|1)")?( style="[^"]+")?( width="\d+")?( height="\d+")? src="https://music\.yandex\.ru/iframe/(#album/\d+/|#track/\d+/\d+)(/\w+)*/?">(\s*.)+</iframe>$'
+    ]
 
     def get_embed(self):
-        url_re = re.match(self.EMBED_URL_REGEX[0], self.url)
-        album, track = url_re.group('album'), url_re.group('track')
-        if not track:
-            return '<iframe frameborder="0" width="900" height="500" ' \
-                     'src="https://music.yandex.ru/iframe/#album/%(album)s/"></iframe>' % {'album': album}
-        else:
-            return '<iframe frameborder="0" width="600" height="100" ' \
-                     'src="https://music.yandex.ru/iframe/#track/%(track)s/%(album)s/"></iframe>' % {'album': album, 'track': track}
+        if self.url_valid(self.url):
+            url_re = re.match(self.EMBED_URL_REGEX[0], self.url)
+            album, track = url_re.group('album'), url_re.group('track')
+            if not track:
+                return '<iframe frameborder="0" width="900" height="500" ' \
+                         'src="https://music.yandex.ru/iframe/#album/%(album)s/"></iframe>' % {'album': album}
+            else:
+                return '<iframe frameborder="0" width="600" height="100" ' \
+                         'src="https://music.yandex.ru/iframe/#track/%(track)s/%(album)s/"></iframe>' % {'album': album, 'track': track}
+        elif self.code_valid(self.url):
+            return self.url
+
 
 
 EMBED_HANDLERS = [
@@ -255,10 +312,17 @@ EMBED_HANDLERS = [
     FacebookEmbedHandler,
     VkEmbedHandler,
     VkVideoEmbedHandler,
+    CoubEmbedHandler,
     SoundCloudEmbedHandler,
     PromoDjEmbedHandler,
     YandexMusicEmbedHandler
 ]
+
+
+def get_handler(url, **kwargs):
+    for handler_class in EMBED_HANDLERS:
+        if handler_class.is_valid(url):
+            return handler_class(url, **kwargs)
 
 
 def get_embed(url, **kwargs):
@@ -381,6 +445,8 @@ def _inject_banner_to_text(text_html, max_injections=1):
 
 
 def content_to_html(content, ads_enabled=False):
+    
+    safe_mode = 'remove'
 
     if not content.get('__meta', {}).get('is_valid'):
         return
@@ -395,16 +461,16 @@ def content_to_html(content, ads_enabled=False):
     for index, block in enumerate(validated_content_blocks):
 
         if block.get('type') == ArticleContentType.TEXT:
-            text_html = markdown.markdown(block.get('value'), safe_mode='escape')
+            text_html = markdown.markdown(block.get('value'), safe_mode=safe_mode)
             html.append(text_html)
         elif block.get('type') == ArticleContentType.HEADER:
-            html.append(markdown.markdown('## %s' % block.get('value'), safe_mode='escape'))
+            html.append(markdown.markdown('## %s' % block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.LEAD:
-            html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append('<div class="lead">%s</div>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.PHRASE:
-            html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.PHOTO:
             photos = []
@@ -448,21 +514,21 @@ def content_to_html(content, ads_enabled=False):
                 )
 
         elif block.get('type') == ArticleContentType.LIST:
-            html.append(markdown.markdown(block.get('value'), safe_mode='escape'))
+            html.append(markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.QUOTE:
             if block.get('image') and block['image'].get('image'):
                 _image_html = '<img src="%s"/>' % block['image']['image']
                 _html = '<blockquote class="personal">\n%s\n%s\n</blockquote>'
-                html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode='escape')))
+                html.append(_html % (_image_html, markdown.markdown(block.get('value'), safe_mode=safe_mode)))
             else:
-                html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode='escape'))
+                html.append('<blockquote>\n%s\n</blockquote>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.COLUMNS:
             _html = '<div class="columns">\n<div class="column">\n%(left)s\n</div>\n<div class="column">\n%(right)s\n</div>\n</div>'
             html.append(_html % {
                 'left': '<img src="%s"/>' % (block.get('image') or {}).get('image', ''),
-                'right': markdown.markdown(block.get('value'), safe_mode='escape')
+                'right': markdown.markdown(block.get('value'), safe_mode=safe_mode)
             })
 
         elif block.get('type') == ArticleContentType.VIDEO:

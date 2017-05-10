@@ -56,6 +56,7 @@ INSTALLED_APPS += [
     'notifications',
     'advertisement',
     'url_shortener',
+    'frontend',
 ]
 
 MIDDLEWARE = [
@@ -242,7 +243,28 @@ BOT_USER_AGENTS = [
     'yandex'
 ]
 
-STATIC_REVISION = 1
+FORBIDDEN_NICKNAMES = [
+    'admin\w*',
+    'api',
+    'articles?',
+    'drafts',
+    'id\d+',
+    'feed',
+    'login',
+    'logout',
+    'manage',
+    'manager',
+    'nick',
+    'nickname',
+    'nickname\w+',
+    'check_nickname',
+    '\d\w*',
+
+]
+
+# App static revisions
+STATIC_REVISION = None
+VENDOR_REVISION = None
 
 # Yandex API
 

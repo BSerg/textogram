@@ -4,16 +4,15 @@ from articles.models import Article, ArticleView
 
 
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ['id', 'slug', 'get_title']
+    list_display = ['id', 'title', 'slug']
     readonly_fields = ['slug', 'html']
-
-    def get_title(self, obj):
-        return obj.content.get('title')
+    search_fields = ['title', 'slug']
+    list_filter = ['status']
 
 admin.site.register(Article, ArticleAdmin)
 
 
 class ArticleViewAdmin(admin.ModelAdmin):
-    list_display = ['article', 'user', 'fingerprint', 'views_count', 'created_at', 'last_modified']
+    list_display = ['article', 'user', 'fingerprint', 'monetization_enabled', 'created_at']
 
 admin.site.register(ArticleView, ArticleViewAdmin)
