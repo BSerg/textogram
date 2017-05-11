@@ -12,7 +12,7 @@ from django.urls import reverse
 
 
 class UrlShort(models.Model):
-    url = models.URLField('URL', db_index=True, blank=True)
+    url = models.TextField('URL', max_length=1000, db_index=True, blank=True)
     article = models.OneToOneField('articles.Article', verbose_name='Статья', related_name='short_url',
                                    blank=True, null=True)
     code = models.CharField('Код', max_length=10, editable=False, unique=True, default='')
