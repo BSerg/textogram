@@ -261,10 +261,6 @@ FORBIDDEN_NICKNAMES = [
 
 ]
 
-# App static revisions
-STATIC_REVISION = None
-VENDOR_REVISION = None
-
 try:
     from local_settings import *
 except ImportError:

@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from articles.models import Article, ArticleView
+from articles.models import Article, ArticleView, ArticleImage
+
+
+class ArticleImageInline(admin.TabularInline):
+    model = ArticleImage
+    extra = 0
 
 
 class ArticleAdmin(admin.ModelAdmin):
@@ -8,6 +13,7 @@ class ArticleAdmin(admin.ModelAdmin):
     readonly_fields = ['slug', 'html']
     search_fields = ['title', 'slug']
     list_filter = ['status']
+    inlines = [ArticleImageInline]
 
 admin.site.register(Article, ArticleAdmin)
 

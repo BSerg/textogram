@@ -5,8 +5,6 @@ from textogram.settings import BOT_USER_AGENTS
 def debug_processor(request):
     return {
         'DEBUG': settings.DEBUG,
-        'STATIC_REVISION': settings.STATIC_REVISION,
-        'VENDOR_REVISION': settings.VENDOR_REVISION,
     }
 
 
