@@ -478,10 +478,12 @@ def content_to_html(content, ads_enabled=False):
                 photo_class = 'photo photo_%d' % index
                 photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
                     photo.get('preview') or photo.get('image', '')
-                photos.append(
-                    '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                    (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
-                )
+                # photo_element = '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' % (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
+                photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
+                                'data-preview="%(preview)s" data-src="%(src)s"></div>' \
+                                % {'class': photo_class, 'id': photo.get('id'), 'caption': photo.get('caption') or '',
+                                   'preview': photo.get('preview'), 'src': photo.get('image')}
+                photos.append(photo_element)
 
             if len(block.get('photos', [])) == 1:
                 if block['photos'][0].get('caption'):
