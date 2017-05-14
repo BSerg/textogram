@@ -19,5 +19,4 @@ def is_bot_processor(request):
         for bot_name in BOT_USER_AGENTS:
             if bot_name in user_agent.lower():
                 is_bot = True
-                print bot_name
     return {'IS_BOT': is_bot}

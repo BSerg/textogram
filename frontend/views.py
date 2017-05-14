@@ -5,8 +5,6 @@ from django.views.generic import DetailView, TemplateView
 
 from articles import ArticleContentType
 from articles.models import Article
-from frontend.processors import is_bot_processor
-
 from textogram.settings import DEBUG
 
 
