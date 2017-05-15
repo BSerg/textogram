@@ -1,6 +1,3 @@
-from django.db.models import F
-from django.db.models import Q
-
 from articles.models import ArticleView, Article
 
 

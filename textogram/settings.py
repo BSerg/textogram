@@ -56,6 +56,7 @@ INSTALLED_APPS += [
     'advertisement',
     'url_shortener',
     'frontend',
+    'statistics',
 ]
 
 MIDDLEWARE = [
@@ -267,6 +268,8 @@ YANDEX_APP_ID = ''
 YANDEX_PASSWORD = ''
 YANDEX_ACCESS_TOKEN = ''
 YANDEX_CALLBACK_URL = ''
+
+YANDEX_METRICS_COUNTER_ID = ''
 
 try:
     from local_settings import *
