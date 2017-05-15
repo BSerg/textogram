@@ -500,7 +500,8 @@ def content_to_html(content, ads_enabled=False):
                     if photo.get('size'):
                         photo_class += ' photo_%s' % photo.get('size')
                     html.append(
-                        '<div class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                        '<div id="%(id)s" class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                            'id': block.get('id', '_'),
                             '_class': photo_class,
                             'content': '\n'.join(photos),
                             'caption': block['photos'][0]['caption']
@@ -508,20 +509,21 @@ def content_to_html(content, ads_enabled=False):
                     )
                 else:
                     html.append(
-                        '<div class="photos photos_1">\n%s\n<div style="clear: both"></div>\n</div>' %
-                        '\n'.join(photos)
+                        '<div id="%(id)s" class="photos photos_1">\n%(photos)s\n<div style="clear: both"></div>\n</div>' %
+                        {'id': block.get('id', '_'), 'photos': '\n'.join(photos)}
                     )
             elif len(block.get('photos', [])) <= 6:
                 html.append(
-                    '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                    '<div id="%(id)s" class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                        'id': block.get('id'),
                         '_class': 'photos_%d' % len(block.get('photos', [])),
                         'content': '\n'.join(photos)
                     }
                 )
             else:
                 html.append(
-                    '<div class="photos">\n%s\n<div style="clear: both" class="caption">%s</div>\n</div>' %
-                    ('\n'.join(photos), 'Галерея из %d фото' % len(block.get('photos', [])))
+                    '<div id="%(id)s" class="photos">\n%(photos)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' %
+                    {'id': block.get('id', '_'), 'photos': '\n'.join(photos), 'caption': 'Галерея из %d фото' % len(block.get('photos', []))}
                 )
 
         elif block.get('type') == ArticleContentType.LIST:
