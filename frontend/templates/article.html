@@ -2,7 +2,7 @@
 
 {% block title %}{{ article.content.title }}{% endblock %}
 
-{% block description %}{{ description }}{% endblock %}
+{% block description %}{% if description %}{{ description }}{% endif %}{% endblock %}
 
 {% block extra_head %}
     <meta name="twitter:card" content="summary_large_image">

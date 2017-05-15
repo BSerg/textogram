@@ -1,12 +1,11 @@
 from __future__ import unicode_literals
 from rest_framework import serializers
 from url_shortener.models import UrlShort
-from django.contrib.sites.models import Site
 
 
 class UrlShortSerializer(serializers.ModelSerializer):
 
-    shortened_url = serializers.SerializerMethodField()
+    short_url = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         try:
@@ -18,11 +17,10 @@ class UrlShortSerializer(serializers.ModelSerializer):
             raise TypeError('Create link error')
         return instance
 
-    def get_shortened_url(self, obj):
-        current_site = Site.objects.get_current()
-        return 'http://%s/%s' % (current_site.domain, obj.code)
+    def get_short_url(self, obj):
+        return obj.get_short_url()
 
     class Meta:
         model = UrlShort
-        fields = ['url', 'code', 'count', 'created_at', 'shortened_url']
-        read_only_fields = ['code', 'count', 'created_at', 'shortened_url']
+        fields = ['url', 'code', 'count', 'created_at', 'short_url']
+        read_only_fields = ['code', 'count', 'created_at', 'short_url']

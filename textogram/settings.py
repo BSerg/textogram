@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.sitemaps',
-    'react',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -261,10 +260,6 @@ FORBIDDEN_NICKNAMES = [
     '\d\w*',
 
 ]
-
-# App static revisions
-STATIC_REVISION = None
-VENDOR_REVISION = None
 
 # Yandex API
 

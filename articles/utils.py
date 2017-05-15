@@ -64,7 +64,7 @@ class YoutubeEmbedHandler(EmbedHandler):
         r'^<iframe( width=\"\d+\")?( height=\"\d+\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w\-]+((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
     ]
 
-    def __init__(self, url, width=800, height=450, **kwargs):
+    def __init__(self, url, width=560, height=315, **kwargs):
         super(YoutubeEmbedHandler, self).__init__(url, **kwargs)
         self.width = width
         self.height = height
@@ -119,7 +119,7 @@ class VimeoEmbedHandler(EmbedHandler):
     ]
     PLAYER_URL = '//player.vimeo.com/video/{id}'
 
-    def __init__(self, url, width=800, height=450, **kwargs):
+    def __init__(self, url, width=640, height=360, **kwargs):
         super(VimeoEmbedHandler, self).__init__(url, **kwargs)
         self.width = width
         self.height = height
@@ -157,25 +157,34 @@ class FacebookEmbedHandler(EmbedHandler):
     EMBED_URL_REGEX = [
         r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?$',
     ]
+    EMBED_CODE_REGEX = [
+        r'<iframe src=\"https:\/\/[\w\-]+\.facebook\.com\/plugins\/(post|video)\.php\?href=https(%3A|:)(%2F%2F|\/\/)www\.facebook\.com(%2F|\/)[\w\-.]+(%2F|\/)(posts|videos)(%2F|\/)\d+(%2F|\/)?(&show_text=(0|1))?&width=\d+\"( width=\"\d+\")?( height=\"\d+\")?( style=\".+\")?( scrolling=\"(yes|no)\")?( frameborder=\"(0|1)\")?( allowTransparency=\"(true|false)\")?(allowFullScreen=\"(true|false)\")?><\/iframe>'
+    ]
 
     def __init__(self, url, type=None, **kwargs):
         super(FacebookEmbedHandler, self).__init__(url, **kwargs)
         self.type = type
 
-    def get_embed(self):
-        iframe_post = '<iframe src="https://www.facebook.com/plugins/post.php?href=%(url)s' \
-                 '&width=500&show_text=true&height=500&appId" width="500" height="500" ' \
-                 'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
-                 'allowTransparency="true"></iframe>'
-        iframe_video = '<iframe src="https://www.facebook.com/plugins/video.php?href=%(url)s' \
-                       '&width=500&show_text=false&height=280&appId" width="500" height="280" ' \
-                       'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
-                       'allowTransparency="true"></iframe>'
-        iframe = iframe_video if self.type == 'video' else iframe_post
-        return iframe % {'url': self.url}
-
     def _get_embed(self):
-        return '<div className="fb-post" data-href=%s/>' % self.url
+        if self.url_valid(self.url):
+            iframe_post = '<iframe src="https://www.facebook.com/plugins/post.php?href=%(url)s' \
+                     '&width=500&show_text=true&appId" width="500"' \
+                     'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
+                     'allowTransparency="true"></iframe>'
+            iframe_video = '<iframe src="https://www.facebook.com/plugins/video.php?href=%(url)s' \
+                           '&width=500&show_text=false&height=280&appId" width="500" height="280" ' \
+                           'style="border:none;overflow:hidden" scrolling="no" frameborder="0" ' \
+                           'allowTransparency="true"></iframe>'
+            iframe = iframe_video if self.type == 'video' else iframe_post
+            return iframe % {'url': self.url}
+        elif self.code_valid(self.url):
+            return self.url
+
+    def get_embed(self):
+        if self.url_valid(self.url):
+            return '<div class="fb-post" data-href=%s/>' % self.url
+        elif self.code_valid(self.url):
+            return self.url
 
 
 class VkEmbedHandler(EmbedHandler):
@@ -478,10 +487,12 @@ def content_to_html(content, ads_enabled=False):
                 photo_class = 'photo photo_%d' % index
                 photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
                     photo.get('preview') or photo.get('image', '')
-                photos.append(
-                    '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' %
-                    (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
-                )
+                # photo_element = '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' % (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
+                photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
+                                'data-preview="%(preview)s" data-src="%(src)s"></div>' \
+                                % {'class': photo_class, 'id': photo.get('id'), 'caption': photo.get('caption') or '',
+                                   'preview': photo.get('preview'), 'src': photo.get('image')}
+                photos.append(photo_element)
 
             if len(block.get('photos', [])) == 1:
                 if block['photos'][0].get('caption'):
@@ -489,7 +500,8 @@ def content_to_html(content, ads_enabled=False):
                     if photo.get('size'):
                         photo_class += ' photo_%s' % photo.get('size')
                     html.append(
-                        '<div class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                        '<div id="%(id)s" class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                            'id': block.get('id', '_'),
                             '_class': photo_class,
                             'content': '\n'.join(photos),
                             'caption': block['photos'][0]['caption']
@@ -497,20 +509,21 @@ def content_to_html(content, ads_enabled=False):
                     )
                 else:
                     html.append(
-                        '<div class="photos photos_1">\n%s\n<div style="clear: both"></div>\n</div>' %
-                        '\n'.join(photos)
+                        '<div id="%(id)s" class="photos photos_1">\n%(photos)s\n<div style="clear: both"></div>\n</div>' %
+                        {'id': block.get('id', '_'), 'photos': '\n'.join(photos)}
                     )
             elif len(block.get('photos', [])) <= 6:
                 html.append(
-                    '<div class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                    '<div id="%(id)s" class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                        'id': block.get('id'),
                         '_class': 'photos_%d' % len(block.get('photos', [])),
                         'content': '\n'.join(photos)
                     }
                 )
             else:
                 html.append(
-                    '<div class="photos">\n%s\n<div style="clear: both" class="caption">%s</div>\n</div>' %
-                    ('\n'.join(photos), 'Галерея из %d фото' % len(block.get('photos', [])))
+                    '<div id="%(id)s" class="photos">\n%(photos)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' %
+                    {'id': block.get('id', '_'), 'photos': '\n'.join(photos), 'caption': 'Галерея из %d фото' % len(block.get('photos', []))}
                 )
 
         elif block.get('type') == ArticleContentType.LIST:

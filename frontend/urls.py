@@ -7,7 +7,7 @@ from frontend.views import ArticleView, EditorView
 
 urlpatterns = [
     url(r'articles/new/?$', BaseTemplateView.as_view(template_name='index.html'), name='article_new'),
-    url(r'articles/(?P<slug>[\-\w]+)/?$', ArticleView.as_view(), name='article'),
+    url(r'articles/(?P<slug>[\-\w]+)(/gallery/[\w\-]+)?/?$', ArticleView.as_view(), name='article'),
     url(r'articles/(?P<pk>[\-\w]+)/edit?$', EditorView.as_view(), name='editor'),
 
     #url(r'^(login|articles/[\-\w]+/edit|articles/(?P<id>\d+)/preview|id\d+|id\d+/\w+|drafts|manage|manage/\w+|feed|auth/twitter|url_shorten)?/?$',
