@@ -16,11 +16,11 @@ class ArticleAggregatedStatistics(models.Model):
     views_yandex = models.PositiveIntegerField('Просмотры [Yandex]', blank=True, null=True,
                                                help_text='Общее кол-во просмотров из Yandex.Metrics')
     male_percent = models.FloatField('Процент мужчин', blank=True, null=True)
-    age_interval_17 = models.PositiveSmallIntegerField('Процент людей в возрасте до 18 лет', blank=True, null=True)
-    age_interval_18 = models.PositiveSmallIntegerField('Процент людей в возрасте от 18 до 24 лет', blank=True, null=True)
-    age_interval_25 = models.PositiveSmallIntegerField('Процент людей в возрасте от 25 до 34 лет', blank=True, null=True)
-    age_interval_35 = models.PositiveSmallIntegerField('Процент людей в возрасте от 35 до 44 лет', blank=True, null=True)
-    age_interval_45 = models.PositiveSmallIntegerField('Процент людей в возрасте от 45 лет', blank=True, null=True)
+    age_17 = models.PositiveSmallIntegerField('Процент людей в возрасте до 18 лет', blank=True, null=True)
+    age_18 = models.PositiveSmallIntegerField('Процент людей в возрасте от 18 до 24 лет', blank=True, null=True)
+    age_25 = models.PositiveSmallIntegerField('Процент людей в возрасте от 25 до 34 лет', blank=True, null=True)
+    age_35 = models.PositiveSmallIntegerField('Процент людей в возрасте от 35 до 44 лет', blank=True, null=True)
+    age_45 = models.PositiveSmallIntegerField('Процент людей в возрасте от 45 лет', blank=True, null=True)
 
     def __unicode__(self):
         return self.article.title
