@@ -38,6 +38,15 @@ def _request_yandex_metrics(metrics, dimensions, filters=None, sort=None, date_f
     return False, r
 
 
+def _merge_by_url(data):
+    _data = {}
+    for url, data in data.items():
+        clear_url_re = re.match(r'/articles/[\w\-]+', url)
+        if clear_url_re:
+            _data[clear_url_re.group()] = data
+    return _data
+
+
 def get_gender_statistics(**kwargs):
     _data = defaultdict(lambda: {'male': 0, 'female': 0})
     success, data = _request_yandex_metrics(
@@ -49,7 +58,10 @@ def get_gender_statistics(**kwargs):
     )
     if success:
         for item in data:
-            _data[item['dimensions'][0]['name']][item['dimensions'][1]['id']] += item['metrics'][0]
+            key_re = re.match(r'/articles/[\w\-]+', item['dimensions'][0]['name'])
+            if key_re:
+                key = key_re.group()
+                _data[key][item['dimensions'][1]['id']] += item['metrics'][0]
     temp_data = defaultdict(lambda: {'male_percent': None})
     for k, v in _data.items():
         temp_data[k] = {'male_percent': v['male'] / (v['male'] + v['female']) if v['male'] + v['female'] else None}
@@ -69,24 +81,64 @@ def get_age_statistics(**kwargs):
 
     if success:
         for item in data:
-            _age_id = item['dimensions'][1]['id']
-            if _age_id:
-                _data[item['dimensions'][0]['name']]['age_%s' % _age_id] += item['metrics'][0]
+            key_re = re.match(r'/articles/[\w\-]+', item['dimensions'][0]['name'])
+            if key_re:
+                key = key_re.group()
+                _age_id = item['dimensions'][1]['id']
+                if _age_id:
+                    _data[key]['age_%s' % _age_id] += item['metrics'][0]
+    return _data
+
+
+def get_views_statistics(**kwargs):
+    _data = defaultdict(lambda: {'views_yandex': 0})
+    success, data = _request_yandex_metrics(
+        'ym:pv:users',
+        'ym:pv:URLPath',
+        filters="ym:pv:URLPath=~'^/articles/'",
+        **kwargs
+    )
+
+    if success:
+        for item in data:
+            key_re = re.match(r'/articles/[\w\-]+', item['dimensions'][0]['name'])
+            if key_re:
+                key = key_re.group()
+                _data[key]['views_yandex'] += item['metrics'][0]
+
     return _data
 
 
 def update_aggregated_statistics(**kwargs):
+    delay = 10
+    stats_funcs = [
+        get_gender_statistics,
+        get_age_statistics,
+        get_views_statistics
+    ]
     data = defaultdict(lambda: {})
-    d1 = get_gender_statistics(**kwargs)
-    time.sleep(30)
-    d2 = get_age_statistics(**kwargs)
+    results = {'total': 0, 'success': 0, 'error': 0}
 
-    for k, v in d1.items() + d2.items():
-        data[k].update(**v)
+    for index, func in enumerate(stats_funcs):
+        if index > 0:
+            time.sleep(delay)
+        d = func(**kwargs)
 
-    for _url, defaults in data.items():
-        slug_re = re.match(r'^/articles/(?P<slug>[\w\-])$', _url)
-        if slug_re:
-            slug = slug_re.group('slug')
-            print ArticleAggregatedStatistics.objects.update_or_create(article__slug=slug, defaults=defaults)
+        for k, v in d.items():
+            data[k].update(**v)
+
+        for _url, defaults in data.items():
+            results['total'] += 1
+            slug_re = re.match(r'^/articles/(?P<slug>[\w\-])$', _url)
+            if slug_re:
+                slug = slug_re.group('slug')
+                try:
+                    ArticleAggregatedStatistics.objects.update_or_create(article__slug=slug, defaults=defaults)
+                    results['success'] += 1
+                except:
+                    results['error'] += 1
+            else:
+                results['error'] += 1
+
+    return data, results
 

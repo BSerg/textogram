@@ -28,3 +28,8 @@ class ArticleAggregatedStatistics(models.Model):
     class Meta:
         verbose_name = 'Общая статистика статьи'
         verbose_name_plural = 'Общие статистики статьи'
+
+
+class ArticleViewsStaisticsItem(models.Model):
+    class Meta:
+        abstract = True
