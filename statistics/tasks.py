@@ -7,7 +7,9 @@ import time
 from collections import defaultdict
 
 import requests
+from datetime import timedelta
 from django.db.models import Min
+from django.utils import timezone
 
 from articles.models import Article, ArticleView
 from statistics.models import ArticleAggregatedStatistics
@@ -148,17 +150,21 @@ def update_aggregated_statistics(**kwargs):
     return data, results
 
 
-def _get_total_article_unique_views_count(article_id):
-    auth_user_fingerprints = ArticleView.objects.filter(article_id=article_id, user__isnull=False).values_list('fingerprint', flat=True)
+def _get_total_article_unique_views(article_id, **kwargs):
+    auth_user_fingerprints = ArticleView.objects.filter(article_id=article_id, user__isnull=False).values_list(
+        'fingerprint', flat=True)
 
-    unique_views = ArticleView.objects\
-        .filter(article_id=article_id)\
-        .exclude(user__isnull=True, fingerprint__in=auth_user_fingerprints)\
-        .order_by('created_at')\
-        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'})\
-        .values('unique_user')\
+    return ArticleView.objects \
+        .filter(article_id=article_id, **kwargs) \
+        .exclude(user__isnull=True, fingerprint__in=auth_user_fingerprints) \
+        .order_by('created_at') \
+        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
+        .values('unique_user') \
         .annotate(date=Min('created_at'))
 
+
+def _get_total_article_unique_views_count(article_id):
+    unique_views = _get_total_article_unique_views(article_id)
     return unique_views.count()
 
 
@@ -167,3 +173,13 @@ def update_views_statistics(**kwargs):
         views = _get_total_article_unique_views_count(article.id)
         if views:
             print ArticleAggregatedStatistics.objects.update_or_create(article=article, defaults={'views': views})
+
+
+def get_article_unique_views_by_month(article_id, date_start=None, date_end=None, time_delta=None):
+    date_end = date_end or timezone.now()
+    date_start = date_start or date_end - timedelta(days=30)
+    unique_views = _get_total_article_unique_views(article_id, created_at__gte=date_start, created_at__lt=date_end)
+    if unique_views.exists():
+        return unique_views.extra(select={'time_interval': "DATE_TRUNC('day', date)"})
+
+
