@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from statistics.models import ArticleAggregatedStatistics
+from statistics.models import ArticleAggregatedStatistics, ArticleViewsStatistics
 
 
 class ArticleAggregatedStatisticsAdmin(admin.ModelAdmin):
@@ -9,3 +9,10 @@ class ArticleAggregatedStatisticsAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ArticleAggregatedStatistics, ArticleAggregatedStatisticsAdmin)
+
+
+class ArticleViewsStatisticsAdmin(admin.ModelAdmin):
+    pass
+
+
+admin.site.register(ArticleViewsStatistics, ArticleViewsStatisticsAdmin)

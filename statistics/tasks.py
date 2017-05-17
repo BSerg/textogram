@@ -2,17 +2,21 @@
 
 from __future__ import unicode_literals
 
+import datetime
 import re
 import time
 from collections import defaultdict
-
-import requests
 from datetime import timedelta
-from django.db.models import Min
+
+import pytz
+import requests
+from dateutil import relativedelta
+from django.db.models import Min, Count, Sum
+from django.db.models.functions import TruncDay, TruncHour
 from django.utils import timezone
 
 from articles.models import Article, ArticleView
-from statistics.models import ArticleAggregatedStatistics
+from statistics.models import ArticleAggregatedStatistics, ArticleViewsStatistics
 from textogram.settings import YANDEX_METRICS_COUNTER_ID, YANDEX_ACCESS_TOKEN
 
 API_URL = 'https://api-metrika.yandex.ru/stat/v1/data?id={counter_id}&oauth_token={token}'\
@@ -150,15 +154,19 @@ def update_aggregated_statistics(**kwargs):
     return data, results
 
 
-def _get_total_article_unique_views(article_id, **kwargs):
+def _get_article_views_queryset(article_id, **kwargs):
     auth_user_fingerprints = ArticleView.objects.filter(article_id=article_id, user__isnull=False).values_list(
         'fingerprint', flat=True)
 
     return ArticleView.objects \
         .filter(article_id=article_id, **kwargs) \
-        .exclude(user__isnull=True, fingerprint__in=auth_user_fingerprints) \
+        .exclude(user__isnull=True, fingerprint__in=auth_user_fingerprints)
+
+
+def _get_total_article_unique_views(article_id, **kwargs):
+    return _get_article_views_queryset(article_id, **kwargs) \
         .order_by('created_at') \
-        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
+        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END', 'time_interval': "DATE_TRUNC('day', date)"}) \
         .values('unique_user') \
         .annotate(date=Min('created_at'))
 
@@ -175,11 +183,99 @@ def update_views_statistics(**kwargs):
             print ArticleAggregatedStatistics.objects.update_or_create(article=article, defaults={'views': views})
 
 
-def get_article_unique_views_by_month(article_id, date_start=None, date_end=None, time_delta=None):
+def get_article_unique_views_by_month(article_id, date_start=None, date_end=None):
     date_end = date_end or timezone.now()
     date_start = date_start or date_end - timedelta(days=30)
-    unique_views = _get_total_article_unique_views(article_id, created_at__gte=date_start, created_at__lt=date_end)
-    if unique_views.exists():
-        return unique_views.extra(select={'time_interval': "DATE_TRUNC('day', date)"})
+    views_by_days = _get_article_views_queryset(article_id, created_at__gte=date_start, created_at__lt=date_end)\
+        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
+        .values('unique_user') \
+        .annotate(day=TruncDay('created_at')) \
+        .values('day') \
+        .annotate(count=Count('id')) \
+        .order_by('day')
+    return {
+        'article_id': article_id,
+        'date_from': date_start,
+        'date_to': date_end,
+        'total_views': views_by_days.aggregate(total=Sum('count'))['total'],
+        'views_data': views_by_days.values_list('day', 'count')
+    }
 
+
+def get_article_unique_views_by_day(article_id, date_start=None, date_end=None):
+    date_end = date_end or timezone.now()
+    date_start = date_start or date_end - timedelta(hours=24)
+    views_by_days = _get_article_views_queryset(article_id, created_at__gte=date_start, created_at__lt=date_end)\
+        .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
+        .values('unique_user') \
+        .annotate(hour=TruncHour('created_at'))\
+        .values('hour')\
+        .annotate(count=Count('id'))
+    return {
+        'article_id': article_id,
+        'date_from': date_start,
+        'date_to': date_end,
+        'total_views': views_by_days.aggregate(total=Sum('count'))['total'],
+        'views_data': views_by_days.values_list('hour', 'count')
+    }
+
+
+def get_months_ranges(date_start, date_end, include_current=False):
+    date_start = date_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    date_end = date_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if include_current:
+        date_end += relativedelta.relativedelta(months=1)
+    months_ranges = []
+    date = date_end
+    while date >= date_start:
+        month_start = date - relativedelta.relativedelta(months=1)
+        months_ranges.insert(0, [month_start, date])
+        date = month_start
+    return months_ranges
+
+
+def update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=False):
+    tz = pytz.timezone(tz_name)
+    today_now = timezone.now().astimezone(tz)
+    today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    this_month_start = today_start.replace(day=1)
+    this_month_end = today_start
+    months_ranges = [(this_month_start, this_month_end)]
+    if init:
+        ArticleViewsStatistics.objects.filter(article_id=article_id).delete()
+
+        first_view = _get_article_views_queryset(article_id).order_by('created_at').first()
+        if first_view:
+            months_ranges = get_months_ranges(first_view.created_at, this_month_start) + months_ranges
+
+    for _month_start, _month_end in months_ranges:
+        _month_views_data = get_article_unique_views_by_month(article_id, _month_start, _month_end)
+        if _month_views_data.get('views_data'):
+            for day, count in _month_views_data['views_data']:
+                views_stat, created = ArticleViewsStatistics.objects.get_or_create(
+                    article_id=article_id,
+                    type=ArticleViewsStatistics.MONTH,
+                    date_start=_month_start,
+                    date_end=_month_end,
+                    interval_start=day,
+                    interval_end=day + timedelta(days=1)
+                )
+                views_stat.views_count = count
+                views_stat.save()
+                print views_stat
+
+    this_day_views_data = get_article_unique_views_by_day(article_id, today_start, today_now)
+    if this_day_views_data.get('views_data'):
+        for hour, count in this_day_views_data['views_data']:
+            views_stat, created = ArticleViewsStatistics.objects.get_or_create(
+                article_id=article_id,
+                type=ArticleViewsStatistics.MONTH,
+                date_start=today_start,
+                date_end=today_now,
+                interval_start=hour,
+                interval_end=hour + timedelta(hours=1)
+            )
+            views_stat.views_count = count
+            views_stat.save()
+            print views_stat
 

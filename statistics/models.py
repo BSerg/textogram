@@ -12,7 +12,10 @@ class ArticleAggregatedStatistics(models.Model):
     date_from = models.DateTimeField('Дата начала подсчета', blank=True, null=True)
     date_to = models.DateTimeField('Дата окончания подсчета', blank=True, null=True)
 
-    views = models.PositiveIntegerField('Просмотры', blank=True, null=True, help_text='Общее кол-во уникальных просмотров')
+    views_today = models.PositiveIntegerField('Просмотры за сегодня', blank=True, null=True)
+    views_month = models.PositiveIntegerField('Просмотры за этот месяц', blank=True, null=True)
+    views_last_month = models.PositiveIntegerField('Просмотры за предыдущий месяц', blank=True, null=True)
+    views = models.PositiveIntegerField('Всего просмотров', blank=True, null=True)
     views_yandex = models.PositiveIntegerField('Просмотры [Yandex]', blank=True, null=True,
                                                help_text='Общее кол-во просмотров из Yandex.Metrics')
     male_percent = models.FloatField('Процент мужчин', blank=True, null=True)
@@ -40,13 +43,21 @@ class BaseViewsStatistics(models.Model):
     )
 
     type = models.PositiveSmallIntegerField('Тип', choices=TYPES)
-    views_count = models.PositiveIntegerField('Кол-во уникальных просмотров')
+    views_count = models.PositiveIntegerField('Кол-во уникальных просмотров', default=0)
     date_start = models.DateTimeField('Начало периода отчета')
     date_end = models.DateTimeField('Окончание периода отчета')
     interval_start = models.DateTimeField('Начало интервала времени')
     interval_end = models.DateTimeField('Окончание интервала времени')
     created_at = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return 'ViewStat[{type}] {date_start} {interval_start} [{views_count}]'.format(
+            type=self.get_type_display(),
+            date_start=self.date_start,
+            interval_start=self.interval_start,
+            views_count=self.views_count
+        )
 
     class Meta:
         abstract = True
