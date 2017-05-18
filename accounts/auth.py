@@ -47,6 +47,7 @@ class VKAuthBackend(object):
                         user=user, social=SocialLink.VK, is_auth=False,
                         url='https://vk.com/id%s' % kwargs.get('user', {}).get('id')
                     )
+                    user._created = True
                 return user
         return None
 
@@ -86,6 +87,7 @@ class FBAuthBackend(object):
                             user=user, social=SocialLink.FB, is_auth=False,
                             url='https://www.facebook.com/%s' % data.get('id')
                         )
+                        user._created = True
                         return user
         return None
 
@@ -124,6 +126,7 @@ class GoogleAuthClient(object):
                         user=user, social=SocialLink.GOOGLE, is_auth=False,
                         url='https://plus.google.com/u/0/%s' % id_info.get('sub')
                     )
+                    user._created = True
                     return user
 
         return None
@@ -152,8 +155,6 @@ class TwitterAuthBackend(object):
                 except User.DoesNotExist:
                     return self.__create_new_user(**data)
 
-            print username
-
         return None
 
     def __create_new_user(self, **kwargs):
@@ -166,7 +167,6 @@ class TwitterAuthBackend(object):
                 '%s%s' % (User.TWITTER, full_data.get('id')), first_name=full_data.get('name'))
 
             avatar_retrieve = image_retrieve(full_data.get('profile_image_url'))
-            print avatar_retrieve
             if avatar_retrieve:
                 user.avatar = avatar_retrieve[2]
                 user.save()
@@ -178,7 +178,7 @@ class TwitterAuthBackend(object):
                 user=user, social=SocialLink.TWITTER, is_auth=False,
                 url='https://twitter.com/%s' % full_data.get('screen_name')
             )
-
+            user._created = True
             return user
         return None
 
