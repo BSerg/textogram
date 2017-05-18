@@ -1,12 +1,7 @@
 from django.views.generic.detail import DetailView
 from .models import UrlShort
 
-from django.views.generic.base import RedirectView
-
-from django.http.response import HttpResponsePermanentRedirect
 from django.http.response import HttpResponseRedirect
-
-# Create your views here.
 
 
 class UrlShortDetailView(DetailView):
