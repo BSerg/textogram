@@ -56,24 +56,21 @@ class Command(BaseCommand):
             self._download(path)
             self.q.task_done()
 
-    def _listdir(self, path, file_list):
+    def _listdir(self, path, exclude_cache=False):
+        if path in self.imported or exclude_cache and path.split('/')[0] == 'cache':
+            return
         dirs, files = self.s3_storage.listdir(path)
         for f in files:
-            file_list.append(os.path.join(path, f) if path != '.' else f)
+            self.q.put(os.path.join(path, f) if path != '.' else f)
         for d in dirs:
-            self._listdir(os.path.join(path, d) if path != '.' else d, file_list)
+            self._listdir(os.path.join(path, d) if path != '.' else d, exclude_cache)
 
     def handle(self, *args, **options):
         if not self.s3_storage:
             self.stdout.write('Amazon S3 Storage is not configured')
             return
 
-        exclude_cache = True
-
         if hasattr(settings, 'MEDIA_ROOT'):
-            file_list = []
-            self._listdir('.', file_list)
-
             self.count = 0
 
             self.log_path = os.path.join(settings.MEDIA_ROOT, '__s3_import.log')
@@ -89,10 +86,7 @@ class Command(BaseCommand):
                 t.daemon = True
                 t.start()
 
-            for f in file_list:
-                if exclude_cache and f.startswith('cache'):
-                    continue
-                self.q.put(f)
+            self._listdir('.', exclude_cache=True)
 
             self.q.join()
 
