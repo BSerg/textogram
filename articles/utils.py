@@ -471,7 +471,7 @@ def _photo_block_to_html(block, **kwargs):
                     photo_preview = get_image_url(THUMBNAIL_SMALL_SIZE) or photo_preview
                 else:
                     photo_preview = get_image_url(THUMBNAIL_MEDIUM_SIZE) or photo_preview
-                photo_src = image_data.get(photo['id'], {})() or photo_src
+                photo_src = get_image_url() or photo_src
 
             photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
                             'data-preview="%(preview)s" data-src="%(src)s"></div>' \
