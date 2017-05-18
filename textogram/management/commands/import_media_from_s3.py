@@ -37,16 +37,11 @@ class Command(BaseCommand):
                     except OSError as exc:  # Python >2.5
                         if exc.errno == errno.EEXIST and os.path.isdir(path):
                             pass
-                        else:
-                            raise
-                    except:
-                        print 'File %s ERRORED' % path
-                    else:
-                        f = open(os.path.join(settings.MEDIA_ROOT, path), 'w')
-                        f.write(_f.read())
-                        f.close()
-                        self.count += 1
-                        print 'File %s IMPORTED' % path
+                    f = open(os.path.join(settings.MEDIA_ROOT, path), 'w')
+                    f.write(_f.read())
+                    f.close()
+                    self.count += 1
+                    print 'File %s IMPORTED' % path
                 else:
                     print 'File %s SKIPPED' % path
 
@@ -94,7 +89,7 @@ class Command(BaseCommand):
                 t.daemon = True
                 t.start()
 
-            for f in file_list[:10]:
+            for f in file_list:
                 if exclude_cache and f.startswith('cache'):
                     continue
                 self.q.put(f)
