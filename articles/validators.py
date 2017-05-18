@@ -89,7 +89,7 @@ BLOCKS_VALIDATION_CFG = {
         'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.COLUMNS: {
-        'image': {IS_REQUIRED: True, STRUCTURE: PHOTO_VALIDATION_CFG},
+        'image': {IS_REQUIRED: True, NULLABLE: True, STRUCTURE: PHOTO_VALIDATION_CFG},
         'value': {IS_REQUIRED: True, TYPE: (str, unicode)}
     },
     ArticleContentType.VIDEO: {
