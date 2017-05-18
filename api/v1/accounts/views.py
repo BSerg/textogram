@@ -108,7 +108,6 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
         try:
 
             author = self.get_object()
-            print author
             Subscription.objects.get_or_create(user=request.user, author=author)
             return Response({'msg': 'subscribed successfully'})
 
@@ -155,7 +154,7 @@ SOCIAL_PATTERNS = [
     (SocialLink.TWITTER, 'http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/?'),
     (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
 
-    (SocialLink.GOOGLE, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
+    (SocialLink.GOOGLE, '^(https?:\/\/)?(plus\.)?google\.com(\/\w)+(\w+)$'),
     (SocialLink.TELEGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
 ]
 
@@ -180,14 +179,16 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         try:
             validate(url)
             if social == SocialLink.WEB:
-                link, created = SocialLink.objects.get_or_create(user=user, social=SocialLink.WEB, url=url)
+                link, created = SocialLink.objects.get_or_create(user=user, social=SocialLink.WEB, url=url,
+                                                                 is_auth=False)
                 return Response(MeSocialLinkSerializer(link).data)
             else:
                 for p in SOCIAL_PATTERNS:
                     if social == p[0]:
                         pattern = re.compile(p[1])
                         if pattern.match(url):
-                            link, created = SocialLink.objects.get_or_create(user=user, social=social, url=url)
+                            link, created = SocialLink.objects.get_or_create(user=user, social=social, url=url,
+                                                                             is_auth=False)
                             return Response(MeSocialLinkSerializer(link).data)
             return Response({'msg': 'url and social do not match'}, status=HTTP_400_BAD_REQUEST)
 

@@ -10,6 +10,7 @@ from textogram import settings
 from common import image_retrieve
 from textogram.settings import GOOGLE_CLIENT_ID
 from oauth2client import client, crypt
+from django.core.exceptions import MultipleObjectsReturned
 
 
 class VKAuthBackend(object):
@@ -40,6 +41,10 @@ class VKAuthBackend(object):
                         user.save()
                     SocialLink.objects.create(
                         user=user, social=SocialLink.VK, is_auth=True,
+                        url='https://vk.com/id%s' % kwargs.get('user', {}).get('id')
+                    )
+                    SocialLink.objects.create(
+                        user=user, social=SocialLink.VK, is_auth=False,
                         url='https://vk.com/id%s' % kwargs.get('user', {}).get('id')
                     )
                 return user
@@ -77,6 +82,10 @@ class FBAuthBackend(object):
                             user=user, social=SocialLink.FB, is_auth=True,
                             url='https://www.facebook.com/%s' % data.get('id')
                         )
+                        SocialLink.objects.create(
+                            user=user, social=SocialLink.FB, is_auth=False,
+                            url='https://www.facebook.com/%s' % data.get('id')
+                        )
                         return user
         return None
 
@@ -111,6 +120,10 @@ class GoogleAuthClient(object):
                         user=user, social=SocialLink.GOOGLE, is_auth=True,
                         url='https://plus.google.com/u/0/%s' % id_info.get('sub')
                     )
+                    SocialLink.objects.create(
+                        user=user, social=SocialLink.GOOGLE, is_auth=False,
+                        url='https://plus.google.com/u/0/%s' % id_info.get('sub')
+                    )
                     return user
 
         return None
@@ -135,8 +148,7 @@ class TwitterAuthBackend(object):
 
             if username:
                 try:
-                    user = User.objects.get(username=username)
-                    return user
+                    return User.objects.get(username=username)
                 except User.DoesNotExist:
                     return self.__create_new_user(**data)
 
@@ -162,8 +174,28 @@ class TwitterAuthBackend(object):
                 user=user, social=SocialLink.TWITTER, is_auth=True,
                 url='https://twitter.com/%s' % full_data.get('screen_name')
             )
+            SocialLink.objects.create(
+                user=user, social=SocialLink.TWITTER, is_auth=False,
+                url='https://twitter.com/%s' % full_data.get('screen_name')
+            )
 
             return user
+        return None
+
+
+class EmailAuthBackend(object):
+
+    def authenticate(self, *args, **kwargs):
+
+        try:
+            email = kwargs.get('login') or kwargs.get('email')
+            if email:
+
+                user = User.objects.get(email=email, is_active=True)
+                if user.check_password(kwargs.get('password')):
+                    return user
+        except (User.DoesNotExist, MultipleObjectsReturned):
+            pass
         return None
 
 
@@ -171,9 +203,11 @@ class PhoneAuthBackend(object):
 
     def authenticate(self, *args, **kwargs):
         try:
-            user = User.objects.get(phone=kwargs.get('phone'), phone_confirmed=True)
-            if user.check_password(kwargs.get('password')):
-                return user
+            phone = kwargs.get('login') or kwargs.get('phone')
+            if phone:
+                user = User.objects.get(phone=phone, phone_confirmed=True)
+                if user.check_password(kwargs.get('password')):
+                    return user
         except User.DoesNotExist:
             pass
         return None
