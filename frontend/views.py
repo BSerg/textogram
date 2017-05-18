@@ -6,9 +6,24 @@ from django.views.generic import DetailView, TemplateView
 from articles import ArticleContentType
 from articles.models import Article
 from textogram.settings import DEBUG
+from rest_framework.authtoken.models import Token
+from django.http.response import HttpResponseRedirect
 
 
 class BaseTemplateView(TemplateView):
+
+    def get(self, request, *args, **kwargs):
+
+        if request.path == '/' and request.COOKIES.get('authToken', ''):
+            try:
+                Token.objects.get(key=request.COOKIES.get('authToken', ''))
+                return HttpResponseRedirect('/feed')
+            except Token.DoesNotExist:
+                pass
+        elif request.path.lower().startswith(('/feed', '/manage')) and not request.COOKIES.get('authToken'):
+            return HttpResponseRedirect('/')
+        return super(BaseTemplateView, self).get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super(BaseTemplateView, self).get_context_data(**kwargs)
         ctx['debug'] = DEBUG

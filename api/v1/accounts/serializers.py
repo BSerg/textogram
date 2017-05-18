@@ -41,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
     subscriptions = serializers.SerializerMethodField()
 
     def get_social_links(self, obj):
-        return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False), many=True).data
+        return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False, is_auth=False), many=True).data
 
     def get_subscribers(self, obj):
         return obj.number_of_subscribers_cached

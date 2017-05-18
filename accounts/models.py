@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import re
+from django.core.exceptions import ValidationError
 
 from common import upload_to
 
@@ -48,6 +49,12 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def clean(self):
+        print 'clean'
+        if self.email and User.objects.filter(email=self.email).exclude(id=self.id):
+            raise ValidationError('Already exists', code='invalid')
+        pass
 
 
 class MultiAccount(models.Model):
