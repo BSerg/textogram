@@ -5,7 +5,7 @@ from redis import Redis
 from rq import Queue
 
 from articles.models import Article
-from articles.tasks import update_article_html
+from articles.tasks import fix_article_content_image_urls
 from textogram.settings import RQ_LOW_QUEUE, RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT
 
 
@@ -14,9 +14,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB), default_timeout=RQ_TIMEOUT)
-
         for article in Article.objects.filter(content__isnull=False).exclude(status=Article.DELETED):
-            job = q.enqueue(update_article_html, article.id)
+            job = q.enqueue(fix_article_content_image_urls, article.id)
             self.stdout.write('Article #%d job created [%s]' % (article.id, job.id))
 
         self.stdout.write(self.style.SUCCESS('Completed'))
