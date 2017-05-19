@@ -129,6 +129,8 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 qs = Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
                 qs = Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+        else:
+            qs = Article.objects.none()
 
         if qs and self.request.query_params.get('search'):
             try:

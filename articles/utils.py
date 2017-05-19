@@ -12,7 +12,8 @@ from django.core.exceptions import ValidationError
 from advertisement import BannerID
 from articles import ArticleContentType
 from articles.validators import ROOT_VALIDATION_CFG, ContentValidator, BLOCK_BASE_VALIDATION_CFG, BLOCKS_VALIDATION_CFG
-from textogram.settings import VK_ACCESS_TOKEN, BANNER_DENSITY
+from textogram.settings import VK_ACCESS_TOKEN, BANNER_DENSITY, THUMBNAIL_SMALL_SIZE, THUMBNAIL_REGULAR_SIZE, \
+    THUMBNAIL_MEDIUM_SIZE
 
 
 class EmbedHandlerError(Exception):
@@ -453,8 +454,59 @@ def _inject_banner_to_text(text_html, max_injections=1):
     return text_html, injected
 
 
-def content_to_html(content, ads_enabled=False):
-    
+def _photo_block_to_html(block, **kwargs):
+    html_photos = []
+    photos = block.get('photos') or []
+    image_data = kwargs.get('image_data')
+
+    for index, photo in enumerate(photos):
+        photo_class = 'photo photo_%d' % index
+
+        if photo.get('id'):
+            photo_preview = photo.get('preview') or ''
+            photo_src = photo.get('image') or ''
+            if image_data:
+                get_image_url = image_data.get(photo['id'])
+                if index > 2:
+                    photo_preview = get_image_url(THUMBNAIL_SMALL_SIZE) or photo_preview
+                else:
+                    photo_preview = get_image_url(THUMBNAIL_MEDIUM_SIZE) or photo_preview
+                photo_src = get_image_url(THUMBNAIL_REGULAR_SIZE) or photo_src
+
+            photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
+                            'data-preview="%(preview)s" data-src="%(src)s"></div>' \
+                            % {'class': photo_class, 'id': photo['id'], 'caption': photo.get('caption') or '',
+                               'preview': photo_preview, 'src': photo_src}
+            html_photos.append(photo_element)
+
+    if len(photos) == 1:
+        if photos[0].get('caption'):
+            photo_class = 'photos photos_1'
+
+            if photos[0].get('size'):
+                photo_class += ' photo_%s' % photos[0].get('size')
+
+            return '<div id="%(id)s" class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+                    'id': block.get('id', '_'),
+                    '_class': photo_class,
+                    'content': '\n'.join(html_photos),
+                    'caption': photos[0].get('caption') or ''
+                }
+        else:
+            return '<div id="%(id)s" class="photos photos_1">\n%(photos)s\n<div style="clear: both"></div>\n</div>' % {
+                'id': block.get('id', '_'), 'photos': '\n'.join(html_photos)}
+    elif len(photos) <= 6:
+        return '<div id="%(id)s" class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
+                'id': block.get('id'),
+                '_class': 'photos_%d' % len(photos),
+                'content': '\n'.join(html_photos)
+            }
+    else:
+        return '<div id="%(id)s" class="photos">\n%(photos)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
+            'id': block.get('id', '_'), 'photos': '\n'.join(html_photos), 'caption': 'Галерея из %d фото' % len(photos)}
+
+
+def content_to_html(content, ads_enabled=False, **kwargs):
     safe_mode = 'remove'
 
     if not content.get('__meta', {}).get('is_valid'):
@@ -482,49 +534,9 @@ def content_to_html(content, ads_enabled=False):
             html.append('<div class="phrase">%s</div>' % markdown.markdown(block.get('value'), safe_mode=safe_mode))
 
         elif block.get('type') == ArticleContentType.PHOTO:
-            photos = []
-            for index, photo in enumerate(block.get('photos', [])):
-                photo_class = 'photo photo_%d' % index
-                photo_url = photo.get('image', '') if len(block.get('photos', [])) == 1 else \
-                    photo.get('preview') or photo.get('image', '')
-                # photo_element = '<img data-id="%d" data-caption="%s" class="%s" src="%s"/>' % (photo.get('id') or 0, photo.get('caption', ''), photo_class, photo_url)
-                photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
-                                'data-preview="%(preview)s" data-src="%(src)s"></div>' \
-                                % {'class': photo_class, 'id': photo.get('id'), 'caption': photo.get('caption') or '',
-                                   'preview': photo.get('preview'), 'src': photo.get('image')}
-                photos.append(photo_element)
-
-            if len(block.get('photos', [])) == 1:
-                if block['photos'][0].get('caption'):
-                    photo_class = 'photos photos_1'
-                    if photo.get('size'):
-                        photo_class += ' photo_%s' % photo.get('size')
-                    html.append(
-                        '<div id="%(id)s" class="%(_class)s">\n%(content)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' % {
-                            'id': block.get('id', '_'),
-                            '_class': photo_class,
-                            'content': '\n'.join(photos),
-                            'caption': block['photos'][0]['caption']
-                        }
-                    )
-                else:
-                    html.append(
-                        '<div id="%(id)s" class="photos photos_1">\n%(photos)s\n<div style="clear: both"></div>\n</div>' %
-                        {'id': block.get('id', '_'), 'photos': '\n'.join(photos)}
-                    )
-            elif len(block.get('photos', [])) <= 6:
-                html.append(
-                    '<div id="%(id)s" class="photos %(_class)s">\n%(content)s\n<div style="clear: both"></div>\n</div>' % {
-                        'id': block.get('id'),
-                        '_class': 'photos_%d' % len(block.get('photos', [])),
-                        'content': '\n'.join(photos)
-                    }
-                )
-            else:
-                html.append(
-                    '<div id="%(id)s" class="photos">\n%(photos)s\n<div style="clear: both" class="caption">%(caption)s</div>\n</div>' %
-                    {'id': block.get('id', '_'), 'photos': '\n'.join(photos), 'caption': 'Галерея из %d фото' % len(block.get('photos', []))}
-                )
+            _html = _photo_block_to_html(block, **kwargs)
+            if _html:
+                html.append(_html)
 
         elif block.get('type') == ArticleContentType.LIST:
             html.append(markdown.markdown(block.get('value'), safe_mode=safe_mode))
@@ -636,3 +648,41 @@ def content_to_html(content, ads_enabled=False):
 
 def get_article_cache_key(key, prefix='article'):
     return '%s__%s' % (prefix, key)
+
+
+def _fix_image_data(content_image, image_data):
+    if content_image is None:
+        return
+
+    _content_image = content_image.copy()
+    get_image_url = image_data.get(_content_image['id'])
+    if get_image_url:
+        _content_image['image'] = get_image_url()
+        _content_image['preview'] = get_image_url(THUMBNAIL_MEDIUM_SIZE)
+    return _content_image
+
+
+def fix_image_urls(content, image_data):
+    _content = content.copy()
+
+    if _content.get('cover'):
+        _content['cover'].update(_fix_image_data(_content['cover'], image_data))
+
+    if _content.get('cover_clipped'):
+        _content['cover_clipped'].update(_fix_image_data(_content['cover_clipped'], image_data))
+
+    for block in _content['blocks']:
+        if block.get('type') == ArticleContentType.PHOTO:
+            for photo in block['photos']:
+                photo.update(_fix_image_data(photo, image_data))
+        elif block.get('type') in [ArticleContentType.QUOTE, ArticleContentType.COLUMNS]:
+            image = block['image']
+            if image:
+                block['image'] = _fix_image_data(block['image'], image_data)
+        elif block.get('type') == ArticleContentType.DIALOG:
+            for p in block['participants']:
+                if p.get('avatar'):
+                    p['avatar'].update(_fix_image_data(p['avatar'], image_data))
+
+    return _content
+
