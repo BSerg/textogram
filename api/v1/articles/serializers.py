@@ -114,9 +114,9 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
             for c in obj.content.get('blocks', []):
                 if c.get('type') == ArticleContentType.LEAD:
                     return c.get('value')
-            for c in obj.content.get('blocks', []):
-                if c.get('type') == ArticleContentType.TEXT:
-                    return c.get('value')
+            #for c in obj.content.get('blocks', []):
+            #    if c.get('type') == ArticleContentType.TEXT:
+            #        return c.get('value')
         except (AttributeError, TypeError):
             pass
         return ''
