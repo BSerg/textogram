@@ -64,14 +64,6 @@ class BaseViewsStatistics(models.Model):
         ordering = ['date_end', 'interval_end']
 
 
-class AuthorViewsStatistics(BaseViewsStatistics):
-    author = models.ForeignKey('accounts.User', verbose_name='Автор', related_name='views_statistics')
-
-    class Meta(BaseViewsStatistics.Meta):
-        verbose_name = 'Уникальные просмотры автора'
-        verbose_name_plural = 'Уникальные просмотры авторов'
-
-
 class ArticleViewsStatistics(BaseViewsStatistics):
     article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='views_statistics')
 
