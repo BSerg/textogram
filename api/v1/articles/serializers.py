@@ -10,7 +10,7 @@ from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles import ArticleContentType
 from articles.models import Article, ArticleImage
-from textogram.settings import THUMBNAIL_REGULAR_SIZE, THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE
+from textogram.settings import THUMBNAIL_REGULAR_SIZE, THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE, THUMBNAIL_SMALL_SIZE
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -55,7 +55,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
         try:
             cover_id = cover.get('id')
             image = obj.images.get(pk=cover_id)
-            return image.get_image_url(THUMBNAIL_LARGE_SIZE)
+            return image.get_image_url(THUMBNAIL_SMALL_SIZE)
         except ArticleImage.DoesNotExist:
             return None
         except AttributeError:
