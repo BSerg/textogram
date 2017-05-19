@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals
 
-import datetime
 import re
 import time
 from collections import defaultdict
@@ -115,7 +114,10 @@ def get_views_statistics(**kwargs):
     return _data
 
 
-def update_aggregated_statistics(**kwargs):
+def task_update_aggregated_statistics(tz_name='Europe/Moscow', **kwargs):
+    tz = pytz.timezone(tz_name)
+    today_now = timezone.now().astimezone(tz)
+
     delay = 10
     stats_funcs = [
         get_gender_statistics,
@@ -131,6 +133,7 @@ def update_aggregated_statistics(**kwargs):
         d = func(**kwargs)
 
         for k, v in d.items():
+            data[k].update(date_to=today_now)
             data[k].update(**v)
 
     for _url, defaults in data.items():
@@ -171,16 +174,31 @@ def _get_total_article_unique_views(article_id, **kwargs):
         .annotate(date=Min('created_at'))
 
 
-def _get_total_article_unique_views_count(article_id):
-    unique_views = _get_total_article_unique_views(article_id)
+def _get_total_article_unique_views_count(article_id, **kwargs):
+    unique_views = _get_total_article_unique_views(article_id, **kwargs)
     return unique_views.count()
 
 
-def update_views_statistics(**kwargs):
-    for article in Article.objects.all():
-        views = _get_total_article_unique_views_count(article.id)
-        if views:
-            print ArticleAggregatedStatistics.objects.update_or_create(article=article, defaults={'views': views})
+def task_update_article_total_views(article_id, tz_name='Europe/Moscow'):
+    tz = pytz.timezone(tz_name)
+    today_now = timezone.now().astimezone(tz)
+    today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    this_month_start = today_start.replace(day=1)
+    this_month_end = today_start
+    prev_month_start = this_month_start - relativedelta.relativedelta(months=1)
+    prev_month_end = this_month_start
+
+    today_views = _get_total_article_unique_views_count(article_id, created_at__gte=today_start, created_at__lt=today_now)
+    this_month_views = _get_total_article_unique_views_count(article_id, created_at__gte=this_month_start, created_at__lt=this_month_end)
+    prev_month_views = _get_total_article_unique_views_count(article_id, created_at__gte=prev_month_start, created_at__lt=prev_month_end)
+    total_views = _get_total_article_unique_views_count(article_id)
+    defaults = {
+        'views': total_views,
+        'views_today': today_views,
+        'views_month': this_month_views,
+        'views_last_month': prev_month_views
+    }
+    ArticleAggregatedStatistics.objects.update_or_create(article_id=article_id, defaults=defaults)
 
 
 def get_article_unique_views_by_month(article_id, date_start=None, date_end=None):
@@ -234,13 +252,14 @@ def get_months_ranges(date_start, date_end, include_current=False):
     return months_ranges
 
 
-def update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=False):
+def task_update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=False):
     tz = pytz.timezone(tz_name)
     today_now = timezone.now().astimezone(tz)
     today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
     this_month_start = today_start.replace(day=1)
     this_month_end = today_start
     months_ranges = [(this_month_start, this_month_end)]
+
     if init:
         ArticleViewsStatistics.objects.filter(article_id=article_id).delete()
 
@@ -262,7 +281,6 @@ def update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=
                 )
                 views_stat.views_count = count
                 views_stat.save()
-                print views_stat
 
     this_day_views_data = get_article_unique_views_by_day(article_id, today_start, today_now)
     if this_day_views_data.get('views_data'):
@@ -277,5 +295,4 @@ def update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=
             )
             views_stat.views_count = count
             views_stat.save()
-            print views_stat
 
