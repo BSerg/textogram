@@ -1,8 +1,6 @@
 from rest_framework import permissions
-from rest_framework.permissions import SAFE_METHODS
 
 from articles.models import Article
-
 from textogram.settings import DEBUG
 
 

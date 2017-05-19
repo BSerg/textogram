@@ -9,7 +9,7 @@ from datetime import timedelta
 
 import pytz
 import requests
-from dateutil import relativedelta
+from dateutil import relativedelta, relativedelta
 from django.db.models import Min, Count, Sum
 from django.db.models.functions import TruncDay, TruncHour
 from django.utils import timezone
@@ -203,7 +203,7 @@ def task_update_article_total_views(article_id, tz_name='Europe/Moscow'):
 
 def get_article_unique_views_by_month(article_id, date_start=None, date_end=None):
     date_end = date_end or timezone.now()
-    date_start = date_start or date_end - timedelta(days=30)
+    date_start = date_start or (date_end - relativedelta.relativedelta(months=1))
     views_by_days = _get_article_views_queryset(article_id, created_at__gte=date_start, created_at__lt=date_end)\
         .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
         .values('unique_user') \
@@ -222,7 +222,7 @@ def get_article_unique_views_by_month(article_id, date_start=None, date_end=None
 
 def get_article_unique_views_by_day(article_id, date_start=None, date_end=None):
     date_end = date_end or timezone.now()
-    date_start = date_start or date_end - timedelta(hours=24)
+    date_start = date_start or date_end - timedelta(days=1)
     views_by_days = _get_article_views_queryset(article_id, created_at__gte=date_start, created_at__lt=date_end)\
         .extra(select={'unique_user': 'CASE WHEN user_id IS NOT NULL THEN user_id::CHAR ELSE fingerprint END'}) \
         .values('unique_user') \
@@ -238,10 +238,10 @@ def get_article_unique_views_by_day(article_id, date_start=None, date_end=None):
     }
 
 
-def get_months_ranges(date_start, date_end, include_current=False):
+def get_months_ranges(date_start, date_end, include_last=False):
     date_start = date_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     date_end = date_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    if include_current:
+    if include_last:
         date_end += relativedelta.relativedelta(months=1)
     months_ranges = []
     date = date_end
@@ -257,7 +257,7 @@ def task_update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', 
     today_now = timezone.now().astimezone(tz)
     today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
     this_month_start = today_start.replace(day=1)
-    this_month_end = today_start
+    this_month_end = this_month_start + relativedelta.relativedelta(months=1)
     months_ranges = [(this_month_start, this_month_end)]
 
     if init:
@@ -265,7 +265,7 @@ def task_update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', 
 
         first_view = _get_article_views_queryset(article_id).order_by('created_at').first()
         if first_view:
-            months_ranges = get_months_ranges(first_view.created_at, this_month_start) + months_ranges
+            months_ranges = get_months_ranges(first_view.created_at.astimezone(tz), this_month_start) + months_ranges
 
     for _month_start, _month_end in months_ranges:
         _month_views_data = get_article_unique_views_by_month(article_id, _month_start, _month_end)
@@ -287,7 +287,7 @@ def task_update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', 
         for hour, count in this_day_views_data['views_data']:
             views_stat, created = ArticleViewsStatistics.objects.get_or_create(
                 article_id=article_id,
-                type=ArticleViewsStatistics.MONTH,
+                type=ArticleViewsStatistics.DAY,
                 date_start=today_start,
                 date_end=today_now,
                 interval_start=hour,

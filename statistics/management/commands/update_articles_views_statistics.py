@@ -30,7 +30,7 @@ class Command(BaseCommand):
         q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB), default_timeout=RQ_TIMEOUT)
 
         for article in articles:
-            job = q.enqueue(task_update_article_views_by_intervals, article.id)
+            job = q.enqueue(task_update_article_views_by_intervals, article.id, init=options['init'])
             self.stdout.write('Update article #%d total views job [%s] created' % (article.id, job.id))
 
         self.stdout.write(self.style.SUCCESS('Competed'))
