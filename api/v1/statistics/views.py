@@ -18,8 +18,11 @@ class UserCommonStatisticsView(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserCommonStatisticsSerializer
     permission_classes = [permissions.IsAuthenticated, IsSelf]
-    lookup_field = 'nickname'
-    lookup_url_kwarg = 'nickname'
+    #lookup_field = 'nickname'
+    #lookup_url_kwarg = 'nickname'
+
+    def get_object(self):
+        return self.request.user
 
 
 class ArticleCommonStatisticsListView(mixins.ListModelMixin, viewsets.GenericViewSet):
