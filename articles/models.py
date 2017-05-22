@@ -153,6 +153,21 @@ class ArticlePreview(models.Model):
         verbose_name_plural = 'Превью'
 
 
+class ArticleUserAccess(models.Model):
+    uid = models.CharField('Номер доступа', max_length=8, default='fake')
+    article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='user_access')
+    user = models.ForeignKey('accounts.User', verbose_name='Пользователь')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return 'Access Article #%d | User #%d' % (self.article_id, self.user_id)
+
+    class Meta:
+        verbose_name = 'Заказ Paywall'
+        verbose_name_plural = 'Заказы Paywall'
+
+
 @receiver(pre_save, sender=Article)
 def update_slug(sender, instance, **kwargs):
     db_instance = Article.objects.get(pk=instance.id) if instance.id else None

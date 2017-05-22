@@ -21,10 +21,9 @@ from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleConte
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
 from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
-from articles.models import Article, ArticleImage
+from articles.models import Article, ArticleImage, ArticleUserAccess
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
-from payment.models import PaywallOrder
 from textogram.settings import RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
 
 
@@ -164,9 +163,10 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         article = self.get_object()
+
         if article.paywall_enabled:
-            if not self.request.user.is_authenticated() or (
-                            article.owner != self.request.user and PaywallOrder.objects.filter()):
+            user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
+            if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
                 return PublicArticleLimitedSerializer
         return super(PublicArticleViewSet, self).get_serializer_class()
 

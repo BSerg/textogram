@@ -55,7 +55,6 @@ INSTALLED_APPS += [
     'notifications',
     'advertisement',
     'url_shortener',
-    'payment',
     'frontend',
     'statistics',
 ]
@@ -276,9 +275,6 @@ YANDEX_ACCESS_TOKEN = ''
 YANDEX_CALLBACK_URL = ''
 
 YANDEX_METRICS_COUNTER_ID = ''
-# Static revision number
-
-STATIC_REVISION = 1
 
 # Paywall
 
