@@ -10,7 +10,7 @@ from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles import ArticleContentType
 from articles.models import Article, ArticleImage
-from textogram.settings import THUMBNAIL_REGULAR_SIZE, THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE, THUMBNAIL_SMALL_SIZE
+from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_SMALL_SIZE
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -120,9 +120,6 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
             for c in obj.content.get('blocks', []):
                 if c.get('type') == ArticleContentType.LEAD:
                     return c.get('value')
-            #for c in obj.content.get('blocks', []):
-            #    if c.get('type') == ArticleContentType.TEXT:
-            #        return c.get('value')
         except (AttributeError, TypeError):
             pass
         return ''

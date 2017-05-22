@@ -20,7 +20,6 @@ from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
-from textogram.settings import THUMBNAIL_REGULAR_SIZE
 from url_shortener.models import UrlShort
 
 
