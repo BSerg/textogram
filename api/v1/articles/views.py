@@ -4,6 +4,7 @@ import base64
 import json
 
 from django.core.cache import cache
+from django.core.exceptions import FieldError
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from redis import Redis
@@ -18,7 +19,8 @@ from rq import Queue
 from accounts.models import Subscription
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner, PaywallAllowed
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
-    PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
+    PublicArticleSerializerMin, DraftArticleSerializer
+from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
@@ -28,7 +30,7 @@ from textogram.settings import RQ_PORT
 
 
 class ArticleSetPagination(PageNumberPagination):
-    page_size = 50
+    page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -87,6 +89,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
     queryset = ArticleImage.objects.all()
     serializer_class = ArticleImageSerializer
     permission_classes = [permissions.IsAuthenticated, IsArticleContentOwner]
+    throttle_classes = [ImageUploadRateThrottle]
 
     @list_route(methods=['POST'])
     def base64(self, request, **kwargs):
@@ -112,11 +115,13 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_queryset(self):
 
+        qs = None
+
         if self.request.query_params.get('feed') and self.request.user.is_authenticated:
             subscriptions = Subscription.objects.filter(user=self.request.user)
-            return Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
+            qs = Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif self.request.query_params.get('drafts') and self.request.user.is_authenticated:
-            return Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+            qs = Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
         elif self.request.query_params.get('user'):
             try:
                 user_id = int(self.request.query_params.get('user'))
@@ -124,11 +129,31 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 return Article.objects.none()
 
             if self.request.user.is_authenticated and self.request.user.id == user_id:
-                return Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
+                qs = Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                return Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+                qs = Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
         else:
-            return Article.objects.none()
+            qs = Article.objects.none()
+
+        if qs and self.request.query_params.get('search'):
+            try:
+                qs = qs.filter(title__icontains=self.request.query_params.get('search'))
+            except FieldError as e:
+                return Article.objects.none()
+        return qs
+
+
+class SearchPublicArticleViewSet(PublicArticleListViewSet):
+    throttle_classes = [SearchRateThrottle]
+
+    def get_queryset(self):
+        qs = super(SearchPublicArticleViewSet, self).get_queryset()
+        if self.request.query_params.get('q'):
+            try:
+                qs = qs.filter(title__icontains=self.request.query_params.get('q'))
+            except FieldError as e:
+                return Article.objects.none()
+        return qs
 
 
 class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):

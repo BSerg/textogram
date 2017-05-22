@@ -16,6 +16,8 @@ from api.v1.accounts.permissions import IsAdminOrOwner
 from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, \
     MeSocialLinkSerializer, SubscriptionSerializer
 
+from api.v1.accounts.serializers import nickname_validator
+
 from django.core.validators import URLValidator
 from django.forms import ValidationError
 import re
@@ -55,6 +57,7 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = PublicUserPagination
+    lookup_field = 'nickname'
 
     def get_queryset(self):
 
@@ -101,9 +104,10 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
         return self.queryset
 
     @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, *args, **kwargs):
         try:
-            author = User.objects.get(pk=pk)
+
+            author = self.get_object()
             Subscription.objects.get_or_create(user=request.user, author=author)
             return Response({'msg': 'subscribed successfully'})
 
@@ -111,9 +115,9 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'author not found'}, status=HTTP_404_NOT_FOUND)
 
     @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
-    def un_subscribe(self, request, pk=None):
+    def un_subscribe(self, request, *args, **kwargs):
         try:
-            author = User.objects.get(pk=pk)
+            author = self.get_object()
             subscription = Subscription.objects.get(user=request.user, author=author)
             subscription.delete()
             return Response({'msg': 'unSubscribed successfully'})
@@ -122,6 +126,16 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'msg': 'author not found'}, status=HTTP_404_NOT_FOUND)
         except Subscription.DoesNotExist:
             return Response({'msg': 'not subscribed'}, status=HTTP_404_NOT_FOUND)
+
+    @list_route(methods=['GET'], permission_classes=[permissions.IsAuthenticated])
+    def check_nickname(self, request, *args, **kwargs):
+        nickname = nickname_validator(request.query_params.get('nickname'))
+        try:
+            if User.objects.get(nickname=nickname) != self.request.user:
+                return Response({'error': 'already exists'}, status=HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            pass
+        return Response({'nickname': nickname})
 
 
 class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -140,7 +154,7 @@ SOCIAL_PATTERNS = [
     (SocialLink.TWITTER, 'http(?:s)?:\/\/(?:www\.)?twitter\.com\/([a-zA-Z0-9_]+)/?'),
     (SocialLink.INSTAGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
 
-    (SocialLink.GOOGLE, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
+    (SocialLink.GOOGLE, '^(https?:\/\/)?(plus\.)?google\.com(\/\w)+(\w+)$'),
     (SocialLink.TELEGRAM, '(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am)\/([A-Za-z0-9-_\.]+)/?'),
 ]
 
@@ -165,14 +179,16 @@ class SocialLinksViewSet(viewsets.ModelViewSet):
         try:
             validate(url)
             if social == SocialLink.WEB:
-                link, created = SocialLink.objects.get_or_create(user=user, social=SocialLink.WEB, url=url)
+                link, created = SocialLink.objects.get_or_create(user=user, social=SocialLink.WEB, url=url,
+                                                                 is_auth=False)
                 return Response(MeSocialLinkSerializer(link).data)
             else:
                 for p in SOCIAL_PATTERNS:
                     if social == p[0]:
                         pattern = re.compile(p[1])
                         if pattern.match(url):
-                            link, created = SocialLink.objects.get_or_create(user=user, social=social, url=url)
+                            link, created = SocialLink.objects.get_or_create(user=user, social=social, url=url,
+                                                                             is_auth=False)
                             return Response(MeSocialLinkSerializer(link).data)
             return Response({'msg': 'url and social do not match'}, status=HTTP_400_BAD_REQUEST)
 

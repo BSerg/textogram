@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import re
+from django.core.exceptions import ValidationError
 
 from common import upload_to
 
@@ -40,13 +41,20 @@ class User(AbstractUser):
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
     number_of_subscriptions_cached = models.IntegerField('Кол-во подпиcок', default=0, editable=False)
     number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)
-    phone = models.CharField('Телефон', max_length=20, null=True, blank=True, unique=True)
+    phone = models.CharField('Телефон', max_length=20, null=True, blank=True)
     phone_confirmed = models.BooleanField('Телефон подтвержден', default=False)
     description = models.CharField('Описание', max_length=255, blank=True, default='')
+    nickname = models.CharField('Никнейм', max_length=20, null=True, unique=True)
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def clean(self):
+        print 'clean'
+        if self.email and User.objects.filter(email=self.email).exclude(id=self.id):
+            raise ValidationError('Already exists', code='invalid')
+        pass
 
 
 class MultiAccount(models.Model):
@@ -149,6 +157,13 @@ class PhoneCode(models.Model):
 
     class Meta:
         ordering = ('-created_at', )
+
+
+@receiver(post_save, sender=User)
+def create_nickname(sender, instance, **kwargs):
+    if kwargs.get('created'):
+        instance.nickname = 'id%s' % instance.id
+        instance.save()
 
 
 @receiver(post_save, sender=Subscription)

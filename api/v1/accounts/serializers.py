@@ -10,6 +10,7 @@ from articles.models import Article
 
 import PIL.Image as Image
 
+from textogram.settings import FORBIDDEN_NICKNAMES
 
 class SocialLinkSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,7 +41,7 @@ class UserSerializer(serializers.ModelSerializer):
     subscriptions = serializers.SerializerMethodField()
 
     def get_social_links(self, obj):
-        return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False), many=True).data
+        return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False, is_auth=False), many=True).data
 
     def get_subscribers(self, obj):
         return obj.number_of_subscribers_cached
@@ -57,14 +58,36 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
+        fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
                   'social_links', 'subscribers', 'subscriptions', 'number_of_articles', 'description']
+
+
+def nickname_validator(nickname):
+    if not nickname or (len(nickname) not in range(4, 21)):
+        raise ValidationError({'nickname': ['incorrect']})
+
+    for n in FORBIDDEN_NICKNAMES:
+        if re.search('^%s$' % n, nickname):
+            raise ValidationError({'nickname': ['forbidden']})
+
+    if not re.search('^[A-Za-z\d_]+$', nickname):
+        raise ValidationError({'nickname': ['forbidden']})
+
+    return nickname.lower()
 
 
 class MeUserSerializer(UserSerializer):
     token = serializers.SerializerMethodField()
     phone = serializers.SerializerMethodField()
     drafts = serializers.SerializerMethodField()
+
+    def update(self, instance, validated_data):
+        nickname = validated_data.get('nickname') or ''
+        if nickname:
+            validated_data['nickname'] = nickname_validator(nickname)
+
+        instance = super(MeUserSerializer, self).update(instance, validated_data)
+        return instance
 
     def get_drafts(self, obj):
         return Article.objects.filter(owner=obj, status=Article.DRAFT).count()
@@ -115,7 +138,7 @@ class PublicUserSerializer(UserSerializer):
         return bool(Subscription.objects.filter(user=self.context.get('request').user, author=obj))
 
     class Meta(UserSerializer.Meta):
-        fields = ['id', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
+        fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
                   'is_subscribed', 'number_of_articles', 'description']
 
 

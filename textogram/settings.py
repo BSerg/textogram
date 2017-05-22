@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.sitemaps',
-    'react',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -57,6 +56,8 @@ INSTALLED_APPS += [
     'advertisement',
     'url_shortener',
     'payment',
+    'frontend',
+    'statistics',
 ]
 
 MIDDLEWARE = [
@@ -152,13 +153,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-REACT = {
-    'RENDER': not DEBUG,
-    'RENDER_URL': 'http://127.0.0.1:9000/render',
-}
-
 AUTH_USER_MODEL = 'accounts.User'
-
 
 AUTHENTICATION_BACKENDS = [
     'accounts.auth.VKAuthBackend',
@@ -166,6 +161,7 @@ AUTHENTICATION_BACKENDS = [
     'accounts.auth.GoogleAuthClient',
     'accounts.auth.TwitterAuthBackend',
     'accounts.auth.PhoneAuthBackend',
+    'accounts.auth.EmailAuthBackend',
     'django.contrib.auth.backends.ModelBackend'
 ]
 
@@ -174,14 +170,16 @@ AUTHENTICATION_BACKENDS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # 'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-    )
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'search': '60/min',
+        'image_upload': '1000/day'
+    }
 }
 
 REST_FRAMEWORK_EXTENSIONS = {
-    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 15
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 15,
 }
 
 # SOCIALS
@@ -206,7 +204,15 @@ FACEBOOK_REDIRECT_URI = ''
 GOOGLE_CLIENT_ID = ''
 GOOGLE_API_KEY = ''
 
-THUMBNAIL_SIZE = '600x600'
+# Thumbnails
+
+THUMBNAIL_QUALITY = 90
+
+THUMBNAIL_LARGE_SIZE = '1900x1900'
+THUMBNAIL_REGULAR_SIZE = '1200x1200'
+THUMBNAIL_MEDIUM_SIZE = '600x600'
+THUMBNAIL_SMALL_SIZE = '300x300'
+THUMBNAIL_TINY_SIZE = '150x150'
 
 # CONTENT SETTINGS
 
@@ -243,6 +249,33 @@ BOT_USER_AGENTS = [
     'yandex'
 ]
 
+FORBIDDEN_NICKNAMES = [
+    'admin\w*',
+    'api',
+    'articles?',
+    'drafts',
+    'id\d+',
+    'feed',
+    'login',
+    'logout',
+    'manage',
+    'manager',
+    'nick',
+    'nickname',
+    'nickname\w+',
+    'check_nickname',
+    '\d\w*',
+
+]
+
+# Yandex API
+
+YANDEX_APP_ID = ''
+YANDEX_PASSWORD = ''
+YANDEX_ACCESS_TOKEN = ''
+YANDEX_CALLBACK_URL = ''
+
+YANDEX_METRICS_COUNTER_ID = ''
 # Static revision number
 
 STATIC_REVISION = 1

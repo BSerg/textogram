@@ -3,7 +3,9 @@ from textogram.settings import BOT_USER_AGENTS
 
 
 def debug_processor(request):
-    return {'DEBUG': settings.DEBUG, 'STATIC_REVISION': settings.STATIC_REVISION}
+    return {
+        'DEBUG': settings.DEBUG,
+    }
 
 
 def is_lentach_processor(request):
@@ -17,5 +19,4 @@ def is_bot_processor(request):
         for bot_name in BOT_USER_AGENTS:
             if bot_name in user_agent.lower():
                 is_bot = True
-                print bot_name
     return {'IS_BOT': is_bot}

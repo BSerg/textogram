@@ -1,9 +1,6 @@
 from rest_framework import permissions
-from rest_framework.permissions import SAFE_METHODS
 
 from articles.models import Article
-from payment.models import PaywallOrder
-
 from textogram.settings import DEBUG
 
 
@@ -49,15 +46,3 @@ class WebVisor(permissions.BasePermission):
 class IsArticleContentPhotoOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return obj.content_item.article.owner == request.user
-
-
-class PaywallAllowed(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if obj.paywall_enabled:
-            if request.user.is_authenticated() and obj.owner == request.user:
-                return True
-            elif not request.user.is_authenticated() \
-                    or not PaywallOrder.objects.filter(article=obj, customer=request.user,
-                                                       status=PaywallOrder.COMPLETED).exists():
-                return False
-        return True

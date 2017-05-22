@@ -2,22 +2,25 @@
 from __future__ import unicode_literals
 
 import uuid
+from urlparse import urlparse
 from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
+from sorl.thumbnail import get_thumbnail
 
 from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
+from textogram.settings import THUMBNAIL_REGULAR_SIZE
 from url_shortener.models import UrlShort
 
 
@@ -44,6 +47,7 @@ class Article(models.Model):
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', max_length=200, unique=True, db_index=True, editable=False)
+    title = models.CharField('Заголовок', max_length=255, blank=True)
     content = JSONField('Контент', default=dict(title='', cover=None, blocks=[]),
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
@@ -77,6 +81,13 @@ class Article(models.Model):
             short_url = UrlShort.objects.create(article=self)
         return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': short_url.code}))
 
+    def update_html(self, save=True):
+        image_data = {i.id: i.get_image_url for i in self.images.all()}
+        self.content = process_content(self.content)
+        self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
+        if save:
+            self.save()
+
     def __unicode__(self):
         return self.content.get('title') or 'Статья #%d' % self.id
 
@@ -90,6 +101,24 @@ class ArticleImage(models.Model):
     article = models.ForeignKey(Article, verbose_name='Статья', related_name='images')
     image = models.ImageField('Обложка', upload_to=_upload_to)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+
+    @staticmethod
+    def _get_image_full_url(url):
+        parsed_url = urlparse(url)
+        if not parsed_url.scheme and not parsed_url.netloc:
+            return 'http://%s%s' % (Site.objects.get_current().domain, url)
+        else:
+            return url
+
+    def get_image_url(self, thumbnail_size=None):
+        if not self.image:
+            return
+        if not thumbnail_size:
+            return self._get_image_full_url(self.image.url)
+        else:
+            thumbnail = get_thumbnail(self.image, thumbnail_size, upscale=False)
+            if thumbnail:
+                return self._get_image_full_url(thumbnail.url)
 
 
 class ArticleView(models.Model):
@@ -148,9 +177,9 @@ def update_slug(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
-    instance.content = process_content(instance.content)
     if instance.status != Article.DELETED:
-        instance.html = content_to_html(instance.content, ads_enabled=instance.ads_enabled)
+        instance.update_html(save=False)
+        instance.title = instance.content.get('title') or ''
 
 
 @receiver(post_save, sender=ArticleView)

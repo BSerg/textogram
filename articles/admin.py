@@ -1,14 +1,19 @@
 from django.contrib import admin
 
-from articles.models import Article, ArticleView
+from articles.models import Article, ArticleView, ArticleImage
+
+
+class ArticleImageInline(admin.TabularInline):
+    model = ArticleImage
+    extra = 0
 
 
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ['id', 'slug', 'get_title']
+    list_display = ['id', 'title', 'slug']
     readonly_fields = ['slug', 'html']
-
-    def get_title(self, obj):
-        return obj.content.get('title')
+    search_fields = ['title', 'slug']
+    list_filter = ['status']
+    inlines = [ArticleImageInline]
 
 admin.site.register(Article, ArticleAdmin)
 
