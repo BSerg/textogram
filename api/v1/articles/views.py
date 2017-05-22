@@ -161,14 +161,14 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
-    @property
     def get_serializer_class(self):
-        article = self.get_object()
+        if PAYWALL_ENABLED:
+            article = self.get_object()
+            if article.paywall_enabled:
+                user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
+                if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
+                    return PublicArticleLimitedSerializer
 
-        if PAYWALL_ENABLED and article.paywall_enabled:
-            user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
-            if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
-                return PublicArticleLimitedSerializer
         return super(PublicArticleViewSet, self).get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
