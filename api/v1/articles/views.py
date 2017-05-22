@@ -100,7 +100,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
             im = ArticleImage(article_id=article_id, image=data)
             im.save()
-            return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+            return Response(ArticleImageSerializer(im, context={'request': self.request}).data, status=HTTP_201_CREATED)
         except:
             return Response(status=HTTP_400_BAD_REQUEST)
 
