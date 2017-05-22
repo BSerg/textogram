@@ -20,6 +20,7 @@ from accounts.models import Subscription
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer
+from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
 from articles.models import Article, ArticleImage
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
@@ -87,6 +88,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
     queryset = ArticleImage.objects.all()
     serializer_class = ArticleImageSerializer
     permission_classes = [permissions.IsAuthenticated, IsArticleContentOwner]
+    throttle_scope = 'image_upload'
 
     @list_route(methods=['POST'])
     def base64(self, request, **kwargs):
@@ -135,6 +137,19 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if qs and self.request.query_params.get('search'):
             try:
                 qs = qs.filter(title__icontains=self.request.query_params.get('search'))
+            except FieldError as e:
+                return Article.objects.none()
+        return qs
+
+
+class SearchPublicArticleViewSet(PublicArticleListViewSet):
+    throttle_scope = 'search'
+
+    def get_queryset(self):
+        qs = super(SearchPublicArticleViewSet, self).get_queryset()
+        if self.request.query_params.get('q'):
+            try:
+                qs = qs.filter(title__icontains=self.request.query_params.get('q'))
             except FieldError as e:
                 return Article.objects.none()
         return qs
