@@ -24,7 +24,7 @@ from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottl
 from articles.models import Article, ArticleImage, ArticleUserAccess
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
-from textogram.settings import RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
+from textogram.settings import RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE, PAYWALL_ENABLED
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -161,10 +161,11 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
+    @property
     def get_serializer_class(self):
         article = self.get_object()
 
-        if article.paywall_enabled:
+        if PAYWALL_ENABLED and article.paywall_enabled:
             user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
             if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
                 return PublicArticleLimitedSerializer
