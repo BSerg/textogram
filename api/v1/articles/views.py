@@ -19,13 +19,12 @@ from rq import Queue
 from accounts.models import Subscription
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
-    PublicArticleSerializerMin, DraftArticleSerializer
+    PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
 from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
-from articles.models import Article, ArticleImage
+from articles.models import Article, ArticleImage, ArticleUserAccess
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
-from textogram.settings import RQ_HOST, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE
-from textogram.settings import RQ_PORT
+from textogram.settings import RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE, PAYWALL_ENABLED
 
 
 class ArticleSetPagination(PageNumberPagination):
@@ -100,7 +99,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
             im = ArticleImage(article_id=article_id, image=data)
             im.save()
-            return Response(ArticleImageSerializer(im).data, status=HTTP_201_CREATED)
+            return Response(ArticleImageSerializer(im, context={'request': self.request}).data, status=HTTP_201_CREATED)
         except:
             return Response(status=HTTP_400_BAD_REQUEST)
 
@@ -161,6 +160,16 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicArticleSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
+
+    def get_serializer_class(self):
+        if PAYWALL_ENABLED:
+            article = self.get_object()
+            if article.paywall_enabled:
+                user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
+                if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
+                    return PublicArticleLimitedSerializer
+
+        return super(PublicArticleViewSet, self).get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
         fingerprint = request.META.get('HTTP_X_FINGERPRINT')

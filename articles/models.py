@@ -19,7 +19,7 @@ from sorl.thumbnail import get_thumbnail
 from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
-from textogram.settings import THUMBNAIL_REGULAR_SIZE
+from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
 from url_shortener.models import UrlShort
 
 
@@ -51,18 +51,25 @@ class Article(models.Model):
                         validators=[validate_content_size, validate_content])
     html = models.TextField('HTML', blank=True, editable=False)
     views_cached = models.PositiveIntegerField('Просмотры', default=0)
-    ads_enabled = models.BooleanField('Реклама включена', default=True)
     link_access = models.BooleanField('Доступ по ссылке', default=False)
+
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     published_at = models.DateTimeField('Дата публикации', blank=True, null=True)
     last_modified = models.DateTimeField('Дата последнего изменения', auto_now=True)
     deleted_at = models.DateTimeField('Дата удаления', blank=True, null=True)
 
+    ads_enabled = models.BooleanField('Реклама включена', default=True)
+    paywall_enabled = models.BooleanField('Paywall включен', default=False)
+    paywall_price = models.DecimalField('Базовая стоимость доступа [PAYWALL]', max_digits=8, decimal_places=2,
+                                        default=0)
+    paywall_currency = models.CharField('Валюта [PAYWALL]', choices=PAYWALL_CURRENCIES, max_length=3,
+                                        default=PAYWALL_CURRENCY_RUR)
+
     def get_absolute_url(self):
         if self.slug:
             return reverse('article', kwargs={'slug': self.slug})
 
-    def _get_absolute_url(self):
+    def get_full_url(self):
         if self.slug:
             return 'http://%s%s' % (Site.objects.get_current().domain, reverse('article', kwargs={'slug': self.slug}))
 
@@ -144,6 +151,21 @@ class ArticlePreview(models.Model):
         unique_together = ('article', 'is_permanent')
         verbose_name = 'Превью'
         verbose_name_plural = 'Превью'
+
+
+class ArticleUserAccess(models.Model):
+    uid = models.CharField('Номер доступа', max_length=8, default='fake')
+    article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='user_access')
+    user = models.ForeignKey('accounts.User', verbose_name='Пользователь')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return 'Access Article #%d | User #%d' % (self.article_id, self.user_id)
+
+    class Meta:
+        verbose_name = 'Заказ Paywall'
+        verbose_name_plural = 'Заказы Paywall'
 
 
 @receiver(pre_save, sender=Article)

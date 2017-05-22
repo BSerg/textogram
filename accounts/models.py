@@ -1,22 +1,20 @@
 #! coding:utf-8
 from __future__ import unicode_literals
 
-from django.contrib.auth.models import AbstractUser
-from django.db import models
+import random
 import re
+from datetime import timedelta
+from uuid import uuid4
+
+from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models.signals import pre_save, post_save, post_delete
+from django.dispatch import receiver
+from django.utils import timezone
 
 from common import upload_to
-
-from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
-from django.dispatch import receiver
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
-
-from django.utils import timezone
-from datetime import timedelta
-import random
-from uuid import uuid4
 
 
 def _upload_to(instance, filename):
@@ -51,7 +49,6 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
     def clean(self):
-        print 'clean'
         if self.email and User.objects.filter(email=self.email).exclude(id=self.id):
             raise ValidationError('Already exists', code='invalid')
         pass
@@ -198,16 +195,6 @@ def get_social_type(url):
             return p[0]
 
     return None
-
-
-# @receiver(pre_save, sender=SocialLink)
-# def set_social(sender, instance, **kwargs):
-#     url = instance.url
-#
-#     for p in SOCIAL_PATTERNS:
-#         pattern = re.compile(p[1])
-#         if pattern.match(url):
-#             instance.social = p[0]
 
 
 @receiver(pre_save, sender=PhoneCode)

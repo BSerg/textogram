@@ -276,6 +276,19 @@ YANDEX_CALLBACK_URL = ''
 
 YANDEX_METRICS_COUNTER_ID = ''
 
+# Paywall
+
+PAYWALL_ENABLED = False
+
+PAYWALL_CURRENCY_USD = 'USD'
+PAYWALL_CURRENCY_RUR = 'RUR'
+PAYWALL_CURRENCY_EUR = 'EUR'
+PAYWALL_CURRENCIES = (
+    (PAYWALL_CURRENCY_RUR, 'Ruble'),
+    (PAYWALL_CURRENCY_USD, 'US Dollar'),
+    (PAYWALL_CURRENCY_EUR, 'Euro'),
+)
+
 try:
     from local_settings import *
 except ImportError:

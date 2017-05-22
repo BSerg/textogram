@@ -10,7 +10,7 @@ from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles import ArticleContentType
 from articles.models import Article, ArticleImage
-from textogram.settings import THUMBNAIL_REGULAR_SIZE, THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE, THUMBNAIL_SMALL_SIZE
+from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -55,14 +55,14 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
         try:
             cover_id = cover.get('id')
             image = obj.images.get(pk=cover_id)
-            return image.get_image_url(THUMBNAIL_SMALL_SIZE)
+            return image.get_image_url(THUMBNAIL_LARGE_SIZE)
         except ArticleImage.DoesNotExist:
             return None
         except AttributeError:
             return None
 
     def get_url(self, obj):
-        return obj._get_absolute_url()
+        return obj.get_full_url()
 
     def get_short_url(self, obj):
         return obj.get_short_url()
@@ -103,6 +103,12 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
                   'url', 'short_url', 'ads_enabled', 'advertisement']
 
 
+class PublicArticleLimitedSerializer(PublicArticleSerializer):
+    class Meta(PublicArticleSerializer.Meta):
+        fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme',
+                  'published_at', 'views', 'url', 'short_url', 'paywall_enabled', 'paywall_price', 'paywall_currency']
+
+
 class PublicArticleSerializerMin(PublicArticleSerializer):
 
     lead = serializers.SerializerMethodField()
@@ -114,9 +120,6 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
             for c in obj.content.get('blocks', []):
                 if c.get('type') == ArticleContentType.LEAD:
                     return c.get('value')
-            #for c in obj.content.get('blocks', []):
-            #    if c.get('type') == ArticleContentType.TEXT:
-            #        return c.get('value')
         except (AttributeError, TypeError):
             pass
         return ''
