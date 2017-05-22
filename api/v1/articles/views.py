@@ -88,7 +88,7 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
     queryset = ArticleImage.objects.all()
     serializer_class = ArticleImageSerializer
     permission_classes = [permissions.IsAuthenticated, IsArticleContentOwner]
-    throttle_scope = 'image_upload'
+    throttle_classes = [ImageUploadRateThrottle]
 
     @list_route(methods=['POST'])
     def base64(self, request, **kwargs):
@@ -143,7 +143,7 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SearchPublicArticleViewSet(PublicArticleListViewSet):
-    throttle_scope = 'search'
+    throttle_classes = [SearchRateThrottle]
 
     def get_queryset(self):
         qs = super(SearchPublicArticleViewSet, self).get_queryset()

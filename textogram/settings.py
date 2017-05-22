@@ -171,9 +171,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
-    'DEFAULT_THROTTLE_CLASSES': (
-        'rest_framework.throttling.ScopedRateThrottle',
-    ),
     'DEFAULT_THROTTLE_RATES': {
         'search': '60/min',
         'image_upload': '1000/day'
