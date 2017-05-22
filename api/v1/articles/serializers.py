@@ -10,7 +10,6 @@ from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles import ArticleContentType
 from articles.models import Article, ArticleImage
-from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_SMALL_SIZE
 from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE
 
 
