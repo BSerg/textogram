@@ -1,5 +1,7 @@
 from rest_framework import viewsets, permissions, mixins
 from rest_framework.pagination import PageNumberPagination
+from django.core.exceptions import FieldError
+from api.v1.articles.throttles import SearchRateThrottle
 
 from accounts.models import User
 from api.v1.statistics.serializers import ArticleCommonStatisticsSerializer, ArticleStatisticsSerializer
@@ -18,8 +20,6 @@ class UserCommonStatisticsView(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserCommonStatisticsSerializer
     permission_classes = [permissions.IsAuthenticated, IsSelf]
-    #lookup_field = 'nickname'
-    #lookup_url_kwarg = 'nickname'
 
     def get_object(self):
         return self.request.user
@@ -34,6 +34,20 @@ class ArticleCommonStatisticsListView(mixins.ListModelMixin, viewsets.GenericVie
     def get_queryset(self):
         return super(ArticleCommonStatisticsListView, self).get_queryset().filter(owner=self.request.user)\
             .exclude(status=Article.DELETED)
+
+
+class ArticleCommonStatisticsListSearchView(ArticleCommonStatisticsListView):
+
+    throttle_classes = [SearchRateThrottle]
+
+    def get_queryset(self):
+        qs = super(ArticleCommonStatisticsListSearchView, self).get_queryset()
+        if self.request.query_params.get('q'):
+            try:
+                qs = qs.filter(title__icontains=self.request.query_params.get('q'))
+            except FieldError as e:
+                return Article.objects.none()
+        return qs
 
 
 class ArticleStatisticsView(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
