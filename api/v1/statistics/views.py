@@ -8,7 +8,7 @@ from api.v1.statistics.serializers import ArticleCommonStatisticsSerializer, Art
 from articles.models import Article
 from .permissions import IsSelf, IsOwner
 from .serializers import UserCommonStatisticsSerializer
-
+from django.db.models import Q
 
 class ArticleStatisticsPagination(PageNumberPagination):
     page_size = 20
@@ -33,7 +33,7 @@ class ArticleCommonStatisticsListView(mixins.ListModelMixin, viewsets.GenericVie
 
     def get_queryset(self):
         return super(ArticleCommonStatisticsListView, self).get_queryset().filter(owner=self.request.user)\
-            .exclude(status=Article.DELETED)
+            .exclude(Q(status=Article.DELETED) | Q(status=Article.DRAFT))
 
 
 class ArticleCommonStatisticsListSearchView(ArticleCommonStatisticsListView):
