@@ -115,13 +115,9 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
     is_draft = serializers.SerializerMethodField()
 
     def get_lead(self, obj):
-        try:
-            for c in obj.content.get('blocks', []):
-                if c.get('type') == ArticleContentType.LEAD:
-                    return c.get('value')
-        except (AttributeError, TypeError):
-            pass
-        return ''
+        blocks = obj.content.get('blocks', [])
+        if blocks and blocks[0].get('type') == ArticleContentType.LEAD:
+            return blocks[0].get('value')
 
     def get_is_draft(self, obj):
         return obj.status == Article.DRAFT

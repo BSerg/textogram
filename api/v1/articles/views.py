@@ -127,9 +127,11 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             if self.request.user.is_authenticated and self.request.user.id == user_id:
                 qs = qs.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                qs = qs.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+                qs = qs.filter(owner_id=user_id, status=Article.PUBLISHED, link_access=False)
         else:
             qs = Article.objects.none()
+
+        print qs.query
         return qs
 
 

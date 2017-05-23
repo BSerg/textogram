@@ -43,7 +43,7 @@ class Article(models.Model):
         (DELETED, 'Удалено'),
         (SHARED, 'Общедоступно')
     )
-    status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT)
+    status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT, db_index=True)
     owner = models.ForeignKey('accounts.User', related_name='articles')
     slug = models.SlugField('Машинное имя', max_length=200, unique=True, db_index=True, editable=False)
     title = models.CharField('Заголовок', max_length=255, blank=True)
