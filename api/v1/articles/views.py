@@ -105,21 +105,19 @@ class ArticleImageViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
 
 
 class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    queryset = Article.objects.filter(status=Article.PUBLISHED, link_access=False)
+    queryset = Article.objects.select_related('owner')
     serializer_class = PublicArticleSerializerMin
     permission_classes = [permissions.AllowAny]
     pagination_class = ArticleSetPagination
     lookup_field = 'slug'
 
     def get_queryset(self):
-
-        qs = None
-
+        qs = super(PublicArticleListViewSet, self).get_queryset()
         if self.request.query_params.get('feed') and self.request.user.is_authenticated:
             subscriptions = Subscription.objects.filter(user=self.request.user)
-            qs = Article.objects.filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
+            qs = qs.prefetch_related('owner__author').filter(owner__author__in=subscriptions, status=Article.PUBLISHED, link_access=False)
         elif self.request.query_params.get('drafts') and self.request.user.is_authenticated:
-            qs = Article.objects.filter(owner=self.request.user, status=Article.DRAFT)
+            qs = qs.filter(owner=self.request.user, status=Article.DRAFT)
         elif self.request.query_params.get('user'):
             try:
                 user_id = int(self.request.query_params.get('user'))
@@ -127,12 +125,11 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 return Article.objects.none()
 
             if self.request.user.is_authenticated and self.request.user.id == user_id:
-                qs = Article.objects.filter(owner=self.request.user, status=Article.PUBLISHED)
+                qs = qs.filter(owner=self.request.user, status=Article.PUBLISHED)
             else:
-                qs = Article.objects.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
+                qs = qs.filter(owner__id=user_id, status=Article.PUBLISHED, link_access=False)
         else:
             qs = Article.objects.none()
-
         return qs
 
 

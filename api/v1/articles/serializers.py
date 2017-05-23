@@ -113,7 +113,6 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
 
     lead = serializers.SerializerMethodField()
     is_draft = serializers.SerializerMethodField()
-    last_modified = serializers.SerializerMethodField()
 
     def get_lead(self, obj):
         try:
@@ -125,10 +124,7 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
         return ''
 
     def get_is_draft(self, obj):
-        return obj.status == Article.DRAFT or None
-
-    def get_last_modified(self, obj):
-        return obj.last_modified if obj.status == Article.DRAFT else None
+        return obj.status == Article.DRAFT
 
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access', 'is_draft',
