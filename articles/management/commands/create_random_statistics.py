@@ -24,7 +24,7 @@ class Command(BaseCommand):
         ArticleView.objects.all().delete()
         for article in Article.objects.filter(status=Article.PUBLISHED):
 
-            views_today = randint(0, 300)
+            views_today = randint(10000, 40000)
             views_month = randint(views_today, views_today * 60)
             views_last_month = randint(views_month/2, views_month * 2)
             views = (views_last_month + views_month) * (1 + randint(1, 2) * 0.1)

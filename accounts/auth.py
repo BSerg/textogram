@@ -3,14 +3,20 @@
 from __future__ import unicode_literals
 
 import hashlib
+import urllib2
+
 import requests
 import requests_oauthlib
 from accounts.models import User, SocialLink
 from textogram import settings
-from common import image_retrieve
+from common import image_retrieve, upload_to
 from textogram.settings import GOOGLE_CLIENT_ID
 from oauth2client import client, crypt
 from django.core.exceptions import MultipleObjectsReturned
+
+
+from django.core.files import File
+from django.core.files.temp import NamedTemporaryFile
 
 
 class VKAuthBackend(object):
@@ -35,9 +41,12 @@ class VKAuthBackend(object):
                                                     last_name=kwargs.get('user', {}).get('last_name'),
                                                     social=User.VK,
                                                     )
-                    avatar_retrieve = image_retrieve(kwargs.get('user', {}).get('avatar'))
-                    if avatar_retrieve:
-                        user.avatar = avatar_retrieve[2]
+                    avatar_url = kwargs.get('user', {}).get('avatar')
+                    if avatar_url:
+                        img_temp = NamedTemporaryFile(delete=True)
+                        img_temp.write(urllib2.urlopen(avatar_url).read())
+                        img_temp.flush()
+                        user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
                         user.save()
                     SocialLink.objects.create(
                         user=user, social=SocialLink.VK, is_auth=True,
@@ -73,12 +82,14 @@ class FBAuthBackend(object):
                                                         last_name=data.get('last_name'),
                                                         social=User.FB
                                                         )
-                        img_url = data.get('picture', {}).get('data', {}).get('url', '')
-                        if img_url:
-                            avatar_retrieve = image_retrieve(img_url)
-                            if avatar_retrieve:
-                                user.avatar = avatar_retrieve[2]
-                                user.save()
+                        avatar_url = data.get('picture', {}).get('data', {}).get('url', '')
+                        if avatar_url:
+                            img_temp = NamedTemporaryFile(delete=True)
+                            img_temp.write(urllib2.urlopen(avatar_url).read())
+                            img_temp.flush()
+                            user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
+                            user.save()
+
                         SocialLink.objects.create(
                             user=user, social=SocialLink.FB, is_auth=True,
                             url='https://www.facebook.com/%s' % data.get('id')
@@ -114,9 +125,12 @@ class GoogleAuthClient(object):
                         username, email=id_info.get('email'), first_name=first_name,
                         last_name=id_info.get('family_name'), social=User.GOOGLE
                     )
-                    avatar_retrieve = image_retrieve(id_info.get('picture', ''))
-                    if avatar_retrieve:
-                        user.avatar = avatar_retrieve[2]
+                    avatar_url = image_retrieve(id_info.get('picture', ''))
+                    if avatar_url:
+                        img_temp = NamedTemporaryFile(delete=True)
+                        img_temp.write(urllib2.urlopen(avatar_url).read())
+                        img_temp.flush()
+                        user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
                         user.save()
                     SocialLink.objects.create(
                         user=user, social=SocialLink.GOOGLE, is_auth=True,
@@ -166,9 +180,12 @@ class TwitterAuthBackend(object):
             user = User.objects.create_user(
                 '%s%s' % (User.TWITTER, full_data.get('id')), first_name=full_data.get('name'))
 
-            avatar_retrieve = image_retrieve(full_data.get('profile_image_url'))
-            if avatar_retrieve:
-                user.avatar = avatar_retrieve[2]
+            avatar_url = image_retrieve(full_data.get('profile_image_url'))
+            if avatar_url:
+                img_temp = NamedTemporaryFile(delete=True)
+                img_temp.write(urllib2.urlopen(avatar_url).read())
+                img_temp.flush()
+                user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
                 user.save()
             SocialLink.objects.create(
                 user=user, social=SocialLink.TWITTER, is_auth=True,

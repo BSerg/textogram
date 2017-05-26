@@ -131,7 +131,6 @@ class PublicArticleListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         else:
             qs = Article.objects.none()
 
-        print qs.query
         return qs
 
 
