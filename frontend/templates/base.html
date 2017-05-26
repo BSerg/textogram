@@ -1,38 +1,15 @@
 {% load static %}
 {% load static_tags %}
+{% load cache %}
 
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    {% if not DEBUG %}
-        {% if IS_LENTACH %}
-            <meta name="verify-admitad" content="9b50857cba" />
-            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-            <script>
-              (adsbygoogle = window.adsbygoogle || []).push({
-                google_ad_client: "ca-pub-3176822669525142",
-                enable_page_level_ads: true
-              });
-            </script>
-            <!--VK PIXEL-->
-            <script type="text/javascript">(window.Image ? (new Image()) : document.createElement('img')).src = 'https://vk.com/rtrg?p=VK-RTRG-105533-32yAP';</script>
-            <!-- Facebook Pixel Code -->
-            <script>
-            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-            n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-            document,'script','https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '1318732544875404'); // Insert your pixel ID here.
-            fbq('track', 'PageView');
-            </script>
-            <noscript><img height="1" width="1" style="display:none"
-            src="https://www.facebook.com/tr?id=1318732544875404&ev=PageView&noscript=1"
-            /></noscript>
-            <!-- DO NOT MODIFY -->
-            <!-- End Facebook Pixel Code -->
-        {% endif %}
-    {% endif %}
+    {% cache 86400 counters %}
+        {% for counter in COUNTERS %}
+            {{ counter.code|safe }}
+        {% endfor %}
+    {% endcache %}
     <base target="_blank">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
