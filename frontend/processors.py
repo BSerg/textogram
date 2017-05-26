@@ -1,15 +1,14 @@
+from common.models import CounterCode
 from textogram import settings
 from textogram.settings import BOT_USER_AGENTS
 
 
-def debug_processor(request):
+def extra_context_processor(request):
     return {
         'DEBUG': settings.DEBUG,
+        'IS_LENTACH': settings.IS_LENTACH,
+        'COUNTERS': CounterCode.objects.filter(is_active=True)
     }
-
-
-def is_lentach_processor(request):
-    return {'IS_LENTACH': settings.IS_LENTACH}
 
 
 def is_bot_processor(request):
