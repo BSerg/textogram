@@ -22,6 +22,8 @@ from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
 from url_shortener.models import UrlShort
 
+from django.core.management import call_command
+from textogram.settings import USE_REDIS_CACHE
 
 def _upload_to(instance, filename):
     return upload_to('images', instance, filename)
@@ -223,3 +225,9 @@ def recount_published_articles(sender, instance, **kwargs):
 def create_short_url(sender, instance, created, **kwargs):
     if instance.slug and not hasattr(instance, 'short_url'):
         UrlShort.objects.create(article=instance)
+
+
+@receiver(post_save, sender=Article)
+def cache_article(sender, instance, created, **kwargs):
+    if USE_REDIS_CACHE and instance.status == Article.PUBLISHED:
+        call_command('cache_article', instance.id)

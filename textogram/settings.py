@@ -288,6 +288,11 @@ PAYWALL_CURRENCIES = (
     (PAYWALL_CURRENCY_EUR, 'Euro'),
 )
 
+USE_REDIS_CACHE = False
+REDIS_CACHE_PORT = 6379
+REDIS_CACHE_HOST = '127.0.0.1'
+REDIS_CACHE_DB = 0
+
 try:
     from local_settings import *
 except ImportError:
