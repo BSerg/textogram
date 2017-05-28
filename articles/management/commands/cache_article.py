@@ -5,6 +5,7 @@ from redis import StrictRedis
 from articles.models import Article
 from api.v1.articles.serializers import PublicArticleSerializer
 from textogram.settings import USE_REDIS_CACHE, REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT
+import json
 
 
 class Command(BaseCommand):
@@ -14,16 +15,12 @@ class Command(BaseCommand):
         parser.add_argument('article_id', nargs='+', type=int)
 
     def handle(self, *args, **options):
-        if not USE_REDIS_CACHE:
-            return
-        try:
-            article_id = options['article_id'][0]
-            articles = Article.objects.filter(status=Article.PUBLISHED) if id == '*' else \
-                Article.objects.filter(id=article_id, status=Article.PUBLISHED)
+        article_id = options['article_id'][0]
 
-            r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
+        articles = Article.objects.filter(status=Article.PUBLISHED) if article_id == 0 else \
+            Article.objects.filter(id=article_id, status=Article.PUBLISHED)
 
-            for article in articles:
-                r.set('article__%s' % article.slug, PublicArticleSerializer(article).data)
-        except (Article.DoesNotExist, IndexError):
-            pass
+        r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
+
+        for article in articles:
+            r.set('article:%s' % article.slug, json.dumps(PublicArticleSerializer(article).data))
