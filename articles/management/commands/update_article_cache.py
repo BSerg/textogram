@@ -26,5 +26,4 @@ class Command(BaseCommand):
             if article.status == Article.PUBLISHED:
                 r.set(key, json.dumps(PublicArticleSerializer(article).data))
             else:
-                print key
                 r.delete(key)
