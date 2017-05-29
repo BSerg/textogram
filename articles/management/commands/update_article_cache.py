@@ -17,10 +17,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         article_id = options['article_id'][0]
 
-        articles = Article.objects.filter(status=Article.PUBLISHED) if article_id == 0 else \
-            Article.objects.filter(id=article_id, status=Article.PUBLISHED)
+        articles = Article.objects.filter() if article_id == 0 else Article.objects.filter(id=article_id)
 
         r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
 
         for article in articles:
-            r.set('article:%s' % article.slug, json.dumps(PublicArticleSerializer(article).data))
+            key = 'article:%s' % article.slug
+            if article.status == Article.PUBLISHED:
+                r.set(key, json.dumps(PublicArticleSerializer(article).data))
+            else:
+                print key
+                r.delete(key)

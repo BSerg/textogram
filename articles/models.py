@@ -229,5 +229,5 @@ def create_short_url(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Article)
 def cache_article(sender, instance, created, **kwargs):
-    if USE_REDIS_CACHE and instance.status == Article.PUBLISHED:
-        call_command('cache_article', instance.id)
+    if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
+        call_command('update_article_cache', instance.id)
