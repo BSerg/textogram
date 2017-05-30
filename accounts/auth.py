@@ -125,7 +125,7 @@ class GoogleAuthClient(object):
                         username, email=id_info.get('email'), first_name=first_name,
                         last_name=id_info.get('family_name'), social=User.GOOGLE
                     )
-                    avatar_url = image_retrieve(id_info.get('picture', ''))
+                    avatar_url = id_info.get('picture', '')
                     if avatar_url:
                         img_temp = NamedTemporaryFile(delete=True)
                         img_temp.write(urllib2.urlopen(avatar_url).read())
@@ -180,7 +180,7 @@ class TwitterAuthBackend(object):
             user = User.objects.create_user(
                 '%s%s' % (User.TWITTER, full_data.get('id')), first_name=full_data.get('name'))
 
-            avatar_url = image_retrieve(full_data.get('profile_image_url'))
+            avatar_url = full_data.get('profile_image_url')
             if avatar_url:
                 img_temp = NamedTemporaryFile(delete=True)
                 img_temp.write(urllib2.urlopen(avatar_url).read())
