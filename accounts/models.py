@@ -22,20 +22,9 @@ def _upload_to(instance, filename):
 
 
 class User(AbstractUser):
-    VK = 'vk'
-    FB = 'fb'
-    TWITTER = 'twitter'
-    GOOGLE = 'google'
-
-    SOCIALS = (
-        (VK, 'В контакте'),
-        (FB, 'Facebook'),
-        (TWITTER, 'Twitter'),
-        (GOOGLE, 'Google'),
-    )
+    uid = models.CharField('UID Пользователя', max_length=255, blank=True)
+    avatar_url = models.URLField('Ссылка на аватар', max_length=255, blank=True)
     avatar = models.ImageField('Аватар', upload_to=_upload_to, blank=True, null=True)
-    social = models.CharField('Соцсеть авторизации', max_length=10, choices=SOCIALS, blank=True)
-    uid = models.CharField('UID Соцсети', max_length=255, blank=True)
     number_of_subscribers_cached = models.IntegerField('Кол-во подписчиков', default=0, editable=False)
     number_of_subscriptions_cached = models.IntegerField('Кол-во подпиcок', default=0, editable=False)
     number_of_published_articles_cached = models.IntegerField('Кол-во статей', default=0, editable=False)

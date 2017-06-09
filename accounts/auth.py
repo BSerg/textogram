@@ -2,229 +2,117 @@
 
 from __future__ import unicode_literals
 
-import hashlib
-import urllib2
-
+import jwt
 import requests
-import requests_oauthlib
-from accounts.models import User, SocialLink
+from rest_framework import authentication, exceptions
+
+from accounts.models import User
 from textogram import settings
-from common import image_retrieve, upload_to
-from textogram.settings import GOOGLE_CLIENT_ID
-from oauth2client import client, crypt
-from django.core.exceptions import MultipleObjectsReturned
+from textogram.local_settings import AUTH_SERVICE_VERIFY_API
 
 
-from django.core.files import File
-from django.core.files.temp import NamedTemporaryFile
+public_key_cache = None
 
 
-class VKAuthBackend(object):
+def jwt_decode(token, skip_claims=False, drop_cache=False):
+    global public_key_cache
 
-    def authenticate(self, *args, **kwargs):
-        if kwargs.get('social') == User.VK:
+    if not settings.AUTH_PUBLIC_KEY:
+        return 'Public key not configured', None
 
-            m = hashlib.md5()
-            check_string = "expire={}mid={}secret={}sid={}{}".format(kwargs.get('expire'),
-                                                                     kwargs.get('mid'),
-                                                                     kwargs.get('secret'),
-                                                                     kwargs.get('sid'),
-                                                                     settings.VK_APP_SECRET, )
-            m.update(check_string)
-            if m.hexdigest() == kwargs.get('sig'):
-                username = '%s%s' % (User.VK, kwargs.get('mid'))
-                try:
-                    user = User.objects.get(username=username)
-                except User.DoesNotExist:
-                    user = User.objects.create_user(username,
-                                                    first_name=kwargs.get('user', {}).get('first_name'),
-                                                    last_name=kwargs.get('user', {}).get('last_name'),
-                                                    social=User.VK,
-                                                    )
-                    avatar_url = kwargs.get('user', {}).get('avatar')
-                    if avatar_url:
-                        img_temp = NamedTemporaryFile(delete=True)
-                        img_temp.write(urllib2.urlopen(avatar_url).read())
-                        img_temp.flush()
-                        user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
-                        user.save()
-                    SocialLink.objects.create(
-                        user=user, social=SocialLink.VK, is_auth=True,
-                        url='https://vk.com/id%s' % kwargs.get('user', {}).get('id')
-                    )
-                    SocialLink.objects.create(
-                        user=user, social=SocialLink.VK, is_auth=False,
-                        url='https://vk.com/id%s' % kwargs.get('user', {}).get('id')
-                    )
-                    user._created = True
-                return user
-        return None
+    try:
+        if drop_cache:
+            public_key = open(settings.AUTH_PUBLIC_KEY).read()
+            public_key_cache = None
+        else:
+            public_key = public_key_cache or open(settings.AUTH_PUBLIC_KEY).read()
+            public_key_cache = public_key
 
+    except IOError as e:
+        return e, None
+    payload = jwt.decode(token, public_key, algorithms=['RS256'])
 
-class FBAuthBackend(object):
-
-    def authenticate(self, *args, **kwargs):
-        if kwargs.get('social') == User.FB:
-            r = requests.get('https://graph.facebook.com/me', params={
-                'access_token': kwargs.get('accessToken'),
-                'fields': 'id,first_name,last_name,picture'
-            })
-            if r.status_code == 200:
-                data = r.json()
-                if data.get('id') and data.get('first_name'):
-                    username = '%s%s' % (User.FB, data.get('id'))
-                    try:
-                        user = User.objects.get(username=username)
-                        return user
-                    except User.DoesNotExist:
-                        user = User.objects.create_user(username,
-                                                        first_name=data.get('first_name'),
-                                                        last_name=data.get('last_name'),
-                                                        social=User.FB
-                                                        )
-                        avatar_url = data.get('picture', {}).get('data', {}).get('url', '')
-                        if avatar_url:
-                            img_temp = NamedTemporaryFile(delete=True)
-                            img_temp.write(urllib2.urlopen(avatar_url).read())
-                            img_temp.flush()
-                            user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
-                            user.save()
-
-                        SocialLink.objects.create(
-                            user=user, social=SocialLink.FB, is_auth=True,
-                            url='https://www.facebook.com/%s' % data.get('id')
-                        )
-                        SocialLink.objects.create(
-                            user=user, social=SocialLink.FB, is_auth=False,
-                            url='https://www.facebook.com/%s' % data.get('id')
-                        )
-                        user._created = True
-                        return user
-        return None
-
-
-class GoogleAuthClient(object):
-
-    def authenticate(self, *args, **kwargs):
-
-        if kwargs.get('social') == 'google':
-            id_token = kwargs.get('id_token')
-            id_info = client.verify_id_token(id_token, GOOGLE_CLIENT_ID)
-
-            if id_info and id_info.get('sub'):
-                username = '%s%s' % (User.GOOGLE, id_info.get('sub'))
-                try:
-                    user = User.objects.get(username=username)
-                    return user
-                except User.DoesNotExist:
-                    first_name = id_info.get('given_name') \
-                        or id_info.get('name', '').split(' ')[0] \
-                        or id_info.get('email', '').split('@')[0]
-
-                    user = User.objects.create_user(
-                        username, email=id_info.get('email'), first_name=first_name,
-                        last_name=id_info.get('family_name'), social=User.GOOGLE
-                    )
-                    avatar_url = id_info.get('picture', '')
-                    if avatar_url:
-                        img_temp = NamedTemporaryFile(delete=True)
-                        img_temp.write(urllib2.urlopen(avatar_url).read())
-                        img_temp.flush()
-                        user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
-                        user.save()
-                    SocialLink.objects.create(
-                        user=user, social=SocialLink.GOOGLE, is_auth=True,
-                        url='https://plus.google.com/u/0/%s' % id_info.get('sub')
-                    )
-                    SocialLink.objects.create(
-                        user=user, social=SocialLink.GOOGLE, is_auth=False,
-                        url='https://plus.google.com/u/0/%s' % id_info.get('sub')
-                    )
-                    user._created = True
-                    return user
-
-        return None
-
-
-class TwitterAuthBackend(object):
-
-    def authenticate(self, *args, **kwargs):
-        if kwargs.get('social') == User.TWITTER and kwargs.get('oauth_token') and kwargs.get('oauth_verifier'):
-
-            oauth = requests_oauthlib.OAuth1(settings.TWITTER_CONSUMER_KEY,
-                                             settings.TWITTER_CONSUMER_KEY_SECRET,
-                                             kwargs.get('oauth_token'))
-            r = requests.get('https://api.twitter.com/oauth/access_token',
-                             params={'oauth_verifier': kwargs.get('oauth_verifier')},
-                             auth=oauth)
+    try:
+        payload = jwt.decode(token, public_key, algorithms=['RS256'])
+    except (jwt.exceptions.InvalidKeyError, jwt.exceptions.InvalidAlgorithmError) as e:
+        return e, None
+    except jwt.DecodeError:
+        if skip_claims:
             try:
-                data = {p.split('=')[0]: p.split('=')[1] for p in r.text.split('&')}
-            except (ValueError, IndexError, TypeError):
-                return None
-            username = '%s%s' % (User.TWITTER, data.get('user_id'))
+                payload = jwt.decode(token, public_key, algorithms=['RS256'], options={
+                   'verify_exp': False,
+                   'verify_nbf': False,
+                   'verify_iat': False,
+                   'verify_aud': False
+                })
+            except jwt.DecodeError:
+                return 'Invalid token', None
+        else:
+            return 'Invalid token', None
 
-            if username:
-                try:
-                    return User.objects.get(username=username)
-                except User.DoesNotExist:
-                    return self.__create_new_user(**data)
+    return None, payload
 
+
+def jwt_user_auth(token):
+    if not settings.AUTH_PUBLIC_KEY:
         return None
 
-    def __create_new_user(self, **kwargs):
-        oauth = requests_oauthlib.OAuth1(settings.TWITTER_CONSUMER_KEY, settings.TWITTER_CONSUMER_KEY_SECRET,
-                                         kwargs.get('oauth_token'), kwargs.get('oauth_token_secret'))
-        r = requests.get('https://api.twitter.com/1.1/account/verify_credentials.json', auth=oauth)
-        if r.status_code == 200:
-            full_data = r.json()
-            user = User.objects.create_user(
-                '%s%s' % (User.TWITTER, full_data.get('id')), first_name=full_data.get('name'))
+    err, payload = jwt_decode(token)
 
-            avatar_url = full_data.get('profile_image_url')
-            if avatar_url:
-                img_temp = NamedTemporaryFile(delete=True)
-                img_temp.write(urllib2.urlopen(avatar_url).read())
-                img_temp.flush()
-                user.avatar.save(upload_to('avatars', None, avatar_url.split('?')[0]), File(img_temp))
+    if payload:
+        r = requests.post(AUTH_SERVICE_VERIFY_API, json={'token': token},
+                          headers={'Content-Type': 'application/json'})
+        if r.status_code != 200:
+            return None
+
+        if r.json().get('is_valid'):
+            user, created = User.objects.get_or_create(username=payload.get('sub'))
+
+            if created:
+                user.first_name = payload.get('first_name') or ''
+                user.last_name = payload.get('last_name') or ''
+                user.avatar_url = payload.get('avatar') or ''
                 user.save()
-            SocialLink.objects.create(
-                user=user, social=SocialLink.TWITTER, is_auth=True,
-                url='https://twitter.com/%s' % full_data.get('screen_name')
-            )
-            SocialLink.objects.create(
-                user=user, social=SocialLink.TWITTER, is_auth=False,
-                url='https://twitter.com/%s' % full_data.get('screen_name')
-            )
-            user._created = True
+
             return user
-        return None
 
 
-class EmailAuthBackend(object):
-
+class AuthServiceBackend(object):
     def authenticate(self, *args, **kwargs):
+        token = kwargs.get('token')
+
+        if not token:
+            return None
+
+        return jwt_user_auth(token)
+
+
+class JWTAuthentication(authentication.BaseAuthentication):
+    def authenticate(self, request):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '').split()
+
+        if not auth_header or auth_header[0].lower() != 'bearer':
+            return None
+
+        if len(auth_header) != 2:
+            raise exceptions.AuthenticationFailed('Wrong authentication header format')
+
+        token = auth_header[1]
+
+        return self.authenticate_credentials(token)
+
+    def authenticate_credentials(self, token):
+        err, payload = jwt_decode(token)
+
+        if err:
+            raise exceptions.AuthenticationFailed(str(err))
 
         try:
-            email = kwargs.get('login') or kwargs.get('email')
-            if email:
-
-                user = User.objects.get(email=email, is_active=True)
-                if user.check_password(kwargs.get('password')):
-                    return user
-        except (User.DoesNotExist, MultipleObjectsReturned):
-            pass
-        return None
-
-
-class PhoneAuthBackend(object):
-
-    def authenticate(self, *args, **kwargs):
-        try:
-            phone = kwargs.get('login') or kwargs.get('phone')
-            if phone:
-                user = User.objects.get(phone=phone, phone_confirmed=True)
-                if user.check_password(kwargs.get('password')):
-                    return user
+            user = User.objects.get(username=payload.get('sub', ''))
         except User.DoesNotExist:
-            pass
-        return None
+            raise exceptions.AuthenticationFailed('User not found')
+
+        if not user.is_active:
+            raise exceptions.AuthenticationFailed('User is not active or deleted')
+
+        return user, token

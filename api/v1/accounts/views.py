@@ -1,6 +1,8 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
+from rest_framework.permissions import SAFE_METHODS
+
 from accounts import PASSWORD_PATTERN, PHONE_PATTERN, FIRST_NAME_PATTERN, LAST_NAME_PATTERN
 
 from rest_framework import viewsets, mixins, generics, permissions
@@ -14,7 +16,7 @@ from rest_framework import mixins
 from accounts.models import User, Subscription, SocialLink, PhoneCode
 from api.v1.accounts.permissions import IsAdminOrOwner
 from api.v1.accounts.serializers import MeUserSerializer, UserSerializer, PublicUserSerializer, \
-    MeSocialLinkSerializer, SubscriptionSerializer
+    MeSocialLinkSerializer, SubscriptionSerializer, MeAvatarWriteUserSerializer
 
 from api.v1.accounts.serializers import nickname_validator
 
@@ -47,6 +49,11 @@ class MeUserViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets
     queryset = User.objects.all()
     serializer_class = MeUserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request in SAFE_METHODS:
+            return super(MeUserViewSet, self).get_serializer_class()
+        return MeAvatarWriteUserSerializer
 
     def get_object(self):
         return self.request.user
@@ -391,26 +398,8 @@ class SetPhonePasswordView(APIView):
         return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
 
 
-class TwitterAuthView(APIView):
-
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        callback_uri = request.data.get('url') + '/auth/twitter/'
-        oauth = requests_oauthlib.OAuth1(TWITTER_CONSUMER_KEY,
-                                         client_secret=TWITTER_CONSUMER_KEY_SECRET,
-                                         callback_uri=callback_uri)
-        r = requests.post('https://api.twitter.com/oauth/request_token', auth=oauth)
-
-        if r.status_code == 200:
-            for param in r.text.split('&'):
-                param_list = param.split('=')
-                if len(param_list) == 2 and param_list[0] == 'oauth_token':
-                    return Response({'oauth_token': param_list[1]})
-        return Response({'msg': 'error'}, status=HTTP_400_BAD_REQUEST)
-
-
 class Login(APIView):
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -426,7 +415,6 @@ class Login(APIView):
 
 
 class Logout(APIView):
-
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

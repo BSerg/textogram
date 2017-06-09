@@ -1,16 +1,15 @@
 from __future__ import unicode_literals
 
 import re
-from rest_framework import serializers
-from rest_framework.authtoken.models import Token
-
-from rest_framework.validators import ValidationError
-from accounts.models import User, MultiAccountUser, MultiAccount, SocialLink, Subscription
-from articles.models import Article
 
 import PIL.Image as Image
+from rest_framework import serializers
+from rest_framework.validators import ValidationError
 
+from accounts.models import User, SocialLink, Subscription
+from articles.models import Article
 from textogram.settings import FORBIDDEN_NICKNAMES
+
 
 class SocialLinkSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,31 +23,27 @@ class MeSocialLinkSerializer(SocialLinkSerializer):
         read_only_fields = ['id', 'is_auth']
 
 
-class MultiAccountSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='multi_account.name')
-    avatar = serializers.ImageField(source='multi_account.avatar')
-
-    class Meta:
-        model = MultiAccountUser
-        fields = ['name', 'avatar', 'is_owner']
-
-
 class UserSerializer(serializers.ModelSerializer):
-    multi_accounts = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField(read_only=True)
     social_links = serializers.SerializerMethodField()
     subscribers = serializers.SerializerMethodField()
     number_of_articles = serializers.SerializerMethodField()
     subscriptions = serializers.SerializerMethodField()
+
+    def get_avatar(self, obj):
+        if obj.avatar:
+            if self.context.get('request'):
+                return self.context.get('request').build_absolute_uri(obj.avatar.url)
+            else:
+                return obj.avatar.url
+        elif obj.avatar_url:
+            return obj.avatar_url
 
     def get_social_links(self, obj):
         return SocialLinkSerializer(SocialLink.objects.filter(user=obj, is_hidden=False, is_auth=False), many=True).data
 
     def get_subscribers(self, obj):
         return obj.number_of_subscribers_cached
-
-    def get_multi_accounts(self, obj):
-        multi_accounts = obj.multi_account_membership.filter(is_active=True)
-        return MultiAccountSerializer(multi_accounts, many=True).data
 
     def get_number_of_articles(self, obj):
         return obj.number_of_published_articles_cached
@@ -58,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social', 'uid', 'email', 'multi_accounts',
+        fields = ['id', 'username', 'nickname', 'first_name', 'last_name', 'avatar', 'email',
                   'social_links', 'subscribers', 'subscriptions', 'number_of_articles', 'description']
 
 
@@ -77,7 +72,6 @@ def nickname_validator(nickname):
 
 
 class MeUserSerializer(UserSerializer):
-    token = serializers.SerializerMethodField()
     phone = serializers.SerializerMethodField()
     drafts = serializers.SerializerMethodField()
 
@@ -109,8 +103,14 @@ class MeUserSerializer(UserSerializer):
 
         return '%s %s %s %s' % (phone[0:2], phone[2:4], re.sub("\d", ".", phone[4: -3]), phone[-2:])
 
-    def get_token(self, obj):
-        return Token.objects.get_or_create(user=obj)[0].key
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ['phone', 'drafts']
+        read_only_fields = ['id', 'username', 'email', 'social_links', 'subscribers',
+                            'subscriptions', 'phone', 'drafts']
+
+
+class MeAvatarWriteUserSerializer(MeUserSerializer):
+    avatar = serializers.ImageField()
 
     def validate_avatar(self, value):
         try:
@@ -122,11 +122,6 @@ class MeUserSerializer(UserSerializer):
         except (AttributeError, ValueError):
             pass
         raise ValidationError('image format wrong')
-
-    class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ['phone', 'token', 'drafts']
-        read_only_fields = ['id', 'social', 'uid', 'email', 'multi_accounts', 'social_links', 'subscribers',
-                            'subscriptions', 'phone', 'token', 'drafts']
 
 
 class PublicUserSerializer(UserSerializer):
@@ -140,17 +135,6 @@ class PublicUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = ['id', 'nickname', 'first_name', 'last_name', 'avatar', 'social_links', 'subscribers', 'subscriptions',
                   'is_subscribed', 'number_of_articles', 'description']
-
-
-class PublicMultiAccountSerializer(serializers.ModelSerializer):
-    is_multi_account = serializers.SerializerMethodField()
-
-    def get_is_multi_account(self, obj):
-        return True
-
-    class Meta:
-        model = MultiAccount
-        exclude = ['users']
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
