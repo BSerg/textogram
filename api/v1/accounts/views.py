@@ -406,7 +406,6 @@ class Login(APIView):
         user = authenticate(**request.data)
         if user:
             user_data = MeUserSerializer(user).data
-            user_data.update(token=Token.objects.get_or_create(user=user)[0].key)
             if getattr(user, '_created', False):
                 user_data.update(created=True)
             return Response(user_data)
