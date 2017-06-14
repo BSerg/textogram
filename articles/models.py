@@ -175,7 +175,7 @@ def update_slug(sender, instance, **kwargs):
     db_instance = Article.objects.get(pk=instance.id) if instance.id else None
     if instance.status == Article.DRAFT:
         if instance.content.get('title'):
-            if db_instance and db_instance.content.get('title') != instance.content.get('title'):
+            if db_instance:
                 articles = Article.objects.exclude(pk=instance.id)
             else:
                 articles = Article.objects.all()

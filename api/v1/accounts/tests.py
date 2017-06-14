@@ -2,13 +2,12 @@
 from __future__ import unicode_literals
 
 from collections import OrderedDict
-from unittest import skip
 
 from django.test import TestCase
 from rest_framework.authtoken.models import Token
-from rest_framework.test import APIRequestFactory, force_authenticate, APIClient, APITestCase
+from rest_framework.test import APIRequestFactory, force_authenticate, APITestCase
 
-from accounts.models import User, MultiAccount, MultiAccountUser, PhoneCode
+from accounts.models import User, PhoneCode
 from api.v1.accounts.serializers import UserSerializer, PublicUserSerializer
 from api.v1.accounts.views import PublicUserViewSet, UserViewSet, RegistrationView, MeUserViewSet
 
@@ -23,18 +22,6 @@ class AccountSerializerTestCase(TestCase):
             social='vk',
             uid='12345'
         )
-        self.multi_account1 = MultiAccount.objects.create(name='MULTI_ACCOUNT1', avatar='/tmp/avatar.jpg')
-        self.multi_account2 = MultiAccount.objects.create(name='MULTI_ACCOUNT2', avatar='/tmp/avatar.jpg')
-        self.multi_account_user_1 = MultiAccountUser.objects.create(
-            user=self.account,
-            multi_account=self.multi_account1,
-            is_owner=True
-        )
-        self.multi_account_user_2 = MultiAccountUser.objects.create(
-            user=self.account,
-            multi_account=self.multi_account1,
-            is_active=False
-        )
 
     def test_main_serialiser_fields(self):
         serializer = UserSerializer(self.account)
@@ -46,13 +33,6 @@ class AccountSerializerTestCase(TestCase):
             'social': 'vk',
             'uid': '12345',
             'email': '',
-            'multi_accounts': [
-                OrderedDict([
-                    ('name', 'MULTI_ACCOUNT1'),
-                    ('avatar', '/data/tmp/avatar.jpg'),
-                    ('is_owner', True)
-                ]),
-            ]
         })
 
     def test_public_serialiser_fields(self):

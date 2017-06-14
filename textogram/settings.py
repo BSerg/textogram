@@ -155,15 +155,16 @@ STATICFILES_DIRS = [
 AUTH_USER_MODEL = 'accounts.User'
 
 AUTHENTICATION_BACKENDS = [
-    'accounts.auth.VKAuthBackend',
-    'accounts.auth.FBAuthBackend',
-    'accounts.auth.GoogleAuthClient',
-    'accounts.auth.TwitterAuthBackend',
-    'accounts.auth.PhoneAuthBackend',
-    'accounts.auth.EmailAuthBackend',
+    'accounts.auth.AuthServiceBackend',
     'django.contrib.auth.backends.ModelBackend'
 ]
 
+AUTH_PUBLIC_KEY = None
+
+AUTH_SERVICE_ROOT = ''
+AUTH_SERVICE_VERIFY_API = ''
+AUTH_SERVICE_REFRESH_API = ''
+AUTH_SERVICE_SSL_VERIFY = False
 
 # REST
 
