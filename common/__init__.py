@@ -1,9 +1,11 @@
 #! coding: utf-8
 
 from __future__ import unicode_literals
+
 import os
 import urllib
 from uuid import uuid4
+
 from textogram.settings import MEDIA_ROOT
 
 
