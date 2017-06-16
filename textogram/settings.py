@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.sitemaps',
     'rest_framework',
-    'rest_framework.authtoken',
     'corsheaders',
     'storages',
     'sorl.thumbnail',
@@ -57,6 +56,7 @@ INSTALLED_APPS += [
     'url_shortener',
     'frontend',
     'statistics',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -169,7 +169,7 @@ AUTH_SERVICE_SSL_VERIFY = False
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
+        'accounts.auth.JWTAuthentication'
     ),
     'DEFAULT_THROTTLE_RATES': {
         'search': '60/min',
