@@ -58,7 +58,6 @@ def jwt_user_auth(token):
         return None
 
     err, payload = jwt_decode(token)
-
     if payload:
         r = requests.post(AUTH_SERVICE_VERIFY_API, json={'token': token},
                           headers={'Content-Type': 'application/json'}, verify=settings.AUTH_SERVICE_SSL_VERIFY)
