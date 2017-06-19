@@ -16,7 +16,7 @@ public_key_cache = None
 
 def jwt_decode(token, skip_claims=False, drop_cache=False):
     global public_key_cache
-
+    print token
     if not settings.AUTH_PUBLIC_KEY:
         return 'Public key not configured', None
 
