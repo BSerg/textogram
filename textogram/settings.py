@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'rest_framework',
     'rest_framework.authtoken',
-    'corsheaders',
+    # 'corsheaders',
     'storages',
     'sorl.thumbnail',
 ]
@@ -60,13 +60,14 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
+    # 'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'textogram.urls'
@@ -288,6 +289,11 @@ PAYWALL_CURRENCIES = (
     (PAYWALL_CURRENCY_USD, 'US Dollar'),
     (PAYWALL_CURRENCY_EUR, 'Euro'),
 )
+
+USE_REDIS_CACHE = False
+REDIS_CACHE_PORT = 6379
+REDIS_CACHE_HOST = '127.0.0.1'
+REDIS_CACHE_DB = 0
 
 try:
     from local_settings import *

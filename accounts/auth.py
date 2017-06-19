@@ -16,7 +16,7 @@ public_key_cache = None
 
 def jwt_decode(token, skip_claims=False, drop_cache=False):
     global public_key_cache
-
+    print token
     if not settings.AUTH_PUBLIC_KEY:
         return 'Public key not configured', None
 
@@ -58,7 +58,6 @@ def jwt_user_auth(token):
         return None
 
     err, payload = jwt_decode(token)
-
     if payload:
         r = requests.post(AUTH_SERVICE_VERIFY_API, json={'token': token},
                           headers={'Content-Type': 'application/json'}, verify=settings.AUTH_SERVICE_SSL_VERIFY)

@@ -685,4 +685,3 @@ def fix_image_urls(content, image_data):
                     p['avatar'].update(_fix_image_data(p['avatar'], image_data))
 
     return _content
-
