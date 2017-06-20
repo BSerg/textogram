@@ -16,7 +16,6 @@ public_key_cache = None
 
 def jwt_decode(token, skip_claims=False, drop_cache=False):
     global public_key_cache
-    print token
     if not settings.AUTH_PUBLIC_KEY:
         return 'Public key not configured', None
 
@@ -87,6 +86,7 @@ class AuthServiceBackend(object):
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
+
     def authenticate(self, request):
         auth_header = request.META.get('HTTP_AUTHORIZATION', '').split()
 
