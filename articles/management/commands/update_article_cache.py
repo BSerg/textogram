@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            article_id = options['article_id'][0]
+            article_id = options['article_id']
         except (TypeError, IndexError):
             article_id = None
         update_article_cache(article_id)
