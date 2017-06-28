@@ -47,14 +47,17 @@ def update_feed_cache(article_id=None):
     articles = Article.objects.filter(**params)
     r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
     for article in articles:
+
         subscriptions = Subscription.objects.filter(author=article.owner)
         for sub in subscriptions:
             try:
                 score = int(sub.subscribed_at.strftime("%s"))
             except ValueError as e:
                 score = 0
-
-            r.zadd('user:%s:feed' % sub.user.id, score, article.slug)
+            if article.status == Article.PUBLISHED:
+                r.zadd('user:%s:feed' % sub.user.username, score, article.slug)
+            else:
+                r.zrem('user:%s:feed' % sub.user.username, article.slug)
 
 
 def update_user_article_cache(user_id=None):
@@ -71,17 +74,21 @@ def generate_search_index(article_id=None):
     articles = Article.objects.filter(**params)
     r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
     for article in articles:
-        s = re.sub(r'\s+', '', article.title.lower())
-        len_s = len(s)
-        if len_s < MIN_SEARCH_STRING_LENGTH:
-            continue
-        for n in range(MIN_SEARCH_STRING_LENGTH,
-                       MAX_SEARCH_STRING_LENGTH if len_s > MAX_SEARCH_STRING_LENGTH else len_s):
-            q_string = s[0:n]
-            if article.status == Article.PUBLISHED:
-                r.sadd('q:%s' % q_string, article.slug)
-                # r.sadd('article:%s:q' % article.slug, q_string)
-            else:
-                r.srem('q:%s' % q_string, article.slug)
+        words = article.title.lower().split()
+
+        for word in words:
+            if not word or len(word) < MIN_SEARCH_STRING_LENGTH:
+                continue
+            len_word = len(word)
+            search_length = MAX_SEARCH_STRING_LENGTH if MAX_SEARCH_STRING_LENGTH <= len_word else len_word
+            for offset in range(0, search_length - MIN_SEARCH_STRING_LENGTH + 1):
+                for n in range(offset, search_length + 1):
+                    if (n - offset) >= MIN_SEARCH_STRING_LENGTH:
+                        q_string = word[offset:n]
+                        if article.status == Article.PUBLISHED:
+                            r.sadd('q:%s' % q_string, article.slug)
+                            r.sadd('article:%s:q' % article.slug, q_string)
+                        else:
+                            r.srem('q:%s' % q_string, article.slug)
 
 

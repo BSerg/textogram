@@ -15,9 +15,9 @@ def update_user_cache(user_id=None):
     r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
     for user in users:
         if user.is_active:
-            r.set('user:%s' % user.id, json.dumps(PublicUserSerializer(user).data))
+            r.set('user:%s' % user.nickname, json.dumps(PublicUserSerializer(user).data))
         else:
-            r.delete('user:%s' % user.id)
+            r.delete('user:%s' % user.nickname)
 
 
 def cache_user_subscribers(user_id=None, subscriber_id=None):
