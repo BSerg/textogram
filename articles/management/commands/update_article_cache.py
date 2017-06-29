@@ -11,8 +11,4 @@ class Command(BaseCommand):
         parser.add_argument('article_id', nargs='?')
 
     def handle(self, *args, **options):
-        try:
-            article_id = options['article_id']
-        except (TypeError, IndexError):
-            article_id = None
-        update_article_cache(article_id)
+        update_article_cache(options.get('article_id'))
