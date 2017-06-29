@@ -29,7 +29,6 @@ def jwt_decode(token, skip_claims=False, drop_cache=False):
 
     except IOError as e:
         return e, None
-    payload = jwt.decode(token, public_key, algorithms=['RS256'])
 
     try:
         payload = jwt.decode(token, public_key, algorithms=['RS256'])
