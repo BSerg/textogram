@@ -138,23 +138,6 @@ def save_cached_views_to_db():
         r.zremrangebyscore(key, '-inf', '+inf')
 
 
-def save_all_cached_views_to_db():
-    for article in Article.objects.filter(status=Article.PUBLISHED):
-        key = '%s:article:%s:views' % (REDIS_CACHE_KEY_PREFIX, article.slug)
-        views = r.zrange(key, 0, -1)
-        view_instances = []
-        for view in views:
-            view_list = view.split(':')
-            view_instance = __get_view(article, dict(zip(view_list[::2], view_list[1::2])))
-            if view_instance:
-                view_instances.append(view_instance)
-        if view_instances:
-
-            ArticleView.objects.bulk_create(view_instances, batch_size=500)
-            print view_instances
-        r.zremrangebyscore(key, '-inf', '+inf')
-
-
 def __get_view(article, data):
     fingerprint = data.get('fp')
     if not fingerprint:
