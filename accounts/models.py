@@ -10,7 +10,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from django.core.management import call_command
@@ -164,6 +164,18 @@ def cache_user(sender, instance, **kwargs):
 def update_user_article_cache(sender, instance, **kwargs):
     if USE_REDIS_CACHE:
         call_command('update_user_article_cache', instance.id)
+
+
+@receiver(pre_save, sender=Subscription)
+def cache_subscription_feed(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('update_user_feed_cache', instance.user.id, instance.author.id, True)
+
+
+@receiver(pre_delete, sender=Subscription)
+def delete_cache_subscription_feed(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('update_user_feed_cache', instance.user.id, instance.author.id)
 
 
 @receiver(post_save, sender=Subscription)

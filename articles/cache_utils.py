@@ -66,13 +66,30 @@ def update_feed_cache(article_id=None):
         subscriptions = Subscription.objects.filter(author=article.owner)
         for sub in subscriptions:
             try:
-                score = int(sub.subscribed_at.strftime("%s"))
+                score = int(article.published_at.strftime("%s"))
             except (ValueError, AttributeError) as e:
                 score = 0
             if article.status == Article.PUBLISHED:
                 r.zadd('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, sub.user.username), score, article.slug)
             else:
                 r.zrem('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, sub.user.username), article.slug)
+
+
+def update_user_feed_cache(user_id, author_id, is_subscribed=False):
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return
+
+    for article in Article.objects.filter(owner__id=author_id, status=Article.PUBLISHED):
+        if is_subscribed:
+            try:
+                score = int(article.published_at.strftime("%s"))
+            except (ValueError, AttributeError) as e:
+                score = 0
+            r.zadd('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, user.username), score, article.slug)
+        else:
+            r.zrem('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, user.username), article.slug)
 
 
 def update_user_article_cache(user):
