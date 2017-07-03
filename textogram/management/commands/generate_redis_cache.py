@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from articles.cache_utils import update_article_cache, update_feed_cache, generate_search_index, \
-    cache_articles_views_count
+    cache_articles_views_count, update_short_url_cache
 from accounts.cache_utils import update_user_cache
 from redis import StrictRedis
 from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT
@@ -19,3 +19,4 @@ class Command(BaseCommand):
         update_feed_cache()
         generate_search_index()
         update_user_cache()
+        update_short_url_cache()

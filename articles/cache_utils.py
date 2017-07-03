@@ -4,8 +4,9 @@ from __future__ import unicode_literals
 from redis import StrictRedis
 from articles.models import Article, ArticleView
 from accounts.models import User, Subscription
+from url_shortener.models import UrlShort
 from api.v1.articles.serializers import PublicArticleSerializer, PublicArticleSerializerMin
-from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX
+from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX, IS_LENTACH
 import json
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -30,7 +31,7 @@ def __set_articles_cache(articles, published_only=True):
                       json.dumps(PublicArticleSerializer(article).data))
             try:
                 score = int(article.published_at.strftime("%s"))
-            except ValueError as e:
+            except (ValueError, AttributeError) as e:
                 score = 0
             r.zadd('%s:user:%s:articles' % (REDIS_CACHE_KEY_PREFIX, article.owner.id), score, article.slug)
         elif not published_only:
@@ -66,7 +67,7 @@ def update_feed_cache(article_id=None):
         for sub in subscriptions:
             try:
                 score = int(sub.subscribed_at.strftime("%s"))
-            except ValueError as e:
+            except (ValueError, AttributeError) as e:
                 score = 0
             if article.status == Article.PUBLISHED:
                 r.zadd('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, sub.user.username), score, article.slug)
@@ -149,3 +150,10 @@ def __save_view(article, data):
                                    user=user, fingerprint=fingerprint)
     except Exception as e:
         return
+
+
+def update_short_url_cache(url_id=None):
+    params = {'id': url_id} if url_id else {}
+    for url in UrlShort.objects.filter(**params):
+        r.set('%s:s:%s%s' % (REDIS_CACHE_KEY_PREFIX, '!' if not IS_LENTACH else '', url.code),
+              url.article.get_full_url() if url.article else url.url)
