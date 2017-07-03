@@ -58,8 +58,8 @@ class EmbedHandler(object):
 class YoutubeEmbedHandler(EmbedHandler):
     TYPE = 'youtube'
     EMBED_URL_REGEX = [
-        r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)',
-        r'^https://youtu\.be/(?P<id>[\w\-]+)'
+        r'^https://www\.youtube\.com/watch\?v=(?P<id>[\w\-]+)(&[\w\-]+=[^&]+)*',
+        r'^https://youtu\.be/(?P<id>[\w\-]+)([?&][\w\-]+=[^&]+)*'
     ]
     EMBED_CODE_REGEX = [
         r'^<iframe( width=\"\d+\")?( height=\"\d+\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w\-]+((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
@@ -89,7 +89,7 @@ class YoutubeEmbedHandler(EmbedHandler):
 
 class TwitterEmbedHandler(EmbedHandler):
     TYPE = 'twitter'
-    EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+$']
+    EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+\/?([&?][\w\-]+=[^&]+)*$']
     EMBED_CODE_REGEX = [
         r'^<blockquote class="twitter-(tweet|video)" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
     ]
@@ -114,7 +114,7 @@ class TwitterEmbedHandler(EmbedHandler):
 
 class VimeoEmbedHandler(EmbedHandler):
     TYPE = 'vimeo'
-    EMBED_URL_REGEX = [r'^https://vimeo\.com/(?P<id>\d+)$']
+    EMBED_URL_REGEX = [r'^https://vimeo\.com/(?P<id>\d+)(#\w+=\w+)?$']
     EMBED_CODE_REGEX = [
         r'^<iframe src=\"https:\/\/player\.vimeo\.com\/video\/\d+([\?&]\w+=\w+)*\" width=\"\d+\" height=\"\d+\"( frameborder=\"(0|1)\")?( (webkit|moz)?allowfullscreen)*><\/iframe>(\s*<p>(\s*.)+<\/p>)?$',
     ]
@@ -140,7 +140,7 @@ class VimeoEmbedHandler(EmbedHandler):
 
 class InstagramEmbedHandler(EmbedHandler):
     TYPE = 'instagram'
-    EMBED_URL_REGEX = [r'^https://www\.instagram\.com/p/(?P<id>[\w\-_]+)/?$']
+    EMBED_URL_REGEX = [r'^https://www\.instagram\.com/p/(?P<id>[\w\-_]+)/?([&?][\w\-]+=[^&]+)*$']
     API_URL = 'https://api.instagram.com/oembed/?callback=instgrm.Embeds.process()&url=%(url)s'
 
     def get_embed(self):
@@ -156,7 +156,7 @@ class InstagramEmbedHandler(EmbedHandler):
 class FacebookEmbedHandler(EmbedHandler):
     TYPE = 'fb'
     EMBED_URL_REGEX = [
-        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?([&?][\w\-]+=[^&]+)*$',
     ]
     EMBED_CODE_REGEX = [
         r'<iframe src=\"https:\/\/[\w\-]+\.facebook\.com\/plugins\/(post|video)\.php\?href=https(%3A|:)(%2F%2F|\/\/)www\.facebook\.com(%2F|\/)[\w\-.]+(%2F|\/)(posts|videos)(%2F|\/)\d+(%2F|\/)?(&show_text=(0|1))?&width=\d+\"( width=\"\d+\")?( height=\"\d+\")?( style=\".+\")?( scrolling=\"(yes|no)\")?( frameborder=\"(0|1)\")?( allowTransparency=\"(true|false)\")?(allowFullScreen=\"(true|false)\")?><\/iframe>'
@@ -200,7 +200,7 @@ class VkEmbedHandler(EmbedHandler):
 
 class VkVideoEmbedHandler(EmbedHandler):
     TYPE = 'vk_video'
-    EMBED_URL_REGEX = [r'^https://vk\.com/video(?P<id>-?\d+_\d+)$']
+    EMBED_URL_REGEX = [r'^https://vk\.com/video(?P<id>-?\d+_\d+)/?([&?][\w\-]+=[^&]+)*$']
     EMBED_CODE_REGEX = [
         r'^<iframe src=\"\/\/vk\.com\/video_ext\.php\?oid=-?\d+&id=\d+&hash=\w+&hd=\d\"( width=\"\d+\")?( height=\"\d+\")?( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$'
     ]
