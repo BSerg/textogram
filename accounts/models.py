@@ -13,6 +13,8 @@ from django.db import models
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
+from django.core.management import call_command
+from textogram.settings import USE_REDIS_CACHE
 
 from common import upload_to
 
@@ -150,6 +152,18 @@ def create_nickname(sender, instance, **kwargs):
     if kwargs.get('created'):
         instance.nickname = 'id%s' % instance.id
         instance.save()
+
+
+@receiver(post_save, sender=User)
+def cache_user(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('cache_users', instance.id)
+
+
+@receiver(post_save, sender=User)
+def update_user_article_cache(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('update_user_article_cache', instance.id)
 
 
 @receiver(post_save, sender=Subscription)

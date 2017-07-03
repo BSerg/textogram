@@ -1,5 +1,7 @@
 from articles.models import ArticleView, Article
 from articles.utils import fix_image_urls
+from datetime import datetime
+from django.utils import timezone
 
 
 def register_article_view(article_slug, user_id, fingerprint):
@@ -10,7 +12,7 @@ def register_article_view(article_slug, user_id, fingerprint):
     # TODO: this will must be refactored, when article will have got paywall option
     monetization_enabled = article.ads_enabled
     ArticleView.objects.create(article=article, user_id=user_id, fingerprint=fingerprint,
-                               monetization_enabled=monetization_enabled)
+                               monetization_enabled=monetization_enabled, created_at=timezone.now())
 
 
 def update_article_html(article_id):

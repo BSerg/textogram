@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from redis import StrictRedis
 from accounts.models import User, Subscription
 from api.v1.accounts.serializers import PublicUserSerializer
-from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT
+from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX
 import json
 
 
@@ -15,19 +15,6 @@ def update_user_cache(user_id=None):
     r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
     for user in users:
         if user.is_active:
-            r.set('user:%s' % user.nickname, json.dumps(PublicUserSerializer(user).data))
+            r.set('%s:user:%s' % (REDIS_CACHE_KEY_PREFIX, user.nickname), json.dumps(PublicUserSerializer(user).data))
         else:
-            r.delete('user:%s' % user.nickname)
-
-
-def cache_user_subscribers(user_id=None, subscriber_id=None):
-    users = User.objects.filter(**({'id': user_id} if user_id else {}))
-    r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
-    for user in users:
-        params = {'author': user}
-        if subscriber_id:
-            params['user__id'] = subscriber_id
-        subscriptions = Subscription.objects.filter(**params)
-        # if subscriber_id and not len(subscriptions):
-            # r.
-
+            r.delete('%s:user:%s' % (REDIS_CACHE_KEY_PREFIX, user.nickname))

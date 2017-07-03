@@ -10,5 +10,4 @@ class Command(BaseCommand):
         parser.add_argument('user_id', nargs='?')
 
     def handle(self, *args, **options):
-        user_id = options['user_id'][0] if (options and options['user_id']) else None
-        update_user_cache(user_id)
+        update_user_cache(options.get('user_id'))
