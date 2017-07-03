@@ -31,7 +31,7 @@ def __set_articles_cache(articles, published_only=True):
                       json.dumps(PublicArticleSerializer(article).data))
             try:
                 score = int(article.published_at.strftime("%s"))
-            except ValueError as e:
+            except (ValueError, AttributeError) as e:
                 score = 0
             r.zadd('%s:user:%s:articles' % (REDIS_CACHE_KEY_PREFIX, article.owner.id), score, article.slug)
         elif not published_only:
@@ -67,7 +67,7 @@ def update_feed_cache(article_id=None):
         for sub in subscriptions:
             try:
                 score = int(sub.subscribed_at.strftime("%s"))
-            except ValueError as e:
+            except (ValueError, AttributeError) as e:
                 score = 0
             if article.status == Article.PUBLISHED:
                 r.zadd('%s:user:%s:feed' % (REDIS_CACHE_KEY_PREFIX, sub.user.username), score, article.slug)
