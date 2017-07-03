@@ -232,10 +232,10 @@ def create_short_url(sender, instance, created, **kwargs):
 def cache_article(sender, instance, created, **kwargs):
     if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
         call_command('update_article_cache', instance.id)
-
-
-@receiver(post_save, sender=Article)
-def cache_article(sender, instance, created, **kwargs):
-    if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
+        try:
+            url_short = UrlShort.objects.get(article=instance)
+            call_command('cache_url', url_short.id)
+        except UrlShort.DoesNotExist:
+            pass
         call_command('generate_article_search_index', instance.id)
         call_command('update_article_feed_cache', instance.id)

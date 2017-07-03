@@ -5,7 +5,10 @@ from .models import UrlShort
 
 
 class UrlShortAdmin(admin.ModelAdmin):
-    list_display = ['url', 'article', 'code', 'short_url', 'created_at']
+    list_display = ['id', 'url', 'article', 'code', 'short_url', 'created_at']
+
+    def id(self, obj):
+        return obj.id
 
     def short_url(self, obj):
         return mark_safe('<a target="_blank" href="%(url)s">%(url)s</a>' % {'url': obj.get_short_url()})

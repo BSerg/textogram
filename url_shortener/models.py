@@ -6,9 +6,11 @@ from uuid import uuid4
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from textogram.settings import USE_REDIS_CACHE
+from django.core.management import call_command
 
 
 class UrlShort(models.Model):
@@ -45,3 +47,9 @@ def create_code(sender, instance, **kwargs):
                 instance.code = code
                 break
             length += 1
+
+
+@receiver(post_save, sender=UrlShort)
+def cache_code(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('cache_url', instance.id)

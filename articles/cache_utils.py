@@ -4,8 +4,9 @@ from __future__ import unicode_literals
 from redis import StrictRedis
 from articles.models import Article, ArticleView
 from accounts.models import User, Subscription
+from url_shortener.models import UrlShort
 from api.v1.articles.serializers import PublicArticleSerializer, PublicArticleSerializerMin
-from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX
+from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX, IS_LENTACH
 import json
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -149,3 +150,10 @@ def __save_view(article, data):
                                    user=user, fingerprint=fingerprint)
     except Exception as e:
         return
+
+
+def update_short_url_cache(url_id=None):
+    params = {'id': url_id} if url_id else {}
+    for url in UrlShort.objects.filter(**params):
+        r.set('%s:s:%s%s' % (REDIS_CACHE_KEY_PREFIX, '!' if not IS_LENTACH else '', url.code),
+              url.article.get_full_url() if url.article else url.url)
