@@ -22,6 +22,9 @@ from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
 from url_shortener.models import UrlShort
 
+from django.core.management import call_command
+from textogram.settings import USE_REDIS_CACHE
+
 
 def _upload_to(instance, filename):
     return upload_to('images', instance, filename)
@@ -128,7 +131,7 @@ class ArticleView(models.Model):
     user = models.ForeignKey('accounts.User', verbose_name='Авторизованный пользователь', blank=True, null=True)
     fingerprint = models.CharField('Цифровой отпечаток клиента', max_length=255, db_index=True)
     monetization_enabled = models.BooleanField('Монетизируемый просмотр', default=False)
-    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    created_at = models.DateTimeField('Дата создания')
 
     def __unicode__(self):
         return self.fingerprint
@@ -201,7 +204,7 @@ def process_content_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=ArticleView)
 def update_views_cached(sender, instance, created, **kwargs):
-    if created and instance.article.status == Article.PUBLISHED:
+    if not USE_REDIS_CACHE and created and instance.article.status == Article.PUBLISHED:
         Article.objects.filter(pk=instance.article.id).update(views_cached=F('views_cached') + 1)
 
 
@@ -226,3 +229,16 @@ def recount_published_articles(sender, instance, **kwargs):
 def create_short_url(sender, instance, created, **kwargs):
     if instance.slug and not hasattr(instance, 'short_url'):
         UrlShort.objects.create(article=instance)
+
+
+@receiver(post_save, sender=Article)
+def cache_article(sender, instance, created, **kwargs):
+    if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
+        call_command('update_article_cache', instance.id)
+
+
+@receiver(post_save, sender=Article)
+def cache_article(sender, instance, created, **kwargs):
+    if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
+        call_command('generate_article_search_index', instance.id)
+        call_command('update_article_feed_cache', instance.id)

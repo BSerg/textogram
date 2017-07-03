@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.sitemaps',
     'rest_framework',
-    'corsheaders',
     'storages',
     'sorl.thumbnail',
 ]
@@ -60,6 +59,7 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
+    # 'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -288,6 +288,12 @@ PAYWALL_CURRENCIES = (
     (PAYWALL_CURRENCY_USD, 'US Dollar'),
     (PAYWALL_CURRENCY_EUR, 'Euro'),
 )
+
+USE_REDIS_CACHE = False
+REDIS_CACHE_PORT = 6379
+REDIS_CACHE_HOST = '127.0.0.1'
+REDIS_CACHE_DB = 0
+REDIS_CACHE_KEY_PREFIX = 't'
 
 try:
     from local_settings import *
