@@ -18,10 +18,20 @@ from textogram.settings import WMI_SECRET_KEY, WMI_MERCHANT_ID, WMI_CURRENCY_MAP
 class WalletOneFormView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        article_id = request.query_params.get('article_id')
+    def post(self, request, *args, **kwargs):
+        article_id = request.data.get('article_id')
+        success_url = request.data.get('success_url')
+        fail_url = request.data.get('fail_url')
+
         if not article_id:
             return Response({'msg': 'ArticleID query parameter havn\'t been passed'}, status=HTTP_400_BAD_REQUEST)
+
+        if not success_url:
+            return Response({'msg': 'Success URL is required'}, status=HTTP_400_BAD_REQUEST)
+
+        if not fail_url:
+            return Response({'msg': 'Fail URL is required'}, status=HTTP_400_BAD_REQUEST)
+
         try:
             article = Article.objects.get(pk=article_id)
         except Article.DoesNotExist:
@@ -37,8 +47,8 @@ class WalletOneFormView(APIView):
             'WMI_PAYMENT_AMOUNT': article.paywall_price,
             'WMI_CURRENCY_ID': WMI_CURRENCY_MAP[article.paywall_currency],
             'WMI_DESCRIPTION': 'BASE64:' + base64.b64encode(article.title.encode('utf-8')),
-            'WMI_SUCCESS_URL': article.get_full_url(),
-            'WMI_FAIL_URL': '',
+            'WMI_SUCCESS_URL': success_url,
+            'WMI_FAIL_URL': fail_url,
             'WMI_PAYMENT_NO': order.id,
         }
 
