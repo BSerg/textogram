@@ -45,7 +45,7 @@ class WalletoneOrderCheck(View):
             return HttpResponse('WMI_RESULT=RETRY&WMI_DESCRIPTION=Заказ с таким номером не найден')
 
         signature = data.pop('WMI_SIGNATURE')
-        calculated_signature = walletone_get_signature(data, WMI_SECRET_KEY)
+        calculated_signature = walletone_get_signature(data.items(), WMI_SECRET_KEY)
 
         if calculated_signature != signature:
             return HttpResponse('WMI_RESULT=RETRY&WMI_DESCRIPTION=Сигнатура неверна')
