@@ -121,32 +121,41 @@ def generate_search_index(article_id=None):
                             r.srem('%s:q:%s' % (REDIS_CACHE_KEY_PREFIX, q_string), article.slug)
 
 
-def save_cached_views_to_db(date_start=None, date_finish=None):
+def save_cached_views_to_db():
 
-    if not date_start or not date_finish:
-        now = datetime.now()
-        date_start = now - timedelta(hours=1)
-        date_finish = now
-    score_start = int(date_start.strftime("%s")) * 1000
-    score_finish = int(date_finish.strftime("%s")) * 1000
-    for article in Article.objects.filter(status=Article.PUBLISHED):
-        key = '%s:article:%s:views' % (REDIS_CACHE_KEY_PREFIX, article.slug)
-        views = r.zrangebyscore(key, score_start, score_finish)
-        for view in views:
-            view_list = view.split(':')
-            __save_view(article, dict(zip(view_list[::2], view_list[1::2])))
-        r.zremrangebyscore(key, score_start, score_finish)
-
-
-def save_all_cached_views_to_db():
     for article in Article.objects.filter(status=Article.PUBLISHED):
         key = '%s:article:%s:views' % (REDIS_CACHE_KEY_PREFIX, article.slug)
         views = r.zrange(key, 0, -1)
+        view_instances = []
         for view in views:
             view_list = view.split(':')
-            __save_view(article, dict(zip(view_list[::2], view_list[1::2])))
-        r.delete(key)
-        # r.zremrangebyscore(key, score_start, score_finish)
+            view_instance = __get_view(article, dict(zip(view_list[::2], view_list[1::2])))
+            if view_instance:
+                view_instances.append(view_instance)
+        if view_instances:
+            ArticleView.objects.bulk_create(view_instances, batch_size=500)
+            print view_instances
+        r.zremrangebyscore(key, '-inf', '+inf')
+
+
+def __get_view(article, data):
+    fingerprint = data.get('fp')
+    if not fingerprint:
+        return
+    try:
+        date = timezone.make_aware(datetime.fromtimestamp(int(data.get('ts')) / 1000), timezone.get_current_timezone())
+    except (ValueError, TypeError):
+        return
+    try:
+        monetization_enabled = bool(int(data.get('ads')))
+    except (ValueError, TypeError):
+        return
+    user = User.objects.filter(username=data.get('user')).first()
+    try:
+        return ArticleView(article=article, monetization_enabled=monetization_enabled, created_at=date,
+                            user=user, fingerprint=fingerprint)
+    except Exception as e:
+        return
 
 
 def __save_view(article, data):
