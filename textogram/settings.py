@@ -295,6 +295,18 @@ REDIS_CACHE_HOST = '127.0.0.1'
 REDIS_CACHE_DB = 0
 REDIS_CACHE_KEY_PREFIX = 't'
 
+# Wallet one
+
+WMI_MERCHANT_ID = ''
+WMI_CURRENCY_MAP = {
+    'RUR': 643,
+    'USD': 840,
+    'EUR': 978
+}
+WMI_SECRET_KEY = ''
+WMI_FORM_ACTION = 'https://wl.walletone.com/checkout/checkout/Index'
+
+
 try:
     from local_settings import *
 except ImportError:

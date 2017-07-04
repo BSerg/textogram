@@ -106,6 +106,22 @@ class PayWallOrder(models.Model):
     def get_absolute_url(self):
         return None
 
+    @staticmethod
+    def create_new(article, customer):
+        try:
+            account = Account.objects.get(owner=article.owner, currency=article.paywall_currency)
+        except Account.DoesNotExist:
+            return None
+
+        order, created = PayWallOrder.objects.get_or_create(
+            account=account,
+            article=article,
+            customer=customer,
+            defaults={'price': article.paywall_price}
+        )
+
+        return order
+
     def __unicode__(self):
         return 'Order #%d' % self.id
 

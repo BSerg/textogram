@@ -8,4 +8,5 @@ from . import views
 urlpatterns = [
     url(r'yandex/check-order/', views.YandexCheckoutCheckView.as_view(), name='yandex_check_order'),
     url(r'yandex/payment-aviso/', views.YandexCheckoutPaymentAviso.as_view(), name='yandex_payment_aviso'),
+    url(r'walletone/check-order/', views.WalletoneOrderCheck.as_view(), name='walletone_check_order'),
 ]

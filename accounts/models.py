@@ -14,6 +14,9 @@ from django.db.models.signals import pre_save, post_save, pre_delete, post_delet
 from django.dispatch import receiver
 from django.utils import timezone
 from django.core.management import call_command
+
+from payments import CURRENCIES
+from payments.models import Account
 from textogram.settings import USE_REDIS_CACHE
 
 from common import upload_to
@@ -164,6 +167,13 @@ def cache_user(sender, instance, **kwargs):
 def update_user_article_cache(sender, instance, **kwargs):
     if USE_REDIS_CACHE:
         call_command('update_user_article_cache', instance.id)
+
+
+@receiver(post_save, sender=User)
+def create_accounts(sender, instance, created, **kwargs):
+    if created:
+        for currency, name in CURRENCIES:
+            Account.objects.get_or_create(owner=instance, currency=currency)
 
 
 @receiver(pre_save, sender=Subscription)
