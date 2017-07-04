@@ -465,13 +465,18 @@ def _photo_block_to_html(block, **kwargs):
         if photo.get('id'):
             photo_preview = photo.get('preview') or ''
             photo_src = photo.get('image') or ''
+            is_animated = photo.get('is_animated')
             if image_data:
                 get_image_url = image_data.get(photo['id'])
+                photo_src = get_image_url(THUMBNAIL_REGULAR_SIZE) or photo_src
+
                 if index > 2:
                     photo_preview = get_image_url(THUMBNAIL_SMALL_SIZE) or photo_preview
+                elif len(photos) == 1 and is_animated:
+                    photo_class += ' photo_animated'
+                    photo_src = photo.get('image') or ''
                 else:
                     photo_preview = get_image_url(THUMBNAIL_MEDIUM_SIZE) or photo_preview
-                photo_src = get_image_url(THUMBNAIL_REGULAR_SIZE) or photo_src
 
             photo_element = '<div class="%(class)s" data-id="%(id)d" data-caption="%(caption)s" ' \
                             'data-preview="%(preview)s" data-src="%(src)s"></div>' \
