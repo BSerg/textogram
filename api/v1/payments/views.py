@@ -44,7 +44,7 @@ class WalletOneFormView(APIView):
 
         form = {
             'WMI_MERCHANT_ID': WMI_MERCHANT_ID,
-            'WMI_PAYMENT_AMOUNT': article.paywall_price,
+            'WMI_PAYMENT_AMOUNT': '{0:.2f}'.format(article.paywall_price),
             'WMI_CURRENCY_ID': WMI_CURRENCY_MAP[article.paywall_currency],
             'WMI_DESCRIPTION': 'BASE64:' + base64.b64encode(article.title.encode('utf-8')),
             'WMI_SUCCESS_URL': success_url,
