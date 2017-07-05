@@ -28,7 +28,7 @@ class YandexCheckoutPaymentAviso(View):
 
 class WalletoneOrderCheck(View):
     def post(self, request, *args, **kwargs):
-        data = request.POST
+        data = request.POST.dict()
 
         if 'WMI_PAYMENT_NO' not in data:
             return HttpResponse('WMI_RESULT=RETRY&WMI_DESCRIPTION=Отсутсвует номер заказа')
@@ -43,6 +43,8 @@ class WalletoneOrderCheck(View):
             order = PayWallOrder.objects.get(pk=data.get('WMI_PAYMENT_NO'))
         except PayWallOrder.DoesNotExist:
             return HttpResponse('WMI_RESULT=RETRY&WMI_DESCRIPTION=Заказ с таким номером не найден')
+        except ValueError:
+            return HttpResponse('WMI_RESULT=RETRY&WMI_DESCRIPTION=Номер заказа имеет неверный формат')
 
         signature = data.pop('WMI_SIGNATURE')
         calculated_signature = walletone_get_signature(data.items(), WMI_SECRET_KEY)
