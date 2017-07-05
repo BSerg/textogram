@@ -95,7 +95,8 @@ class WalletOneTestCase(TestCase):
             'WMI_COMMISSION_AMOUNT': '0.00',
             'WMI_CURRENCY_ID': '643',
             'WMI_ORDER_STATE': 'Accepted',
-            'WMI_PAYMENT_NO': str(order.id)
+            'WMI_PAYMENT_NO': str(order.id),
+            'WMI_DESCRIPTION': 'Описание'
         }
         order_check_form['WMI_SIGNATURE'] = walletone_get_signature(order_check_form.items(), WMI_SECRET_KEY)
         response = self.client.post('/payments/walletone/check-order/', order_check_form)

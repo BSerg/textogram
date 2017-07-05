@@ -38,7 +38,7 @@ def walletone_get_signature(data, secret_key):
     for key, value in data:
         lists_by_keys[key].append(value)
 
-    str_buff = ''
+    str_buff = b''
     for key in sorted(lists_by_keys, key=icase_key):
         for value in sorted(lists_by_keys[key], key=icase_key):
             str_buff += unicode(value).encode('1251')
