@@ -3,7 +3,9 @@
 from __future__ import unicode_literals
 
 from django.http.response import HttpResponse
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from payments import walletone_get_signature
 from payments.models import PayWallOrder
@@ -27,6 +29,7 @@ class YandexCheckoutPaymentAviso(View):
 
 
 class WalletoneOrderCheck(View):
+    @method_decorator(csrf_exempt)
     def post(self, request, *args, **kwargs):
         data = request.POST.dict()
 
