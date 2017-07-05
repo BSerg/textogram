@@ -1,6 +1,7 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
+import base64
 import hashlib
 from collections import defaultdict
 
@@ -37,10 +38,10 @@ def walletone_get_signature(data, secret_key):
     for key, value in data:
         lists_by_keys[key].append(value)
 
-    str_buff = b''
+    str_buff = ''
     for key in sorted(lists_by_keys, key=icase_key):
         for value in sorted(lists_by_keys[key], key=icase_key):
             str_buff += unicode(value).encode('1251')
     str_buff += secret_key
     md5_string = hashlib.md5(str_buff).digest()
-    return binascii.b2a_base64(md5_string)[:-1]
+    return base64.b64encode(md5_string)
