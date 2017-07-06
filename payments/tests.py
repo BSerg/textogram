@@ -5,7 +5,7 @@ from django.test import TestCase, Client
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from articles.models import Article
+from articles.models import Article, ArticleUserAccess
 from payments import yandex_get_hash, CURRENCY_RUR, walletone_get_signature
 from payments.models import Account, PayWallOrder
 from textogram.settings import WMI_SECRET_KEY, WMI_MERCHANT_ID
@@ -16,7 +16,7 @@ class PayWallTest(TestCase):
         self.user = User.objects.create(username='john')
         self.account = Account.objects.get(owner=self.user, currency=CURRENCY_RUR)
 
-    def test_account_balance(self):
+    def test_order_complete(self):
         article = Article.objects.create(title='hello', owner=self.user, paywall_enabled=True, paywall_price=100)
         customer = User.objects.create(username='customer')
         order = PayWallOrder.objects.create(
@@ -32,6 +32,7 @@ class PayWallTest(TestCase):
         order.save()
 
         self.assertEqual(self.account.balance, 100)
+        self.assertTrue(ArticleUserAccess.objects.filter(order=order, article=article, user=customer).exists())
 
 
 class YandexCheckoutTestCase(TestCase):
