@@ -17,13 +17,16 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rq import Queue
 
 from accounts.models import Subscription
+from api.v1 import articles
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
 from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
+from api.v1.payments.serializers import PayWallOrderSerializer
 from articles.models import Article, ArticleImage, ArticleUserAccess
 from articles.tasks import register_article_view
 from articles.utils import get_article_cache_key
+from payments.models import PayWallOrder
 from textogram.settings import RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT, RQ_HIGH_QUEUE, PAYWALL_ENABLED
 
 
@@ -158,8 +161,10 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
         if PAYWALL_ENABLED:
             article = self.get_object()
             if article.paywall_enabled:
+                if not self.request.user.is_authenticated():
+                    return PublicArticleLimitedSerializer
                 user_accessed = ArticleUserAccess.objects.filter(article=article, user=self.request.user).exists()
-                if not self.request.user.is_authenticated() or (article.owner != self.request.user and user_accessed):
+                if article.owner != self.request.user and not user_accessed:
                     return PublicArticleLimitedSerializer
 
         return super(PublicArticleViewSet, self).get_serializer_class()
@@ -186,6 +191,21 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
             data = serializer.data
             cache.set(cache_key, json.dumps(serializer.data))
             return Response(data)
+
+    @detail_route(methods=['POST'], permission_classes=[permissions.IsAuthenticated])
+    def buy(self, request, *args, **kwargs):
+        article = self.get_object()
+        if not article.paywall_enabled:
+            return Response({'msg': 'Article doesn\'t have PayWall option'}, status=HTTP_400_BAD_REQUEST)
+        if article.has_access(request.user):
+            return Response({'msg': 'You already have access to this article'}, status=HTTP_400_BAD_REQUEST)
+        order, created = PayWallOrder.objects.get_or_create(
+            article=article,
+            customer=request.user,
+            price=article.paywall_price,
+            currency=article.paywall_currency
+        )
+        return Response(PayWallOrderSerializer(order).data)
 
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):

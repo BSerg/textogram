@@ -41,8 +41,6 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.sitemaps',
     'rest_framework',
-    'rest_framework.authtoken',
-    'corsheaders',
     'storages',
     'sorl.thumbnail',
 ]
@@ -57,6 +55,7 @@ INSTALLED_APPS += [
     'url_shortener',
     'frontend',
     'statistics',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'textogram.urls'
@@ -170,7 +169,7 @@ AUTH_SERVICE_SSL_VERIFY = False
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
+        'accounts.auth.JWTAuthentication'
     ),
     'DEFAULT_THROTTLE_RATES': {
         'search': '60/min',
@@ -295,6 +294,18 @@ REDIS_CACHE_PORT = 6379
 REDIS_CACHE_HOST = '127.0.0.1'
 REDIS_CACHE_DB = 0
 REDIS_CACHE_KEY_PREFIX = 't'
+
+# Wallet one
+
+WMI_MERCHANT_ID = ''
+WMI_CURRENCY_MAP = {
+    'RUR': 643,
+    'USD': 840,
+    'EUR': 978
+}
+WMI_SECRET_KEY = ''
+WMI_FORM_ACTION = 'https://wl.walletone.com/checkout/checkout/Index'
+
 
 try:
     from local_settings import *

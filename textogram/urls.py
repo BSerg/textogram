@@ -30,7 +30,8 @@ urlpatterns = [
     url(r'', include('api.urls')),
     url(r'', include('frontend.urls')),
     url(r'^%s(?P<code>\w{4,})/?$' % ('!' if not IS_LENTACH else ''), UrlShortDetailView.as_view(), name='short_url'),
-    url(r'^statistics/', include('statistics.urls'))
+    url(r'^statistics/', include('statistics.urls')),
+    url(r'^payments/', include('payments.urls')),
 ]
 
 

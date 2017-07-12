@@ -90,6 +90,9 @@ class Article(models.Model):
         if save:
             self.save()
 
+    def has_access(self, user):
+        return ArticleUserAccess.objects.filter(article=self, user=user).exists()
+
     def __unicode__(self):
         return self.content.get('title') or 'Статья #%d' % self.id
 
@@ -157,18 +160,18 @@ class ArticlePreview(models.Model):
 
 
 class ArticleUserAccess(models.Model):
-    uid = models.CharField('Номер доступа', max_length=8, default='fake')
-    article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='user_access')
+    order = models.OneToOneField('payments.PayWallOrder', verbose_name='Заказ',
+                                 related_name='access', blank=True, null=True)
+    article = models.ForeignKey('articles.Article', verbose_name='Статья', related_name='user_accesses')
     user = models.ForeignKey('accounts.User', verbose_name='Пользователь')
     created_at = models.DateTimeField(auto_now_add=True)
-    last_modified = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
         return 'Access Article #%d | User #%d' % (self.article_id, self.user_id)
 
     class Meta:
-        verbose_name = 'Заказ Paywall'
-        verbose_name_plural = 'Заказы Paywall'
+        verbose_name = 'Доступ к статье'
+        verbose_name_plural = 'Доступы к статьям'
 
 
 @receiver(pre_save, sender=Article)

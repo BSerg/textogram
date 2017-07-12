@@ -2,13 +2,13 @@ from __future__ import unicode_literals
 
 import hashlib
 
+from articles.validators import IS_REQUIRED, MAX_LENGTH, MIN_LENGTH, NULLABLE, TYPE, ANY, STRUCTURE, STRUCTURE_LIST, \
+    ContentValidator
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from articles import ArticleContentType
 from articles.utils import process_content, ContentBlockMetaGenerator, content_to_html
-from articles.validation import IS_REQUIRED, MAX_LENGTH, MIN_LENGTH, NULLABLE, TYPE, ANY, STRUCTURE, STRUCTURE_LIST, \
-    ContentValidator
 
 
 class ArticleContentValidationTestCase(TestCase):
