@@ -115,7 +115,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
         return obj.content.get('inverted_theme')
 
     def get_images(self, obj):
-        return ArticleImageSerializer(obj.images.all(), many=True).data
+        return ArticleImageSerializer(obj.images.all(), context=self.context, many=True).data
 
     class Meta:
         model = Article
