@@ -10,7 +10,7 @@ from api.v1.accounts.serializers import PublicUserSerializer
 from api.v1.advertisement.serializers import BannerSerializer
 from articles import ArticleContentType
 from articles.models import Article, ArticleImage
-from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE
+from textogram.settings import THUMBNAIL_MEDIUM_SIZE, THUMBNAIL_LARGE_SIZE, THUMBNAIL_REGULAR_SIZE, THUMBNAIL_SMALL_SIZE
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -21,10 +21,26 @@ class ArticleSerializer(serializers.ModelSerializer):
 
 
 class ArticleImageSerializer(serializers.ModelSerializer):
+    regular = serializers.SerializerMethodField()
+    small = serializers.SerializerMethodField()
+    medium = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
+    original = serializers.SerializerMethodField()
+
+    def get_small(self, obj):
+        return obj.get_image_url(THUMBNAIL_SMALL_SIZE)
+
+    def get_medium(self, obj):
+        return obj.get_image_url(THUMBNAIL_MEDIUM_SIZE)
+
+    def get_regular(self, obj):
+        return obj.get_image_url(THUMBNAIL_REGULAR_SIZE)
 
     def get_preview(self, obj):
         return obj.get_image_url(THUMBNAIL_MEDIUM_SIZE)
+
+    def get_original(self, obj):
+        return obj.get_image_url()
 
     class Meta:
         model = ArticleImage
@@ -41,6 +57,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.SerializerMethodField()
     short_url = serializers.SerializerMethodField()
     advertisement = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     def get_title(self, obj):
         return obj.content.get('title')
@@ -97,10 +114,13 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     def get_inverted_theme(self, obj):
         return obj.content.get('inverted_theme')
 
+    def get_images(self, obj):
+        return ArticleImageSerializer(obj.images.all(), many=True).data
+
     class Meta:
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'content',
-                  'url', 'short_url', 'ads_enabled', 'advertisement']
+                  'url', 'short_url', 'ads_enabled', 'advertisement', 'images']
 
 
 class PublicArticleLimitedSerializer(PublicArticleSerializer):
