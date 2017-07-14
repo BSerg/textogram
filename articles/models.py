@@ -84,11 +84,12 @@ class Article(models.Model):
         return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': short_url.code}))
 
     def update_html(self, save=True):
-        image_data = {i.id: i.get_image_url for i in self.images.all()}
-        self.content = process_content(self.content)
-        self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
-        if save:
-            self.save()
+        return
+        # image_data = {i.id: i.get_image_url for i in self.images.all()}
+        # self.content = process_content(self.content)
+        # self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
+        # if save:
+        #     self.save()
 
     def has_access(self, user):
         return ArticleUserAccess.objects.filter(article=self, user=user).exists()
