@@ -7,23 +7,22 @@ from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
+from django.core.management import call_command
 from django.db import models
 from django.db.models import F
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils import timezone
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 from sorl.thumbnail import get_thumbnail
 
-from articles.utils import process_content, content_to_html
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
-from url_shortener.models import UrlShort
-
-from django.core.management import call_command
 from textogram.settings import USE_REDIS_CACHE
+from url_shortener.models import UrlShort
 
 
 def _upload_to(instance, filename):
@@ -216,6 +215,13 @@ def set_status_changed_articles(sender, instance, **kwargs):
 
         if instance.status != current_status:
             instance.status_changed = True
+
+
+@receiver(post_save, sender=Article)
+def set_published_at(sender, instance, **kwargs):
+    if not instance.published_at and instance.status == Article.PUBLISHED:
+        instance.published_at = timezone.now()
+        instance.save()
 
 
 @receiver(post_save, sender=Article)
