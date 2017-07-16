@@ -18,6 +18,7 @@ from polymorphic.models import PolymorphicModel
 from slugify import slugify
 from sorl.thumbnail import get_thumbnail
 
+from articles.utils import process_content
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
@@ -83,9 +84,11 @@ class Article(models.Model):
         return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': short_url.code}))
 
     def update_html(self, save=True):
-        return
-        # image_data = {i.id: i.get_image_url for i in self.images.all()}
+        pass
         # self.content = process_content(self.content)
+        # if save:
+        #     self.save()
+        # image_data = {i.id: i.get_image_url for i in self.images.all()}
         # self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
         # if save:
         #     self.save()
@@ -198,7 +201,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     if instance.status != Article.DELETED:
-        instance.update_html(save=False)
+        instance.content = process_content(instance.content)
         instance.title = instance.content.get('title') or ''
 
 
