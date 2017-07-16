@@ -1,9 +1,13 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
+from django.core.management import call_command
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch.dispatcher import receiver
 
 from advertisement import BannerID
+from textogram.settings import USE_REDIS_CACHE
 
 
 class BannerGroup(models.Model):
@@ -44,3 +48,10 @@ class Banner(models.Model):
         ordering = ['-weight']
         verbose_name = 'Баннер'
         verbose_name_plural = 'Баннеры'
+
+
+@receiver(post_save, sender=BannerGroup)
+@receiver(post_save, sender=Banner)
+def _update_advertisements_cache(sender, instance, **kwargs):
+    if USE_REDIS_CACHE:
+        call_command('cache_advertisements')

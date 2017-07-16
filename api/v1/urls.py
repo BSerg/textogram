@@ -9,4 +9,5 @@ urlpatterns = [
     url(r'^v1/', include('api.v1.url_shortener.urls')),
     url(r'^v1/', include('api.v1.statistics.urls')),
     url(r'^v1/', include('api.v1.payments.urls')),
+    url(r'^v1/', include('api.v1.advertisement.urls')),
 ]
