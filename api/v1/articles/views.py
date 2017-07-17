@@ -6,7 +6,6 @@ import json
 from django.core.cache import cache
 from django.core.exceptions import FieldError
 from django.core.files.base import ContentFile
-from django.utils import timezone
 from redis import Redis
 from rest_framework import viewsets, mixins, permissions
 from rest_framework.decorators import detail_route, list_route
@@ -17,7 +16,6 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rq import Queue
 
 from accounts.models import Subscription
-from api.v1 import articles
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
     PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
@@ -61,7 +59,6 @@ class ArticleViewSet(viewsets.ModelViewSet):
         if article.status != Article.DRAFT:
             raise ValidationError('Article\'s status is not DRAFT')
         article.status = Article.PUBLISHED
-        article.published_at = article.published_at or timezone.now()
         article.save()
         return Response(ArticleSerializer(article).data)
 

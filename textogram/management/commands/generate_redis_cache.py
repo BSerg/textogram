@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+from advertisement.cache_utils import update_advertisements_cache
 from articles.cache_utils import update_article_cache, update_feed_cache, generate_search_index, \
     cache_articles_views_count, update_short_url_cache
 from accounts.cache_utils import update_user_cache
@@ -20,3 +22,4 @@ class Command(BaseCommand):
         generate_search_index()
         update_user_cache()
         update_short_url_cache()
+        update_advertisements_cache()

@@ -7,23 +7,23 @@ from uuid import uuid4
 
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.sites.models import Site
+from django.core.management import call_command
 from django.db import models
 from django.db.models import F
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils import timezone
 from polymorphic.models import PolymorphicModel
 from slugify import slugify
 from sorl.thumbnail import get_thumbnail
 
-from articles.utils import process_content, content_to_html
+from articles.utils import process_content
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
 from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
-from url_shortener.models import UrlShort
-
-from django.core.management import call_command
 from textogram.settings import USE_REDIS_CACHE
+from url_shortener.models import UrlShort
 
 
 def _upload_to(instance, filename):
@@ -84,9 +84,11 @@ class Article(models.Model):
         return 'http://%s%s' % (Site.objects.get_current().domain, reverse('short_url', kwargs={'code': short_url.code}))
 
     def update_html(self, save=True):
-        return
-        # image_data = {i.id: i.get_image_url for i in self.images.all()}
+        pass
         # self.content = process_content(self.content)
+        # if save:
+        #     self.save()
+        # image_data = {i.id: i.get_image_url for i in self.images.all()}
         # self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
         # if save:
         #     self.save()
@@ -199,7 +201,7 @@ def update_slug(sender, instance, **kwargs):
 @receiver(pre_save, sender=Article)
 def process_content_pre_save(sender, instance, **kwargs):
     if instance.status != Article.DELETED:
-        instance.update_html(save=False)
+        instance.content = process_content(instance.content)
         instance.title = instance.content.get('title') or ''
 
 
@@ -216,6 +218,13 @@ def set_status_changed_articles(sender, instance, **kwargs):
 
         if instance.status != current_status:
             instance.status_changed = True
+
+
+@receiver(post_save, sender=Article)
+def set_published_at(sender, instance, **kwargs):
+    if not instance.published_at and instance.status == Article.PUBLISHED:
+        instance.published_at = timezone.now()
+        instance.save()
 
 
 @receiver(post_save, sender=Article)
