@@ -436,12 +436,12 @@ def get_handler(url, **kwargs):
             return handler_class(url, **kwargs)
 
 
-def get_embed(url, **kwargs):
+def get_embed_data(url, **kwargs):
     for handler_class in EMBED_HANDLERS:
         if handler_class.is_valid(url):
             handler = handler_class(url, **kwargs)
             try:
-                return handler.get_embed()
+                return handler.data
             except EmbedHandlerError:
                 return
 
@@ -488,10 +488,10 @@ class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
         meta = super(EmbedBlockMetaGenerator, self).get_meta()
         if self.is_valid():
             if self.content['type'] == ArticleContentType.VIDEO:
-                embed = get_embed(self.content['value'], type='video')
+                data = get_embed_data(self.content['value'], type='video')
             else:
-                embed = get_embed(self.content['value'])
-            meta['embed'] = embed
+                data = get_embed_data(self.content['value'])
+            meta.update(data)
         return meta
 
 
