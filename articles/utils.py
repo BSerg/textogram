@@ -2,12 +2,14 @@
 from __future__ import unicode_literals
 
 import hashlib
+import json
 import math
 import re
 
 import markdown
 import requests
 from django.core.exceptions import ValidationError
+from django.utils.functional import cached_property
 
 from advertisement import BannerID
 from articles import ArticleContentType
@@ -348,25 +350,42 @@ class SoundCloudEmbedHandler(EmbedHandler):
     TYPE = 'soundcloud'
     EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/(?P<id>[\w\-]+)$']
     EMBED_CODE_REGEX = [
-        r'^<iframe( width="\d+%?")?( height="\d+")?( scrolling="(yes|no)")?( frameborder="(yes|no)")? src="https://w\.soundcloud\.com/player/\?url=https(%3A|:)//api\.soundcloud\.com/tracks/(?P<id>\d+)((&amp;|&)\w+=(\w+|true|false))*"></iframe>$'
+        r'^<iframe( width=\"(?P<width>\d+%?)\")?( height=\"(?P<height>\d+)\")?( scrolling=\"(yes|no)\")?( frameborder=\"(yes|no)\")? src=\"https://w\.soundcloud\.com/player/\?((&amp;|&)?\w+=(\w+|true|false))*(&amp;|&)?url=https?(%3A|:)(%2F|/)(%2F|/)api\.soundcloud\.com(%2F|/)tracks(%2F|/)(?P<id>\d+)((&amp;|&)\w+=(\w+|true|false))*\"></iframe>$'
     ]
     API_URL = 'http://soundcloud.com/oembed'
 
-    def get_id(self):
-        r = self.url_valid(self.url) or self.code_valid(self.url)
-        if r:
-            return r.group('id')
-
-    def _get_data(self):
+    @cached_property
+    def _data(self):
         if self.url_valid(self.url):
             r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
             if r.status_code != 200:
                 raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
             return r.json()
 
+    def get_id(self):
+        data = self._data
+        if data and 'html' in data:
+            r = re.match(self.EMBED_CODE_REGEX[0], data['html'].replace('\\', ''))
+            if r:
+                return r.group('id')
+
+    def get_width(self):
+        data = self._data
+        if data and 'html' in data:
+            r = re.match(self.EMBED_CODE_REGEX[0], data['html'].replace('\\', ''))
+            if r:
+                return r.group('width')
+
+    def get_height(self):
+        data = self._data
+        if data and 'html' in data:
+            r = re.match(self.EMBED_CODE_REGEX[0], data['html'].replace('\\', ''))
+            if r:
+                return r.group('height')
+
     def get_embed(self):
         if self.url_valid(self.url):
-            data = self._get_data()
+            data = self._data
             if 'html' not in data:
                 raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
             return data['html']
