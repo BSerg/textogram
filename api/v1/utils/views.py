@@ -20,9 +20,9 @@ class EmbedAPIView(APIView):
 
         handler = get_handler(url, type=type)
         try:
-            embed = handler.get_embed()
+            data = handler.data
         except EmbedHandlerError:
             raise ValidationError('Embed process error')
-        if not embed:
+        if not data:
             raise ValidationError('URL was not processed correctly')
-        return Response({'url': url, 'embed': embed, 'type': handler.get_type()})
+        return Response(data)

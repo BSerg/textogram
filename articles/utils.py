@@ -30,21 +30,19 @@ class EmbedHandler(object):
         self.url = url
 
     @classmethod
-    def get_type(cls):
-        return cls.TYPE
-
-    @classmethod
     def url_valid(cls, url):
         for regex in cls.EMBED_URL_REGEX:
-            if re.match(regex, url):
-                return True
+            r = re.match(regex, url)
+            if r:
+                return r
         return False
 
     @classmethod
     def code_valid(cls, code):
         for regex in cls.EMBED_CODE_REGEX:
-            if re.match(regex, code):
-                return True
+            r = re.match(regex, code)
+            if r:
+                return r
         return False
 
     @classmethod
@@ -54,6 +52,30 @@ class EmbedHandler(object):
     def get_embed(self):
         raise NotImplementedError
 
+    @classmethod
+    def get_type(cls):
+        return cls.TYPE
+
+    def get_id(self):
+        raise NotImplementedError
+
+    def get_width(self):
+        return None
+
+    def get_height(self):
+        return None
+
+    @property
+    def data(self):
+        return {
+            'url': self.url,
+            'type': self.get_type(),
+            'id': self.get_id(),
+            'width': self.get_width(),
+            'height': self.get_height(),
+            'embed': self.get_embed(),
+        }
+
 
 class YoutubeEmbedHandler(EmbedHandler):
     TYPE = 'youtube'
@@ -62,7 +84,7 @@ class YoutubeEmbedHandler(EmbedHandler):
         r'^https://youtu\.be/(?P<id>[\w\-]+)([?&][\w\-]+=[^&]+)*'
     ]
     EMBED_CODE_REGEX = [
-        r'^<iframe( width=\"\d+\")?( height=\"\d+\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[\w\-]+((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
+        r'^<iframe( width=\"(?P<width>\d+)\")?( height=\"(?P<height>\d+)\")? src=\"https:\/\/www\.youtube(-nocookie)?\.com\/embed\/(?P<id>[\w\-]+)((\?|&|&amp;)\w+=\w+)*\"( frameborder=\"(0|1)\")?( allowfullscreen)?><\/iframe>$',
     ]
 
     def __init__(self, url, width=560, height=315, **kwargs):
@@ -70,11 +92,37 @@ class YoutubeEmbedHandler(EmbedHandler):
         self.width = width
         self.height = height
 
+    def _get_match(self):
+        return self.url_valid(self.url) or self.code_valid(self.url)
+
     def _get_id(self):
         for regex in self.EMBED_URL_REGEX:
             r = re.match(regex, self.url)
             if r and r.group('id'):
                 return r.group('id')
+
+    def get_id(self):
+        r = self._get_match()
+        if r:
+            return r.group('id')
+
+    def get_width(self):
+        r = self._get_match()
+        if r:
+            try:
+                return r.group('width')
+            except:
+                pass
+        return self.width
+
+    def get_height(self):
+        r = self._get_match()
+        if r:
+            try:
+                return r.group('height')
+            except:
+                pass
+        return self.height
 
     def get_embed(self):
         if self.url_valid(self.url):
@@ -89,7 +137,7 @@ class YoutubeEmbedHandler(EmbedHandler):
 
 class TwitterEmbedHandler(EmbedHandler):
     TYPE = 'twitter'
-    EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/\d+\/?([&?][\w\-]+=[^&]+)*$']
+    EMBED_URL_REGEX = [r'^https://twitter\.com/\w+/status/(?P<id>\d+)\/?([&?][\w\-]+=[^&]+)*$']
     EMBED_CODE_REGEX = [
         r'^<blockquote class="twitter-(tweet|video)" data-lang="\w+"><p lang="\w+" dir="ltr">.+</blockquote>\s*<script async src="//platform\.twitter\.com\/widgets\.js" charset="utf-8"></script>$',
     ]
@@ -97,6 +145,14 @@ class TwitterEmbedHandler(EmbedHandler):
     def __init__(self, url, type=None, **kwargs):
         super(TwitterEmbedHandler, self).__init__(url, **kwargs)
         self.type = type
+
+    def get_id(self):
+        if self.url_valid(self.url):
+            return self.url_valid(self.url).group('id')
+        elif self.code_valid(self.url):
+            r = re.search(self.EMBED_URL_REGEX[0], self.url)
+            if r:
+                return r.group('id')
 
     def get_embed(self):
         if self.url_valid(self.url):
@@ -116,7 +172,7 @@ class VimeoEmbedHandler(EmbedHandler):
     TYPE = 'vimeo'
     EMBED_URL_REGEX = [r'^https://vimeo\.com/(?P<id>\d+)(#\w+=\w+)?$']
     EMBED_CODE_REGEX = [
-        r'^<iframe src=\"https:\/\/player\.vimeo\.com\/video\/\d+([\?&]\w+=\w+)*\" width=\"\d+\" height=\"\d+\"( frameborder=\"(0|1)\")?( (webkit|moz)?allowfullscreen)*><\/iframe>(\s*<p>(\s*.)+<\/p>)?$',
+        r'^<iframe src=\"https:\/\/player\.vimeo\.com\/video\/(?P<id>\d+)([\?&]\w+=\w+)*\" width=\"(?P<width>\d+)\" height=\"(?P<height>\d+)\"( frameborder=\"(0|1)\")?( (webkit|moz)?allowfullscreen)*><\/iframe>(\s*<p>(\s*.)+<\/p>)?$',
     ]
     PLAYER_URL = '//player.vimeo.com/video/{id}'
 
@@ -124,6 +180,32 @@ class VimeoEmbedHandler(EmbedHandler):
         super(VimeoEmbedHandler, self).__init__(url, **kwargs)
         self.width = width
         self.height = height
+
+    def _get_match(self):
+        return self.url_valid(self.url) or self.code_valid(self.url)
+
+    def get_id(self):
+        r = self._get_match()
+        if r:
+            return r.group('id')
+
+    def get_width(self):
+        r = self._get_match()
+        if r:
+            try:
+                return r.group('width')
+            except:
+                pass
+        return self.width
+
+    def get_height(self):
+        r = self._get_match()
+        if r:
+            try:
+                return r.group('height')
+            except:
+                pass
+        return self.height
 
     def get_embed(self):
         if self.url_valid(self.url):
@@ -143,6 +225,11 @@ class InstagramEmbedHandler(EmbedHandler):
     EMBED_URL_REGEX = [r'^https://www\.instagram\.com/p/(?P<id>[\w\-_]+)/?([&?][\w\-]+=[^&]+)*$']
     API_URL = 'https://api.instagram.com/oembed/?callback=instgrm.Embeds.process()&url=%(url)s'
 
+    def get_id(self):
+        r = self.url_valid(self.url)
+        if r:
+            return r.group('id')
+
     def get_embed(self):
         r = requests.get(self.API_URL % {'url': self.url})
         if r.status_code != 200:
@@ -154,12 +241,12 @@ class InstagramEmbedHandler(EmbedHandler):
 
 
 class FacebookEmbedHandler(EmbedHandler):
-    TYPE = 'fb'
+    TYPE = 'facebook'
     EMBED_URL_REGEX = [
-        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/\d+/?([&?][\w\-]+=[^&]+)*$',
+        r'^https://(www|ru-ru)\.facebook\.com/[\w\-._]+/(posts|videos)/(?P<id>\d+)/?([&?][\w\-]+=[^&]+)*$',
     ]
     EMBED_CODE_REGEX = [
-        r'<iframe src=\"https:\/\/[\w\-]+\.facebook\.com\/plugins\/(post|video)\.php\?href=https(%3A|:)(%2F%2F|\/\/)www\.facebook\.com(%2F|\/)[\w\-.]+(%2F|\/)(posts|videos)(%2F|\/)\d+(%2F|\/)?(&show_text=(0|1))?&width=\d+\"( width=\"\d+\")?( height=\"\d+\")?( style=\".+\")?( scrolling=\"(yes|no)\")?( frameborder=\"(0|1)\")?( allowTransparency=\"(true|false)\")?(allowFullScreen=\"(true|false)\")?><\/iframe>'
+        r'<iframe src=\"https:\/\/[\w\-]+\.facebook\.com\/plugins\/(post|video)\.php\?href=https(%3A|:)(%2F%2F|\/\/)www\.facebook\.com(%2F|\/)[\w\-.]+(%2F|\/)(posts|videos)(%2F|\/)(?P<id>\d+)(%2F|\/)?(&show_text=(0|1))?&width=\d+\"( width=\"\d+\")?( height=\"\d+\")?( style=\".+\")?( scrolling=\"(yes|no)\")?( frameborder=\"(0|1)\")?( allowTransparency=\"(true|false)\")?(allowFullScreen=\"(true|false)\")?><\/iframe>'
     ]
 
     def __init__(self, url, type=None, **kwargs):
@@ -180,6 +267,11 @@ class FacebookEmbedHandler(EmbedHandler):
             return iframe % {'url': self.url}
         elif self.code_valid(self.url):
             return self.url
+
+    def get_id(self):
+        r = self.url_valid(self.url) or self.code_valid(self.url)
+        if r:
+            return r.group('id')
 
     def get_embed(self):
         if self.url_valid(self.url):
@@ -254,18 +346,27 @@ class CoubEmbedHandler(EmbedHandler):
 
 class SoundCloudEmbedHandler(EmbedHandler):
     TYPE = 'soundcloud'
-    EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/[\w\-]+$']
+    EMBED_URL_REGEX = [r'^https://soundcloud\.com/[\w\-]+/(?P<id>[\w\-]+)$']
     EMBED_CODE_REGEX = [
-        r'^<iframe( width="\d+%?")?( height="\d+")?( scrolling="(yes|no)")?( frameborder="(yes|no)")? src="https://w\.soundcloud\.com/player/\?url=https(%3A|:)//api\.soundcloud\.com/tracks/\d+((&amp;|&)\w+=(\w+|true|false))*"></iframe>$'
+        r'^<iframe( width="\d+%?")?( height="\d+")?( scrolling="(yes|no)")?( frameborder="(yes|no)")? src="https://w\.soundcloud\.com/player/\?url=https(%3A|:)//api\.soundcloud\.com/tracks/(?P<id>\d+)((&amp;|&)\w+=(\w+|true|false))*"></iframe>$'
     ]
     API_URL = 'http://soundcloud.com/oembed'
 
-    def get_embed(self):
+    def get_id(self):
+        r = self.url_valid(self.url) or self.code_valid(self.url)
+        if r:
+            return r.group('id')
+
+    def _get_data(self):
         if self.url_valid(self.url):
             r = requests.get(self.API_URL, params={'format': 'json', 'iframe': True, 'url': self.url})
             if r.status_code != 200:
                 raise EmbedHandlerError('SoundCloud handler error. SoundCloud api is not available')
-            data = r.json()
+            return r.json()
+
+    def get_embed(self):
+        if self.url_valid(self.url):
+            data = self._get_data()
             if 'html' not in data:
                 raise EmbedHandlerError('SoundCloud handler error. SoundCloud api response error')
             return data['html']
