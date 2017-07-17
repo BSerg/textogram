@@ -405,6 +405,8 @@ class Login(APIView):
     def post(self, request):
         user = authenticate(**request.data)
         if user:
+            if request.data.get('superuser') and not user.is_superuser:
+                return Response({'msg': 'error'}, status=HTTP_401_UNAUTHORIZED)
             user_data = MeUserSerializer(user).data
             if getattr(user, '_created', False):
                 user_data.update(created=True)
