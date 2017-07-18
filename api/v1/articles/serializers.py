@@ -26,8 +26,8 @@ class ArticleImageSerializer(serializers.ModelSerializer):
     medium = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
     original = serializers.SerializerMethodField()
-    original_width = serializers.IntegerField(source='image.width', read_only=True)
-    original_height = serializers.IntegerField(source='image.height', read_only=True)
+    original_width = serializers.SerializerMethodField()
+    original_height = serializers.SerializerMethodField()
 
     def get_small(self, obj):
         return obj.get_image_url(THUMBNAIL_SMALL_SIZE)
@@ -43,6 +43,14 @@ class ArticleImageSerializer(serializers.ModelSerializer):
 
     def get_original(self, obj):
         return obj.get_image_url()
+
+    def get_original_width(self, obj):
+        if obj.image:
+            return obj.image.width
+
+    def get_original_height(self, obj):
+        if obj.image:
+            return obj.image.height
 
     class Meta:
         model = ArticleImage
