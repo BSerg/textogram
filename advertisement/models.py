@@ -1,6 +1,7 @@
 #! coding: utf-8
 from __future__ import unicode_literals
 
+from django.contrib.postgres.fields.jsonb import JSONField
 from django.core.management import call_command
 from django.db import models
 from django.db.models.signals import post_save
@@ -38,6 +39,7 @@ class Banner(models.Model):
     is_ab = models.BooleanField('Участвует в A/B тестировании', default=False)
     weight = models.PositiveSmallIntegerField('Вес', default=1,
                                               help_text='Вес показа баннера для A/B тестирования в группе')
+    apm_props = JSONField('AMP Свойства', blank=True, null=True)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
 
