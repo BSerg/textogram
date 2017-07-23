@@ -22,6 +22,18 @@ class CounterCode(models.Model):
         verbose_name_plural = 'Код счетчиков'
 
 
+class RobotsRules(models.Model):
+    text = models.TextField('Текст')
+    is_active = models.BooleanField('Активно', default=True)
+
+    def __unicode__(self):
+        return self.text
+
+    class Meta:
+        verbose_name = 'Robots.txt'
+        verbose_name_plural = 'Robots.txt'
+
+
 @receiver(post_save, sender=CounterCode)
 def clear_counter_cache(*args, **kwargs):
     cache_key = make_template_fragment_key('counters')

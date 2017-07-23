@@ -20,6 +20,7 @@ from django.contrib.sitemaps.views import sitemap as sitemap_views
 from django.views.decorators.cache import cache_page
 
 from articles.sitemaps import ArticleSitemap
+from common.views import RobotsView
 from textogram.settings import DEBUG, MEDIA_URL, MEDIA_ROOT
 from url_shortener.views import UrlShortDetailView
 
@@ -40,7 +41,8 @@ sitemaps = {
 }
 
 urlpatterns += [
-    url(r'^sitemap\.xml$', cache_page(86400)(sitemap_views), {'sitemaps': sitemaps})
+    url(r'^sitemap\.xml$', cache_page(86400)(sitemap_views), {'sitemaps': sitemaps}),
+    url(r'^robots\.txt$', cache_page(86400)(RobotsView.as_view())),
 ]
 
 handler404 = 'frontend.views.handler404'
