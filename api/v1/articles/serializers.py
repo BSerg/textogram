@@ -66,7 +66,6 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     views = serializers.IntegerField(source='views_cached')
     url = serializers.SerializerMethodField()
     short_url = serializers.SerializerMethodField()
-    advertisement = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
 
     def get_title(self, obj):
@@ -93,33 +92,6 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_short_url(self, obj):
         return obj.get_short_url()
-
-    def get_advertisement(self, obj):
-        if not obj.ads_enabled:
-            return
-
-        def get_weighted_choice(weighted_ids):
-            total = sum([w for _, w in weighted_ids])
-            r = random.uniform(0, total)
-            upto = 0
-            for _id, w in _weighted_ids:
-                if w + upto >= r:
-                    return _id
-                upto += w
-
-        groups = BannerGroup.objects.filter(is_active=True).prefetch_related('banners')
-        if groups.exists():
-            _banners = defaultdict(lambda: defaultdict(lambda: []))
-            for group in groups:
-                key = 'desktop' if not group.is_mobile else 'mobile'
-                if group.banners.filter(is_active=True, is_ab=False).exists():
-                    _banners[key][group.identifier] = BannerSerializer(group.banners.filter(is_active=True), many=True).data
-                if group.banners.filter(is_active=True, is_ab=True).exists():
-                    _weighted_ids = group.banners.filter(is_active=True, is_ab=True).values_list('id', 'weight')
-                    _id = get_weighted_choice(_weighted_ids)
-                    if _id:
-                        _banners[key][group.identifier].append(BannerSerializer(group.banners.get(pk=_id)).data)
-            return _banners
         
     def get_inverted_theme(self, obj):
         return obj.content.get('inverted_theme')
@@ -130,13 +102,18 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'content',
-                  'url', 'short_url', 'ads_enabled', 'advertisement', 'images']
+                  'url', 'short_url', 'ads_enabled', 'images']
 
 
 class PublicArticleLimitedSerializer(PublicArticleSerializer):
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme',
                   'published_at', 'views', 'url', 'short_url', 'paywall_enabled', 'paywall_price', 'paywall_currency']
+
+
+class PublicArticleFeedSerializer(PublicArticleSerializer):
+    class Meta(PublicArticleSerializer.Meta):
+        fields = ['id', 'slug', 'title']
 
 
 class PublicArticleSerializerMin(PublicArticleSerializer):

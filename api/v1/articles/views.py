@@ -18,7 +18,7 @@ from rq import Queue
 from accounts.models import Subscription
 from api.v1.articles.permissions import IsOwnerForUnsafeRequests, IsArticleContentOwner, IsOwner
 from api.v1.articles.serializers import ArticleSerializer, PublicArticleSerializer, ArticleImageSerializer, \
-    PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer
+    PublicArticleSerializerMin, DraftArticleSerializer, PublicArticleLimitedSerializer, PublicArticleFeedSerializer
 from api.v1.articles.throttles import SearchRateThrottle, ImageUploadRateThrottle
 from api.v1.payments.serializers import PayWallOrderSerializer
 from articles.models import Article, ArticleImage, ArticleUserAccess
@@ -204,6 +204,12 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return Response(PayWallOrderSerializer(order).data)
 
+    @detail_route(methods=['GET'])
+    def recommendations(self, request, *args, **kwargs):
+        article = self.get_object()
+        recommendations = self.get_queryset().filter(owner=article.owner, published_at__lt=article.published_at).order_by('-published_at')[:5]
+        return Response(PublicArticleFeedSerializer(recommendations, many=True).data)
+
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Article.objects.filter(status=Article.DRAFT)
@@ -226,4 +232,4 @@ class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
 class ArticlePreviewView(viewsets.ReadOnlyModelViewSet):
     queryset = Article.objects.filter(status=Article.DRAFT)
     permission_classes = [permissions.IsAuthenticated, IsOwner]
-    serializer_class = PublicArticleSerializer
+    serializer_class = PublicArticleSerializerMin
