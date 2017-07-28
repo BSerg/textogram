@@ -59,7 +59,7 @@ class EmbedHandler(object):
         return cls.TYPE
 
     def get_id(self):
-        raise NotImplementedError
+        return None
 
     def get_width(self):
         return None
