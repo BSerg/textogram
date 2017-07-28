@@ -523,6 +523,9 @@ def process_content(content):
         meta_generator = ContentBlockMetaGenerator.get_instance(block)
         if meta_generator:
             block['__meta'] = meta_generator.get_meta()
+        # sanitize
+        if 'value' in block and isinstance(block['value'], (str, unicode)):
+            block['value'] = re.sub(r'<[^>]+>', '', block['value'])
         temp_blocks.append(block)
     content['blocks'] = temp_blocks
     is_valid = True
