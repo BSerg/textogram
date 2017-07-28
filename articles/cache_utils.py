@@ -1,16 +1,18 @@
 #!coding:utf-8
 from __future__ import unicode_literals
 
-from redis import StrictRedis
-from articles.models import Article, ArticleView
-from accounts.models import User, Subscription
-from url_shortener.models import UrlShort
-from api.v1.articles.serializers import PublicArticleSerializer, PublicArticleSerializerMin
-from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX, IS_LENTACH
 import json
-from datetime import datetime, timedelta
-from django.utils import timezone
+from datetime import datetime
 
+from django.utils import timezone
+from redis import StrictRedis
+
+from accounts.models import User, Subscription
+from api.v1.articles.serializers import PublicArticleSerializer, PublicArticleSerializerMin
+from articles.models import Article, ArticleView
+from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX, IS_LENTACH, \
+    ARTICLE_RECOMMENDATIONS_MAX_COUNT
+from url_shortener.models import UrlShort
 
 MIN_SEARCH_STRING_LENGTH = 3
 MAX_SEARCH_STRING_LENGTH = 20
@@ -134,7 +136,6 @@ def save_cached_views_to_db():
                 view_instances.append(view_instance)
         if view_instances:
             ArticleView.objects.bulk_create(view_instances, batch_size=500)
-            print view_instances
         r.zremrangebyscore(key, '-inf', '+inf')
 
 
@@ -183,3 +184,24 @@ def update_short_url_cache(url_id=None):
     for url in UrlShort.objects.filter(**params):
         r.set('%s:s:%s%s' % (REDIS_CACHE_KEY_PREFIX, '!' if not IS_LENTACH else '', url.code),
               url.article.get_full_url() if url.article else url.url)
+
+
+def update_article_recommendations(slug, delete=False):
+    if not delete:
+        try:
+            article = Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            return
+        recommendations = Article.objects.filter(
+            status=Article.PUBLISHED, owner=article.owner,
+            published_at__lt=article.published_at).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
+
+        key = '%s:article:%s:recommendations' % (REDIS_CACHE_KEY_PREFIX, slug)
+        r.delete(key)
+        for rec in recommendations:
+            r.rpush(key, rec.slug)
+            r.sadd('%s:article:%s:recommendations:index' % (REDIS_CACHE_KEY_PREFIX, rec.slug), slug)
+    else:
+        r.delete('%s:article:%s:recommendations' % (REDIS_CACHE_KEY_PREFIX, slug))
+        for i in r.smembers('%s:article:%s:recommendations:index' % (REDIS_CACHE_KEY_PREFIX, slug)):
+            r.lrem('%s:article:%s:recommendations' % (REDIS_CACHE_KEY_PREFIX, i), slug)

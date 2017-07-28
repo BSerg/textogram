@@ -208,7 +208,7 @@ class PublicArticleViewSet(viewsets.ReadOnlyModelViewSet):
     def recommendations(self, request, *args, **kwargs):
         article = self.get_object()
         recommendations = self.get_queryset().filter(owner=article.owner, published_at__lt=article.published_at).order_by('-published_at')[:5]
-        return Response(PublicArticleFeedSerializer(recommendations, many=True).data)
+        return Response(recommendations.values_list('slug', flat=True))
 
 
 class DraftListViewSet(viewsets.ReadOnlyModelViewSet):

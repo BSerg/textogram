@@ -215,7 +215,6 @@ def update_views_cached(sender, instance, created, **kwargs):
 def set_status_changed_articles(sender, instance, **kwargs):
     if instance.id:
         current_status = Article.objects.get(pk=instance.id).status
-
         if instance.status != current_status:
             instance.status_changed = True
 
@@ -229,7 +228,7 @@ def set_published_at(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Article)
 def recount_published_articles(sender, instance, **kwargs):
-    if hasattr(instance, 'status_changed'):
+    if hasattr(instance, 'status_changed') and instance.status_changed:
         user = instance.owner
         user.number_of_published_articles_cached = Article.objects.filter(status=Article.PUBLISHED, owner=user).count()
         user.save()
@@ -252,3 +251,9 @@ def cache_article(sender, instance, created, **kwargs):
             pass
         call_command('generate_article_search_index', instance.id)
         call_command('update_article_feed_cache', instance.id)
+
+
+@receiver(post_save, sender=Article)
+def cache_article_recommendations(sender, instance, created, **kwargs):
+    if hasattr(instance, 'status_changed') and instance.status_changed:
+        call_command('update_article_recommendations', instance.slug, delete=instance.status != Article.PUBLISHED)

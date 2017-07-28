@@ -306,6 +306,9 @@ WMI_CURRENCY_MAP = {
 WMI_SECRET_KEY = ''
 WMI_FORM_ACTION = 'https://wl.walletone.com/checkout/checkout/Index'
 
+# Recommendations
+
+ARTICLE_RECOMMENDATIONS_MAX_COUNT = 10
 
 try:
     from local_settings import *
