@@ -510,7 +510,8 @@ class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
                 data = get_embed_data(self.content['value'], type='video')
             else:
                 data = get_embed_data(self.content['value'])
-            meta.update(data)
+            if data:
+                meta.update(data)
         return meta
 
 
@@ -524,7 +525,8 @@ def process_content(content):
         if meta_generator:
             block['__meta'] = meta_generator.get_meta()
         # sanitize
-        if 'value' in block and isinstance(block['value'], (str, unicode)):
+        if block.get('type') not in [ArticleContentType.POST, ArticleContentType.AUDIO, ArticleContentType.VIDEO] and \
+                'value' in block and isinstance(block['value'], (str, unicode)):
             block['value'] = re.sub(r'<[^>]+>', '', block['value'])
         temp_blocks.append(block)
     content['blocks'] = temp_blocks
