@@ -232,4 +232,4 @@ class DraftListViewSet(viewsets.ReadOnlyModelViewSet):
 class ArticlePreviewView(viewsets.ReadOnlyModelViewSet):
     queryset = Article.objects.filter(status=Article.DRAFT)
     permission_classes = [permissions.IsAuthenticated, IsOwner]
-    serializer_class = PublicArticleSerializerMin
+    serializer_class = PublicArticleSerializer
