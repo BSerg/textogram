@@ -580,11 +580,11 @@ def gif2video(file, command_pattern, ext):
 
 
 def gif2mp4(image):
-    return gif2video(image, '/bin/bash ffmpeg -y -v panic -i %(src)s -an -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" %(dest)s', 'mp4')
+    return gif2video(image, '/usr/bin/ffmpeg -y -v panic -i %(src)s -an -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" %(dest)s', 'mp4')
 
 
 def gif2webm(image):
-    return gif2video(image, '/bin/bash ffmpeg -y -i %(src)s -an -c:v libvpx -crf 12 -b:v 500k %(dest)s', 'webm')
+    return gif2video(image, '/usr/bin/ffmpeg -y -i %(src)s -an -c:v libvpx -crf 12 -b:v 500k %(dest)s', 'webm')
 
 
 # CONTENT CONVERTER
