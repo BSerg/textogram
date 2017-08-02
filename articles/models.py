@@ -257,3 +257,10 @@ def cache_article(sender, instance, created, **kwargs):
 def cache_article_recommendations(sender, instance, created, **kwargs):
     if hasattr(instance, 'status_changed') and instance.status_changed:
         call_command('update_article_recommendations', instance.slug, delete=instance.status != Article.PUBLISHED)
+
+
+@receiver(post_save, sender=Article)
+def process_gif2mp4(sender, instance, created, **kwargs):
+    if instance.status == Article.PUBLISHED:
+        call_command('convert_gif2video', instance.pk)
+

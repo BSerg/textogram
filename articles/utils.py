@@ -4,6 +4,10 @@ from __future__ import unicode_literals
 import hashlib
 import json
 import math
+import subprocess
+from copy import copy
+from tempfile import NamedTemporaryFile
+
 import re
 
 import markdown
@@ -472,6 +476,8 @@ class ContentBlockMetaGenerator(object):
     def get_instance(cls, content):
         if content.get('type') in [ArticleContentType.VIDEO, ArticleContentType.AUDIO, ArticleContentType.POST]:
             return EmbedBlockMetaGenerator(content, _type=content['type'])
+        elif content.get('type') == ArticleContentType.PHOTO:
+            return PhotoBlockMetaGenerator(content)
         return cls(content)
 
     def __init__(self, content):
@@ -488,10 +494,16 @@ class ContentBlockMetaGenerator(object):
                 is_valid = False
         return is_valid
 
+    @staticmethod
+    def hash(content):
+        _content = copy(content)
+        _content.pop('__meta', None)
+        return hashlib.md5(str(_content)).hexdigest()
+
     def get_content_hash(self):
         return hashlib.md5(str(self.content)).hexdigest()
 
-    def get_meta(self):
+    def get_meta(self, old_meta=None):
         return {
             'is_valid': self.is_valid(),
             'hash': self.get_content_hash()
@@ -503,7 +515,7 @@ class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
         super(EmbedBlockMetaGenerator, self).__init__(content)
         self.type = _type
 
-    def get_meta(self):
+    def get_meta(self, old_meta=None):
         meta = super(EmbedBlockMetaGenerator, self).get_meta()
         if self.is_valid():
             if self.content['type'] == ArticleContentType.VIDEO:
@@ -515,6 +527,16 @@ class EmbedBlockMetaGenerator(ContentBlockMetaGenerator):
         return meta
 
 
+class PhotoBlockMetaGenerator(ContentBlockMetaGenerator):
+    def get_meta(self, old_meta=None):
+        meta = super(PhotoBlockMetaGenerator, self).get_meta()
+        if 'mp4' in old_meta:
+            meta['mp4'] = old_meta['mp4']
+        if 'webm' in old_meta:
+            meta['webm'] = old_meta['webm']
+        return meta
+
+
 def process_content(content):
     temp_blocks = []
     for block in content.get('blocks', []):
@@ -523,7 +545,9 @@ def process_content(content):
             continue
         meta_generator = ContentBlockMetaGenerator.get_instance(block)
         if meta_generator:
-            block['__meta'] = meta_generator.get_meta()
+            block['__meta'] = meta_generator.get_meta(meta)
+            if block['__meta'].get('hash') != meta.get('hash'):
+                block['__meta']['is_changed'] = True
         # sanitize
         if block.get('type') not in [ArticleContentType.POST, ArticleContentType.AUDIO, ArticleContentType.VIDEO] and \
                 'value' in block and isinstance(block['value'], (str, unicode)):
@@ -538,6 +562,29 @@ def process_content(content):
             is_valid = False
     content['__meta'] = {'is_valid': is_valid}
     return content
+
+
+def gif2video(file, command_pattern, ext):
+    temp = NamedTemporaryFile()
+    temp.write(file)
+    temp_output = NamedTemporaryFile(suffix='.' + ext)
+    try:
+        result = subprocess.call(command_pattern % {'src': temp.name, 'dest': temp_output.name}, shell=True)
+    except Exception as e:
+        return e, None
+
+    if result != 0:
+        return 'Unexpected error', None
+
+    return None, temp_output
+
+
+def gif2mp4(image):
+    return gif2video(image, 'ffmpeg -y -v panic -i %(src)s -an -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" %(dest)s', 'mp4')
+
+
+def gif2webm(image):
+    return gif2video(image, 'ffmpeg -y -i %(src)s -an -c:v libvpx -crf 12 -b:v 500k %(dest)s', 'webm')
 
 
 # CONTENT CONVERTER
