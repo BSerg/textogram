@@ -42,12 +42,13 @@ class Banner(models.Model):
     amp_props = JSONField('AMP Свойства', blank=True, null=True)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
+    position = models.PositiveSmallIntegerField('Позиция', default=0)
 
     def __unicode__(self):
         return self.name
 
     class Meta:
-        ordering = ['-weight']
+        ordering = ['position']
         verbose_name = 'Баннер'
         verbose_name_plural = 'Баннеры'
 
