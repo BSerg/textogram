@@ -21,7 +21,7 @@ from sorl.thumbnail import get_thumbnail
 from articles.utils import process_content
 from articles.validators import ContentValidator, validate_content_size
 from common import upload_to
-from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR
+from textogram.settings import PAYWALL_CURRENCIES, PAYWALL_CURRENCY_RUR, ARTICLE_RECOMMENDATIONS_MAX_COUNT
 from textogram.settings import USE_REDIS_CACHE
 from url_shortener.models import UrlShort
 
@@ -95,6 +95,13 @@ class Article(models.Model):
 
     def has_access(self, user):
         return ArticleUserAccess.objects.filter(article=self, user=user).exists()
+
+    def get_recommendations(self):
+        # recommendations = Article.objects.filter(
+        #     status=Article.PUBLISHED, owner=self.owner,
+        #     published_at__lt=self.published_at).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
+        return Article.objects.filter(status=Article.PUBLISHED, owner=self.owner) \
+            .exclude(pk=self.pk).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
 
     def __unicode__(self):
         return self.content.get('title') or 'Статья #%d' % self.id

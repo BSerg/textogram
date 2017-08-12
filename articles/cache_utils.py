@@ -192,13 +192,10 @@ def update_article_recommendations(slug, delete=False):
             article = Article.objects.get(slug=slug)
         except Article.DoesNotExist:
             return
-        recommendations = Article.objects.filter(
-            status=Article.PUBLISHED, owner=article.owner,
-            published_at__lt=article.published_at).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
 
         key = '%s:article:%s:recommendations' % (REDIS_CACHE_KEY_PREFIX, slug)
         r.delete(key)
-        for rec in recommendations:
+        for rec in article.get_recommendations():
             r.rpush(key, rec.slug)
             r.sadd('%s:article:%s:recommendations:index' % (REDIS_CACHE_KEY_PREFIX, rec.slug), slug)
     else:
