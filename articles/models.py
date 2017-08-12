@@ -85,13 +85,6 @@ class Article(models.Model):
 
     def update_html(self, save=True):
         pass
-        # self.content = process_content(self.content)
-        # if save:
-        #     self.save()
-        # image_data = {i.id: i.get_image_url for i in self.images.all()}
-        # self.html = content_to_html(self.content, ads_enabled=self.ads_enabled, image_data=image_data)
-        # if save:
-        #     self.save()
 
     def has_access(self, user):
         return ArticleUserAccess.objects.filter(article=self, user=user).exists()
