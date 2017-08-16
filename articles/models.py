@@ -90,9 +90,6 @@ class Article(models.Model):
         return ArticleUserAccess.objects.filter(article=self, user=user).exists()
 
     def get_recommendations(self):
-        # recommendations = Article.objects.filter(
-        #     status=Article.PUBLISHED, owner=self.owner,
-        #     published_at__lt=self.published_at).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
         return Article.objects.filter(status=Article.PUBLISHED, owner=self.owner) \
             .exclude(pk=self.pk).order_by('-published_at')[:ARTICLE_RECOMMENDATIONS_MAX_COUNT]
 
