@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 
-from advertisement.models import BannerGroup
+from advertisement.models import BannerGroup, Banner
 from api.v1.advertisement.serializers import BannerSerializer
 
 
@@ -32,3 +32,11 @@ def serialize_banners():
                 _banners[key][group.identifier].append(BannerSerializer(group.banners.get(pk=_id)).data)
 
     return _banners
+
+
+def serialize_banners2():
+    banners = Banner.objects.filter(is_active=True)
+    _banners = defaultdict(lambda: [])
+    for b in banners:
+        _banners['%dx%d' % (b.width, b.height)].append(BannerSerializer(b).data)
+    return {'map': _banners, 'banners': BannerSerializer(banners, many=True).data}

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.views import APIView
 
-from advertisement.utils import serialize_banners
+from advertisement.utils import serialize_banners, serialize_banners2
 
 
 class BannersView(APIView):
@@ -15,3 +15,8 @@ class BannersView(APIView):
         if not _banners:
             return Response({'msg': 'Not Found'}, status=HTTP_404_NOT_FOUND)
         return Response(_banners)
+
+
+class Banners2View(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response(serialize_banners2())

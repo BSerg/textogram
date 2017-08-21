@@ -37,8 +37,7 @@ class Banner(models.Model):
     is_fullwidth = models.BooleanField('На всю ширину', default=False)
     is_active = models.BooleanField('Активно', default=False)
     is_ab = models.BooleanField('Участвует в A/B тестировании', default=False)
-    weight = models.PositiveSmallIntegerField('Вес', default=1,
-                                              help_text='Вес показа баннера для A/B тестирования в группе')
+    weight = models.PositiveSmallIntegerField('Вес', default=1)
     amp_props = JSONField('AMP Свойства', blank=True, null=True)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
