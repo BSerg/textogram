@@ -38,5 +38,6 @@ def serialize_banners2():
     banners = Banner.objects.filter(is_active=True)
     _banners = defaultdict(lambda: [])
     for b in banners:
-        _banners['%dx%d' % (b.width, b.height)].append(BannerSerializer(b).data)
+        if b.width and b.height:
+            _banners['%dx%d' % (b.width, b.height)].append(BannerSerializer(b).data)
     return {'map': _banners, 'banners': BannerSerializer(banners, many=True).data}
