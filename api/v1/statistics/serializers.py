@@ -1,21 +1,16 @@
-import pytz
-from datetime import timedelta
-
-from dateutil import relativedelta
 from django.db.models import F
 from django.db.models import Sum, Max
-from django.utils import timezone
+from redis import StrictRedis
 from rest_framework import serializers
 
 from accounts.models import User
 from articles.models import Article
-from statistics.models import ArticleViewsStatistics
-from statistics.utils import get_article_day_views_chart_data, get_article_month_views_chart_data, \
-    get_article_views_chart_data
+from textogram.settings import REDIS_CACHE_KEY_PREFIX, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_DB
+
+r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
 
 
 class UserCommonStatisticsSerializer(serializers.ModelSerializer):
-    date = serializers.SerializerMethodField()
     views_today = serializers.SerializerMethodField()
     views_month = serializers.SerializerMethodField()
     views_last_month = serializers.SerializerMethodField()
@@ -26,30 +21,50 @@ class UserCommonStatisticsSerializer(serializers.ModelSerializer):
     age_25 = serializers.SerializerMethodField()
     age_35 = serializers.SerializerMethodField()
     age_45 = serializers.SerializerMethodField()
+    age_55 = serializers.SerializerMethodField()
 
-    def get_date(self, obj):
-        return obj.articles.aggregate(date=Max('statistics__date_to'))['date']
+    def get_data(self, obj, field, typ=int):
+        key = '%s:author:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, obj.id)
+        res = r.hget(key, field)
+        return typ(res) if res else None
 
     def get_views_today(self, obj):
-        return obj.articles.aggregate(views=Sum('statistics__views_today'))['views']
+        return self.get_data(obj, 'views_today')
 
     def get_views_month(self, obj):
-        return obj.articles.aggregate(views=Sum('statistics__views_month'))['views']
+        return self.get_data(obj, 'views_month')
 
     def get_views_last_month(self, obj):
-        return obj.articles.aggregate(views=Sum('statistics__views_last_month'))['views']
+        return self.get_data(obj, 'views_prev_month')
 
     def get_views_total(self, obj):
-        return obj.articles.aggregate(views=Sum('statistics__views'))['views']
+        return self.get_data(obj, 'views_total')
 
     def get_male_percent(self, obj):
         total_views = self.get_views_total(obj)
-        return obj.articles.aggregate(male_percent=Sum(F('statistics__male_percent') * F('statistics__views') / total_views))['male_percent']
+        s = 0
+
+        for article in obj.articles.all():
+            key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+            male_persent = r.hget(key, 'male_percent')
+            views = r.hget(key, 'views_total')
+            if male_persent is not None and views is not None:
+                s += float(male_persent) * int(views)
+
+        return s / int(total_views) if total_views else None
 
     def _get_age(self, obj, field_name=None):
-        if field_name:
-            total_views = self.get_views_total(obj)
-            return obj.articles.aggregate(percent=Sum(F('statistics__%s' % field_name) * F('statistics__views') / total_views))['percent']
+        total_views = self.get_views_total(obj)
+        s = 0
+
+        for article in obj.articles.all():
+            key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+            age_views = r.hget(key, field_name)
+            views = r.hget(key, 'views_total')
+            if age_views is not None and views is not None:
+                s += float(age_views) * float(views)
+
+        return s / float(total_views) if total_views else None
 
     def get_age_17(self, obj):
         return self._get_age(obj, 'age_17')
@@ -66,56 +81,87 @@ class UserCommonStatisticsSerializer(serializers.ModelSerializer):
     def get_age_45(self, obj):
         return self._get_age(obj, 'age_45')
 
+    def get_age_55(self, obj):
+        return self._get_age(obj, 'age_55')
+
     class Meta:
         model = User
-        fields = ['date', 'views_today', 'views_month', 'views_last_month', 'views_total',
-                  'male_percent', 'age_17', 'age_18', 'age_25', 'age_35', 'age_45']
+        fields = ['views_today', 'views_month', 'views_last_month', 'views_total',
+                  'male_percent', 'age_17', 'age_18', 'age_25', 'age_35', 'age_45', 'age_55']
 
 
 class ArticleCommonStatisticsSerializer(serializers.ModelSerializer):
-    views_today = serializers.IntegerField(source='statistics.views_today')
-    views_month = serializers.IntegerField(source='statistics.views_month')
-    views_last_month = serializers.IntegerField(source='statistics.views_last_month')
-    views_total = serializers.IntegerField(source='statistics.views')
+    views_today = serializers.SerializerMethodField()
+    views_month = serializers.SerializerMethodField()
+    views_last_month = serializers.SerializerMethodField()
+    views_total = serializers.SerializerMethodField()
+
+    def get_data(self, article_slug):
+        key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article_slug)
+        return r.hgetall(key)
+
+    def get_views_today(self, obj):
+        return self.get_data(obj.slug).get('views_today')
+
+    def get_views_month(self, obj):
+        return self.get_data(obj.slug).get('views_month')
+
+    def get_views_last_month(self, obj):
+        return self.get_data(obj.slug).get('views_prev_month')
+
+    def get_views_total(self, obj):
+        return self.get_data(obj.slug).get('views_total')
 
     class Meta:
         model = Article
         fields = ['id', 'slug', 'title', 'views_today', 'views_month', 'views_last_month', 'views_total']
 
 
-class ArticleStatisticsSerializer(serializers.ModelSerializer):
-    views_today = serializers.IntegerField(source='statistics.views_today')
-    views_month = serializers.IntegerField(source='statistics.views_month')
-    views_last_month = serializers.IntegerField(source='statistics.views_last_month')
-    views_total = serializers.IntegerField(source='statistics.views')
+class ArticleStatisticsSerializer(ArticleCommonStatisticsSerializer):
+    male_percent = serializers.SerializerMethodField()
 
-    male_percent = serializers.FloatField(source='statistics.male_percent')
+    age_17 = serializers.SerializerMethodField()
+    age_18 = serializers.SerializerMethodField()
+    age_25 = serializers.SerializerMethodField()
+    age_35 = serializers.SerializerMethodField()
+    age_45 = serializers.SerializerMethodField()
+    age_55 = serializers.SerializerMethodField()
 
-    age_17 = serializers.FloatField(source='statistics.age_17')
-    age_18 = serializers.FloatField(source='statistics.age_18')
-    age_25 = serializers.FloatField(source='statistics.age_25')
-    age_35 = serializers.FloatField(source='statistics.age_35')
-    age_45 = serializers.FloatField(source='statistics.age_45')
+    views_chart = serializers.SerializerMethodField()
 
-    today_chart = serializers.SerializerMethodField()
-    month_chart = serializers.SerializerMethodField()
-    last_month_chart = serializers.SerializerMethodField()
-    full_chart = serializers.SerializerMethodField()
+    def get_male_percent(self, obj):
+        return self.get_data(obj.slug).get('male_percent')
 
-    def get_today_chart(self, obj):
-        return get_article_day_views_chart_data(obj, timezone.now())
+    def get_age_17(self, obj):
+        return self.get_data(obj.slug).get('age_17')
 
-    def get_month_chart(self, obj):
-        return get_article_month_views_chart_data(obj, timezone.now())
+    def get_age_18(self, obj):
+        return self.get_data(obj.slug).get('age_18')
 
-    def get_last_month_chart(self, obj):
-        return get_article_month_views_chart_data(obj, timezone.now() - relativedelta.relativedelta(months=1))
+    def get_age_25(self, obj):
+        return self.get_data(obj.slug).get('age_25')
 
-    def get_full_chart(self, obj):
-        return get_article_views_chart_data(obj)
+    def get_age_35(self, obj):
+        return self.get_data(obj.slug).get('age_35')
+
+    def get_age_45(self, obj):
+        return self.get_data(obj.slug).get('age_45')
+
+    def get_age_55(self, obj):
+        return self.get_data(obj.slug).get('age_55')
+
+    def get_views_chart(self, obj):
+        key = '%s:article:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, obj.slug)
+        return [(int(i.split(':')[0]), int(i.split(':')[1])) for i in r.zrangebyscore(key, '-inf', '+inf')]
 
     class Meta:
         model = Article
         fields = ['id', 'slug', 'title', 'views_today', 'views_month', 'views_last_month', 'views_total',
-                  'male_percent', 'age_17', 'age_18', 'age_25', 'age_35', 'age_45',
-                  'today_chart', 'month_chart', 'last_month_chart', 'full_chart']
+                  'male_percent', 'age_17', 'age_18', 'age_25', 'age_35', 'age_45', 'age_55', 'views_chart']
+
+
+class ArticleStatsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Article
+        fields = ['id', 'slug', 'title']

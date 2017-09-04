@@ -2,24 +2,30 @@
 
 from __future__ import unicode_literals
 
-import re
-import time
 from collections import defaultdict
 from datetime import timedelta
 
-import pytz
+import re
 import requests
-from dateutil import relativedelta, relativedelta
+from dateutil import relativedelta
 from django.db.models import Min, Count, Sum
 from django.db.models.functions import TruncDay, TruncHour
 from django.utils import timezone
+from redis import StrictRedis
 
+from accounts.models import User
 from articles.models import Article, ArticleView
-from statistics.models import ArticleAggregatedStatistics, ArticleViewsStatistics
-from textogram.settings import YANDEX_METRICS_COUNTER_ID, YANDEX_ACCESS_TOKEN
+from statistics.utils import get_article_views_by_day, get_article_views_today, get_yandex_age_statistics, \
+    get_yandex_gender_statistics, get_yandex_views_statistics, get_article_views_month, get_article_views_prev_month, \
+    get_article_views_total, get_author_views_today, get_author_views_month, get_author_views_prev_month, \
+    get_author_views_total
+from textogram.settings import YANDEX_METRICS_COUNTER_ID, YANDEX_ACCESS_TOKEN, REDIS_CACHE_HOST, REDIS_CACHE_PORT, \
+    REDIS_CACHE_DB, REDIS_CACHE_KEY_PREFIX
 
 API_URL = 'https://api-metrika.yandex.ru/stat/v1/data?id={counter_id}&oauth_token={token}'\
     .format(counter_id=YANDEX_METRICS_COUNTER_ID, token=YANDEX_ACCESS_TOKEN)
+
+r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
 
 
 def _request_yandex_metrics(metrics, dimensions, filters=None, sort=None, date_from='365daysAgo', date_to='today', limit=10000, offset=1):
@@ -62,7 +68,7 @@ def get_gender_statistics(**kwargs):
                 _data[key][item['dimensions'][1]['id']] += item['metrics'][0]
     temp_data = defaultdict(lambda: {'male_percent': None})
     for k, v in _data.items():
-        temp_data[k] = {'male_percent': v['male'] / (v['male'] + v['female']) if v['male'] + v['female'] else None}
+        temp_data[k] = {'male_percent': v['male'] / (v['male'] + v['female']) if (v['male'] + v['female']) else None}
     return temp_data
 
 
@@ -114,49 +120,6 @@ def get_views_statistics(**kwargs):
     return _data
 
 
-def task_update_aggregated_statistics(tz_name='Europe/Moscow', **kwargs):
-    tz = pytz.timezone(tz_name)
-    today_now = timezone.now().astimezone(tz)
-
-    delay = 10
-    stats_funcs = [
-        get_gender_statistics,
-        get_age_statistics,
-        get_views_statistics
-    ]
-    data = defaultdict(lambda: {})
-    results = {'total': 0, 'success': 0, 'error': 0}
-
-    for index, func in enumerate(stats_funcs):
-        if index > 0:
-            time.sleep(delay)
-        d = func(**kwargs)
-
-        for k, v in d.items():
-            data[k].update(date_to=today_now)
-            data[k].update(**v)
-
-    for _url, defaults in data.items():
-        results['total'] += 1
-        slug_re = re.match(r'^/articles/(?P<slug>[\w\-]+)', _url)
-        if slug_re:
-            slug = slug_re.group('slug')
-            try:
-                article = Article.objects.get(slug=slug)
-            except Article.DoesNotExist:
-                results['error'] += 1
-                continue
-            try:
-                ArticleAggregatedStatistics.objects.update_or_create(article=article, defaults=defaults)
-                results['success'] += 1
-            except Exception as e:
-                results['error'] += 1
-        else:
-            results['error'] += 1
-
-    return data, results
-
-
 def _get_article_views_queryset(article_id, **kwargs):
     auth_user_fingerprints = ArticleView.objects.filter(article_id=article_id, user__isnull=False).values_list(
         'fingerprint', flat=True)
@@ -177,28 +140,6 @@ def _get_total_article_unique_views(article_id, **kwargs):
 def _get_total_article_unique_views_count(article_id, **kwargs):
     unique_views = _get_total_article_unique_views(article_id, **kwargs)
     return unique_views.count()
-
-
-def task_update_article_total_views(article_id, tz_name='Europe/Moscow'):
-    tz = pytz.timezone(tz_name)
-    today_now = timezone.now().astimezone(tz)
-    today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    this_month_start = today_start.replace(day=1)
-    this_month_end = today_start
-    prev_month_start = this_month_start - relativedelta.relativedelta(months=1)
-    prev_month_end = this_month_start
-
-    today_views = _get_total_article_unique_views_count(article_id, created_at__gte=today_start, created_at__lt=today_now)
-    this_month_views = _get_total_article_unique_views_count(article_id, created_at__gte=this_month_start, created_at__lt=this_month_end)
-    prev_month_views = _get_total_article_unique_views_count(article_id, created_at__gte=prev_month_start, created_at__lt=prev_month_end)
-    total_views = _get_total_article_unique_views_count(article_id)
-    defaults = {
-        'views': total_views,
-        'views_today': today_views,
-        'views_month': this_month_views,
-        'views_last_month': prev_month_views
-    }
-    ArticleAggregatedStatistics.objects.update_or_create(article_id=article_id, defaults=defaults)
 
 
 def get_article_unique_views_by_month(article_id, date_start=None, date_end=None):
@@ -252,47 +193,98 @@ def get_months_ranges(date_start, date_end, include_last=False):
     return months_ranges
 
 
-def task_update_article_views_by_intervals(article_id, tz_name='Europe/Moscow', init=False):
-    tz = pytz.timezone(tz_name)
-    today_now = timezone.now().astimezone(tz)
-    today_start = today_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    this_month_start = today_start.replace(day=1)
-    this_month_end = this_month_start + relativedelta.relativedelta(months=1)
-    months_ranges = [(this_month_start, this_month_end)]
+def task_cache_article_views_by_day(article_id):
+    try:
+        article = Article.objects.get(pk=article_id)
+    except Article.DoesNotExist:
+        return
+    data = get_article_views_by_day(article_id)
+    key = '%s:article:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+    for timestamp, views in data:
+        value = '%d:%d' % (timestamp, views)
+        r.zadd(key, timestamp, value)
 
-    if init:
-        ArticleViewsStatistics.objects.filter(article_id=article_id).delete()
 
-        first_view = _get_article_views_queryset(article_id).order_by('created_at').first()
-        if first_view:
-            months_ranges = get_months_ranges(first_view.created_at.astimezone(tz), this_month_start) + months_ranges
+def task_cache_article_views_today(article_id):
+    try:
+        article = Article.objects.get(pk=article_id)
+    except Article.DoesNotExist:
+        return
 
-    for _month_start, _month_end in months_ranges:
-        _month_views_data = get_article_unique_views_by_month(article_id, _month_start, _month_end)
-        if _month_views_data.get('views_data'):
-            for day, count in _month_views_data['views_data']:
-                views_stat, created = ArticleViewsStatistics.objects.get_or_create(
-                    article_id=article_id,
-                    type=ArticleViewsStatistics.MONTH,
-                    date_start=_month_start,
-                    date_end=_month_end,
-                    interval_start=day,
-                    interval_end=day + timedelta(days=1)
-                )
-                views_stat.views_count = count
-                views_stat.save()
+    timestamp, views = get_article_views_today(article_id)
+    key = '%s:article:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+    r.zremrangebyscore(key, timestamp, 'inf')
+    r.zadd(key, timestamp, '%d:%d' % (timestamp, views))
 
-    this_day_views_data = get_article_unique_views_by_day(article_id, today_start, today_now)
-    if this_day_views_data.get('views_data'):
-        for hour, count in this_day_views_data['views_data']:
-            views_stat, created = ArticleViewsStatistics.objects.get_or_create(
-                article_id=article_id,
-                type=ArticleViewsStatistics.DAY,
-                date_start=today_start,
-                date_end=today_now,
-                interval_start=hour,
-                interval_end=hour + timedelta(hours=1)
-            )
-            views_stat.views_count = count
-            views_stat.save()
 
+def task_cache_article_views_common(article_id):
+    try:
+        article = Article.objects.get(pk=article_id)
+    except Article.DoesNotExist:
+        return
+
+    _, views_today = get_article_views_today(article_id)
+    _, views_month = get_article_views_month(article_id)
+    _, views_prev_month = get_article_views_prev_month(article_id)
+    _, views_total = get_article_views_total(article_id)
+
+    key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+    r.hmset(key, {
+        'views_today': views_today,
+        'views_month': views_month,
+        'views_prev_month': views_prev_month,
+        'views_total': views_total
+    })
+
+
+def task_cache_articles_yandex_age_statistics():
+    data = get_yandex_age_statistics()
+    for slug, _data in data.items():
+        try:
+            article = Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            continue
+        key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+        r.hmset(key, _data)
+
+
+def task_cache_articles_yandex_gender_statistics():
+    data = get_yandex_gender_statistics()
+    for slug, _data in data.items():
+        try:
+            article = Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            continue
+        key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+        r.hmset(key, _data)
+
+
+def task_cache_articles_yandex_views_statistics():
+    data = get_yandex_views_statistics()
+    for slug, _data in data.items():
+        try:
+            article = Article.objects.get(slug=slug)
+        except Article.DoesNotExist:
+            continue
+        key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+        r.hmset(key, _data)
+
+
+def task_cache_author_views_common(user_id):
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return
+
+    _, views_today = get_author_views_today(user_id)
+    _, views_month = get_author_views_month(user_id)
+    _, views_prev_month = get_author_views_prev_month(user_id)
+    _, views_total = get_author_views_total(user_id)
+
+    key = '%s:author:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, user.id)
+    r.hmset(key, {
+        'views_today': views_today,
+        'views_month': views_month,
+        'views_prev_month': views_prev_month,
+        'views_total': views_total
+    })

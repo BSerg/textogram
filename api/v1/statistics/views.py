@@ -53,4 +53,5 @@ class ArticleCommonStatisticsListSearchView(ArticleCommonStatisticsListView):
 class ArticleStatisticsView(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleStatisticsSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated, IsOwner]

@@ -5,13 +5,11 @@ from redis import Redis
 from rq import Queue
 
 from articles.models import Article
-from statistics.tasks import task_update_aggregated_statistics, task_update_article_total_views
+from statistics.tasks import task_cache_article_views_today
 from textogram.settings import RQ_LOW_QUEUE, RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT
 
 
 class Command(BaseCommand):
-    help = 'Update articles aggregated statistics'
-
     def add_arguments(self, parser):
         parser.add_argument('article_id', nargs='*', type=int)
 
@@ -22,11 +20,8 @@ class Command(BaseCommand):
 
         q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB), default_timeout=RQ_TIMEOUT)
 
-        update_aggregated_statistics_job = q.enqueue(task_update_aggregated_statistics)
-        self.stdout.write('Update aggregated statistics job [%s] created' % update_aggregated_statistics_job.id)
-
         for article in articles:
-            job = q.enqueue(task_update_article_total_views, article.id)
-            self.stdout.write('Update article #%d total views job [%s] created' % (article.id, job.id))
+            job = q.enqueue(task_cache_article_views_today, article.id)
+            self.stdout.write('job [%s] created' % job.id)
 
         self.stdout.write(self.style.SUCCESS('Competed'))
