@@ -96,21 +96,22 @@ class ArticleCommonStatisticsSerializer(serializers.ModelSerializer):
     views_last_month = serializers.SerializerMethodField()
     views_total = serializers.SerializerMethodField()
 
-    def get_data(self, article_slug):
+    def get_data(self, article_slug, field, typ=int):
         key = '%s:article:%s:statistics:common' % (REDIS_CACHE_KEY_PREFIX, article_slug)
-        return r.hgetall(key)
+        res = r.hget(key, field)
+        return typ(res) if res else None
 
     def get_views_today(self, obj):
-        return self.get_data(obj.slug).get('views_today')
+        return self.get_data(obj.slug, 'views_today')
 
     def get_views_month(self, obj):
-        return self.get_data(obj.slug).get('views_month')
+        return self.get_data(obj.slug, 'views_month')
 
     def get_views_last_month(self, obj):
-        return self.get_data(obj.slug).get('views_prev_month')
+        return self.get_data(obj.slug, 'views_prev_month')
 
     def get_views_total(self, obj):
-        return self.get_data(obj.slug).get('views_total')
+        return self.get_data(obj.slug, 'views_total')
 
     class Meta:
         model = Article
@@ -130,25 +131,25 @@ class ArticleStatisticsSerializer(ArticleCommonStatisticsSerializer):
     views_chart = serializers.SerializerMethodField()
 
     def get_male_percent(self, obj):
-        return self.get_data(obj.slug).get('male_percent')
+        return self.get_data(obj.slug, 'male_percent', float)
 
     def get_age_17(self, obj):
-        return self.get_data(obj.slug).get('age_17')
+        return self.get_data(obj.slug, 'age_17', float)
 
     def get_age_18(self, obj):
-        return self.get_data(obj.slug).get('age_18')
+        return self.get_data(obj.slug, 'age_18', float)
 
     def get_age_25(self, obj):
-        return self.get_data(obj.slug).get('age_25')
+        return self.get_data(obj.slug, 'age_25', float)
 
     def get_age_35(self, obj):
-        return self.get_data(obj.slug).get('age_35')
+        return self.get_data(obj.slug, 'age_35', float)
 
     def get_age_45(self, obj):
-        return self.get_data(obj.slug).get('age_45')
+        return self.get_data(obj.slug, 'age_45', float)
 
     def get_age_55(self, obj):
-        return self.get_data(obj.slug).get('age_55')
+        return self.get_data(obj.slug, 'age_55', float)
 
     def get_views_chart(self, obj):
         key = '%s:article:%s:statistics:views' % (REDIS_CACHE_KEY_PREFIX, obj.slug)
