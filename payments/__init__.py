@@ -18,7 +18,7 @@ CURRENCIES = (
 )
 
 
-def yandex_get_hash(data, secret):
+def yandex_get_signature(data, secret):
     return hashlib.md5(';'.join([
         data['action'],
         data['orderSumAmount'],

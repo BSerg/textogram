@@ -295,6 +295,9 @@ REDIS_CACHE_HOST = '127.0.0.1'
 REDIS_CACHE_DB = 0
 REDIS_CACHE_KEY_PREFIX = 't'
 
+
+PAYMENT_TEST = False
+
 # Wallet one
 
 WMI_MERCHANT_ID = ''
@@ -305,6 +308,15 @@ WMI_CURRENCY_MAP = {
 }
 WMI_SECRET_KEY = ''
 WMI_FORM_ACTION = 'https://wl.walletone.com/checkout/checkout/Index'
+
+# Yandex kassa
+
+YK_SHOP_ID = ''
+YK_SCID = ''
+YK_SECRET = ''
+
+
+YK_FORM_ACTION = 'https://money.yandex.ru/eshop.xml'
 
 # Recommendations
 

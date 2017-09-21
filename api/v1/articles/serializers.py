@@ -45,12 +45,18 @@ class ArticleImageSerializer(serializers.ModelSerializer):
         return obj.get_image_url()
 
     def get_original_width(self, obj):
-        if obj.image:
-            return obj.image.width
+        try:
+            if obj.image:
+                return obj.image.width
+        except:
+            return None
 
     def get_original_height(self, obj):
-        if obj.image:
-            return obj.image.height
+        try:
+            if obj.image:
+                return obj.image.height
+        except:
+            return None
 
     class Meta:
         model = ArticleImage

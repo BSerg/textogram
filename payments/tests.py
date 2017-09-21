@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from articles.models import Article, ArticleUserAccess
-from payments import yandex_get_hash, CURRENCY_RUR, walletone_get_signature
+from payments import yandex_get_signature, CURRENCY_RUR, walletone_get_signature
 from payments.models import Account, PayWallOrder
 from textogram.settings import WMI_SECRET_KEY, WMI_MERCHANT_ID
 
@@ -61,7 +61,7 @@ class YandexCheckoutTestCase(TestCase):
             'invoiceId': '55',
             'customerNumber': '8123294469',
         }
-        self.assertEqual(yandex_get_hash(data, self.shopPassword), '1B35ABE38AA54F2931B0C58646FD1321')
+        self.assertEqual(yandex_get_signature(data, self.shopPassword), '1B35ABE38AA54F2931B0C58646FD1321')
 
     def _test_check_order(self):
         pass
