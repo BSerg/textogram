@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import base64
 
+from django.urls import reverse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
@@ -13,7 +14,7 @@ from articles.models import Article
 from payments import walletone_get_signature
 from payments.models import PayWallOrder
 from textogram.settings import WMI_SECRET_KEY, WMI_MERCHANT_ID, WMI_CURRENCY_MAP, WMI_FORM_ACTION, YK_FORM_ACTION, \
-    YK_SHOP_ID, YK_SCID
+    YK_SHOP_ID, YK_SCID, PAYMENT_TEST
 
 
 class WalletOneFormView(APIView):
@@ -88,11 +89,11 @@ class YandexKassaFormView(APIView):
         form = {
             'shooId': YK_SHOP_ID,
             'scid': YK_SCID,
-            'sum': '{0:.2f}'.format(article.paywall_price),
+            'orderSumAmount': '{0:.2f}'.format(article.paywall_price),
             'customerNumber': request.user.username,
             'shopSuccessURL': success_url,
             'shopFailURL': fail_url,
             'orderNumber': order.id,
         }
 
-        return Response({'form': form, 'action': YK_FORM_ACTION})
+        return Response({'form': form, 'action': YK_FORM_ACTION if not PAYMENT_TEST else reverse('yandex_test_page')})

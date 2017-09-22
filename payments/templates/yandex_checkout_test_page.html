@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Yandex Kassa TEst Page</title>
+</head>
+<body>
+    <h1>Здравствуйте, это страница тестирования Яндекс.Касса</h1>
+
+    {% if error %}
+        <h2 style="color: red;">Ошибка</h2>
+        <p style="color: red;">{{ error }}</p>
+    {% else %}
+        <p>Проверка...</p>
+    {% endif %}
+</body>
+</html>
