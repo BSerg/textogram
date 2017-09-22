@@ -167,7 +167,7 @@ class ArticleUserAccess(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
-        return 'Access Article #%d | User #%d' % (self.article_id, self.user_id)
+        return 'Access Article #{} | User #{}'.format(self.article_id, self.user_id)
 
     class Meta:
         verbose_name = 'Доступ к статье'
