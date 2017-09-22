@@ -1,38 +1,31 @@
 from __future__ import unicode_literals
 
 from django.core.management.base import BaseCommand
-from redis import Redis
-from rq import Queue
 
-from articles.cache_utils import update_article_access, remove_article_access
-from articles.models import ArticleUserAccess
-from textogram.settings import RQ_LOW_QUEUE, RQ_HOST, RQ_PORT, RQ_DB, RQ_TIMEOUT
+from articles.models import Article, ArticleUserAccess
+from payments.models import PayWallOrder
 
 
 class Command(BaseCommand):
-    help = 'Cache article access'
+    help = 'Create defaults article access'
 
     def add_arguments(self, parser):
-        parser.add_argument('access_id', nargs='*')
-        parser.add_argument(
-            '-d', '--delete',
-            action='store_true',
-            dest='delete',
-            default=False,
-            help='Delete cached data of the slug',
-        )
+        parser.add_argument('article_id', nargs='*')
 
     def handle(self, *args, **options):
-        q = Queue(RQ_LOW_QUEUE, connection=Redis(host=RQ_HOST, port=RQ_PORT, db=RQ_DB), default_timeout=RQ_TIMEOUT)
-
-        if options['access_id']:
-            accesses = ArticleUserAccess.objects.select_related('article', 'user').filter(pk__in=options['access_id'])
+        if options['article_id']:
+            articles = Article.objects.filter(status=Article.PUBLISHED, paywall_enabled=True, pk__in=options['article_id'])
         else:
-            accesses = ArticleUserAccess.objects.select_related('article', 'user').all()
+            articles = Article.objects.filter(status=Article.PUBLISHED, paywall_enabled=True)
 
-        for access in accesses:
-            if options['delete']:
-                job = q.enqueue(remove_article_access, access.article.slug, access.user.username)
-            else:
-                job = q.enqueue(update_article_access, access.pk)
-            self.stdout.write('Update article access caching jobs created #%s' % job.id)
+        for article in articles:
+            author_access, created = ArticleUserAccess.objects.get_or_create(article=article, user=article.owner)
+
+        paywall_orders = PayWallOrder.objects.filter(article__in=options['article_id'])
+
+        for paywall_order in paywall_orders:
+            access, created = ArticleUserAccess.objects.get_or_create(order=paywall_order,
+                                                                      article=paywall_order.article,
+                                                                      user=paywall_order.customer)
+
+        self.stdout.write('Completed')

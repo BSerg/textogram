@@ -238,6 +238,13 @@ def create_short_url(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=Article)
+def add_access_to_author(sender, instance, **kwargs):
+    if instance.status == Article.PUBLISHED and instance.paywall_enabled and \
+            not instance.user_accesses.filter(user=instance.owner).exists():
+        ArticleUserAccess.objects.create(article=instance, user=instance.owner)
+
+
+@receiver(post_save, sender=Article)
 def cache_article(sender, instance, created, **kwargs):
     if USE_REDIS_CACHE and (instance.status == Article.PUBLISHED or instance.status == Article.DELETED):
         call_command('update_article_cache', instance.id)
@@ -252,7 +259,7 @@ def cache_article(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Article)
 def cache_article_recommendations(sender, instance, created, **kwargs):
-    if hasattr(instance, 'status_changed') and instance.status_changed:
+    if USE_REDIS_CACHE and hasattr(instance, 'status_changed') and instance.status_changed:
         call_command('update_article_recommendations', instance.slug, delete=instance.status != Article.PUBLISHED)
 
 
@@ -264,11 +271,11 @@ def process_gif2mp4(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=ArticleUserAccess)
 def cache_article_access(sender, instance, created, **kwargs):
-    print 'CACHE ARTICLE ACCESS', instance
-    if created:
-        call_command('update_article_access', instance.pk)
+    if USE_REDIS_CACHE and created:
+        call_command('update_article_access_cache', instance.pk)
 
 
 @receiver(pre_delete, sender=ArticleUserAccess)
 def cache_article_access_delete(sender, instance, **kwargs):
-    call_command('update_article_access', instance.id, delete=True)
+    if USE_REDIS_CACHE:
+        call_command('update_article_access_cache', instance.id, delete=True)

@@ -28,3 +28,4 @@ class Command(BaseCommand):
         update_short_url_cache()
         update_advertisements_cache()
         call_command('update_article_recommendations')
+        call_command('update_article_access_cache')
