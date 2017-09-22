@@ -10,7 +10,7 @@ from django.contrib.sites.models import Site
 from django.core.management import call_command
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, pre_delete, post_delete
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
@@ -261,3 +261,14 @@ def process_gif2mp4(sender, instance, created, **kwargs):
     if instance.status == Article.PUBLISHED:
         call_command('convert_gif2video', instance.pk)
 
+
+@receiver(post_save, sender=ArticleUserAccess)
+def cache_article_access(sender, instance, created, **kwargs):
+    print 'CACHE ARTICLE ACCESS', instance
+    if created:
+        call_command('update_article_access', instance.pk)
+
+
+@receiver(pre_delete, sender=ArticleUserAccess)
+def cache_article_access_delete(sender, instance, **kwargs):
+    call_command('update_article_access', instance.id, delete=True)

@@ -204,15 +204,16 @@ def update_article_recommendations(slug, delete=False):
             r.lrem('%s:article:%s:recommendations' % (REDIS_CACHE_KEY_PREFIX, i), slug)
 
 
-def update_article_access(access_id, delete=False):
+def update_article_access(access_id):
     try:
         article_access = ArticleUserAccess.objects.select_related('article', 'user').get(pk=access_id)
     except ArticleUserAccess.DoesNotExist:
         return
 
-    if not delete:
-        r.sadd('%s:article:%s:access' % (REDIS_CACHE_KEY_PREFIX, article_access.article.slug), article_access.user.username)
-        r.sadd('%s:users:%s:article_access' % (REDIS_CACHE_KEY_PREFIX, article_access.user.username), article_access.article.slug)
-    else:
-        r.srem('%s:article:%s:access' % (REDIS_CACHE_KEY_PREFIX, article_access.article.slug), article_access.user.username)
-        r.srem('%s:users:%s:article_access' % (REDIS_CACHE_KEY_PREFIX, article_access.user.username), article_access.article.slug)
+    r.sadd('%s:article:%s:access' % (REDIS_CACHE_KEY_PREFIX, article_access.article.slug), article_access.user.username)
+    r.sadd('%s:users:%s:article_access' % (REDIS_CACHE_KEY_PREFIX, article_access.user.username), article_access.article.slug)
+
+
+def remove_article_access(slug, username):
+    r.srem('%s:article:%s:access' % (REDIS_CACHE_KEY_PREFIX, slug), username)
+    r.srem('%s:users:%s:article_access' % (REDIS_CACHE_KEY_PREFIX, username), slug)

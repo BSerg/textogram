@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from articles.models import Article, ArticleView, ArticleImage
+from articles.models import Article, ArticleView, ArticleImage, ArticleUserAccess
 
 
 class ArticleImageInline(admin.TabularInline):
@@ -22,3 +22,9 @@ class ArticleViewAdmin(admin.ModelAdmin):
     list_display = ['article', 'user', 'fingerprint', 'monetization_enabled', 'created_at']
 
 admin.site.register(ArticleView, ArticleViewAdmin)
+
+
+class ArticleUserAccessAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(ArticleUserAccess, ArticleUserAccessAdmin)
