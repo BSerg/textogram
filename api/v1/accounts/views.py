@@ -71,9 +71,9 @@ class PublicUserViewSet(viewsets.ReadOnlyModelViewSet):
         first_name_param = ''
         last_name_param = ''
         search_string_list = []
-        search_string = self.request.query_params.get('search_string')
+        search_string = self.request.query_params.get('q')
         if search_string:
-            search_string = self.request.query_params.get('search_string')
+            # search_string = self.request.query_params.get('search_string')
             search_string_list = search_string.split(" ")
             first_name_param = search_string_list[0]
             last_name_param = " ".join(search_string_list[1:])
