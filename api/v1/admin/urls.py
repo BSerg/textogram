@@ -10,5 +10,6 @@ router.register('admin/articles', views.AdminArticleViewSet)
 router.register('admin/authors', views.AdminUserViewSet)
 
 urlpatterns = [
+    url(r'admin/me/$', views.MeUserAdminViewSet.as_view({'get': 'retrieve'})),
     url(r'', include(router.urls))
 ]
