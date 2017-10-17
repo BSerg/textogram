@@ -39,12 +39,14 @@ class Article(models.Model):
     PUBLISHED = 2
     DELETED = 3
     SHARED = 4
+    BANNED = 5
 
     STATUSES = (
         (DRAFT, 'Черновик'),
         (PUBLISHED, 'Опубликовано'),
         (DELETED, 'Удалено'),
-        (SHARED, 'Общедоступно')
+        (SHARED, 'Общедоступно'),
+        (BANNED, 'Заблокировано'),
     )
     status = models.PositiveSmallIntegerField('Статус', choices=STATUSES, default=DRAFT, db_index=True)
     owner = models.ForeignKey('accounts.User', related_name='articles')
