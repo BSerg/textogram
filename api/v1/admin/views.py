@@ -81,10 +81,13 @@ class AdminArticleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Article.objects.filter()
         status = self.request.query_params.get('status')
-        if status and status in ('deleted', 'banned'):
-            queryset = queryset.filter(status=Article.DELETED if status == 'deleted' else Article.BANNED)
-        else:
-            queryset = queryset.filter(status=Article.PUBLISHED)
+        if status and status in ('published', 'deleted', 'banned'):
+            if status == 'published':
+                queryset = queryset.filter(status=Article.PUBLISHED)
+            else:
+                queryset = queryset.filter(status=Article.DELETED if status == 'deleted' else Article.BANNED)
+        # else:
+        #     queryset = queryset.filter(status=Article.PUBLISHED)
         search_string = self.request.query_params.get('q')
         if search_string:
             queryset = queryset.filter(title__contains=search_string)
