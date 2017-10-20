@@ -1,5 +1,7 @@
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.template.response import TemplateResponse
+from django.http import HttpResponse
 from django.urls import reverse
 from django.views.generic import DetailView, TemplateView
 
@@ -9,6 +11,9 @@ from textogram.settings import DEBUG
 from rest_framework.authtoken.models import Token
 from django.http.response import HttpResponseRedirect
 from textogram.settings import IS_LENTACH
+
+from frontend.utils.article_amp import generate_amp
+
 
 
 class BaseTemplateView(TemplateView):
@@ -59,6 +64,12 @@ class ArticleView(DetailView):
 class EditorView(DetailView):
     queryset = Article.objects.filter(status__in=[Article.DRAFT, Article.PUBLISHED])
     template_name = 'editor.html'
+
+
+def article_amp_view(request, slug):
+    amp_html = generate_amp(slug)
+    return HttpResponse(amp_html, content_type='text/html')
+    # return TemplateResponse(request, 'article_amp.html')
 
 
 def handler404(request):
