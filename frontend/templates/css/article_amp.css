@@ -444,3 +444,7 @@ ul li {
     width: 100%;
     text-align: center;
 }
+
+amp-image-lightbox img {
+    object-fit: contain;
+}

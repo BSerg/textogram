@@ -42,16 +42,19 @@
 
     {% if embeds.gallery %}
         <script async custom-element="amp-carousel" src="https://cdn.ampproject.org/v0/amp-carousel-0.1.js"></script>
-
+        <script async custom-element="amp-image-lightbox" src="https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js"></script>
     {% endif %}
     <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
     <script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
- </head>
- <body>
- <div id="content">
+</head>
+<body>
+<div id="content">
     {% load amp_tags %}
     {{ cover|safe }}
     {% include 'amp_blocks/amp_cover.html'  %}
+    {% if embeds.gallery %}
+        <amp-image-lightbox id="lightbox" layout="nodisplay"></amp-image-lightbox>
+    {% endif %}
     <div class="main">{% for block in blocks %}
             {% if block.type == block_types.HEADER %}
                 <h2>{{ block.value }}</h2>

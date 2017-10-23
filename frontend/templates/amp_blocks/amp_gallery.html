@@ -4,7 +4,7 @@
         <amp-carousel layout="fixed-height" height="300" type="slides" >
 
             {% for photo in item.photos %}
-                <amp-img tabindex="0" role="button"  layout="fill" src="{{ photo.regular }}"></amp-img>
+                <amp-img on="tap:lightbox" tabindex="0" role="button"  layout="fill" src="{{ photo.regular }}"></amp-img>
             {% endfor %}
         </amp-carousel>
     </div>
