@@ -42,7 +42,7 @@
 
     {% if embeds.gallery %}
         <script async custom-element="amp-carousel" src="https://cdn.ampproject.org/v0/amp-carousel-0.1.js"></script>
-        <script async custom-element="amp-image-lightbox" src="https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js"></script>
+
     {% endif %}
     <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
     <script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
@@ -69,6 +69,8 @@
                 {% include 'amp_blocks/amp_columns.html' with item=block %}
             {% elif block.type == block_types.DIALOG %}
                 {% include 'amp_blocks/amp_dialogue.html' with item=block %}
+            {% elif block.type == block_types.PHOTO %}
+                {% include 'amp_blocks/amp_gallery.html' with item=block %}
             {% elif block.type  == block_types.AUDIO or block.type  == block_types.VIDEO or block.type == block_types.POST %}
                 {% include 'amp_blocks/amp_embed.html' with item=block %}
             {% endif %}
