@@ -110,7 +110,6 @@ def _get_cover_url(article):
 
 def generate_amp(slug):
     try:
-
         article = Article.objects.get(slug=slug, status=Article.PUBLISHED, paywall_enabled=False)
         context = {
             'title': article.title,
@@ -124,13 +123,12 @@ def generate_amp(slug):
             'css': _get_css(),
             'blocks': __process_blocks(article.content.get('blocks') or []),
             'block_types': ArticleContentType.__dict__,
+            'base_url': Site.objects.get_current().domain,
             'url': '%s/article/%s' % (Site.objects.get_current(), article.slug),
             'yandex_counter_id': settings.YANDEX_METRICS_COUNTER_ID,
             'google_counter_id': settings.GOOGLE_ANALYTICS_COUNTER_ID,
-
         }
-        html = render_to_string('article_amp.html', context=context)
-
+        html = render_to_string('article_amp.html', context=context).replace('\n', ' ')
         return html
 
     except (Article.DoesNotExist, EmbedError):

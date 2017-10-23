@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
-    <link rel="canonical" href="/articles/{{ slug }}">
+    <link rel="canonical" href="http://{{ base_url }}/articles/{{ slug }}">
     <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Arimo:400,700|Noto+Serif:400,700|Open+Sans:400,700&subset=cyrillic" rel="stylesheet">
     <style amp-custom>
@@ -50,7 +50,6 @@
 <body>
 <div id="content">
     {% load amp_tags %}
-    {{ cover|safe }}
     {% include 'amp_blocks/amp_cover.html'  %}
     {% if embeds.gallery %}
         <amp-image-lightbox id="lightbox" layout="nodisplay"></amp-image-lightbox>

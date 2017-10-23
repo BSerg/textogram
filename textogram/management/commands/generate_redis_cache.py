@@ -4,7 +4,7 @@ from django.core.management import call_command
 
 from advertisement.cache_utils import update_advertisements_cache
 from articles.cache_utils import update_article_cache, update_feed_cache, generate_search_index, \
-    cache_articles_views_count, update_short_url_cache
+    cache_articles_views_count, update_short_url_cache, update_article_amp_cache
 from accounts.cache_utils import update_user_cache
 from redis import StrictRedis
 
@@ -21,6 +21,7 @@ class Command(BaseCommand):
         r = StrictRedis(host=REDIS_CACHE_HOST, port=REDIS_CACHE_PORT, db=REDIS_CACHE_DB)
         r.flushdb()
         update_article_cache()
+        update_article_amp_cache()
         cache_articles_views_count()
         update_feed_cache()
         generate_search_index()

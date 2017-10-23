@@ -13,6 +13,7 @@ from articles.models import Article, ArticleView, ArticleUserAccess
 from textogram.settings import REDIS_CACHE_DB, REDIS_CACHE_HOST, REDIS_CACHE_PORT, REDIS_CACHE_KEY_PREFIX, IS_LENTACH, \
     ARTICLE_RECOMMENDATIONS_MAX_COUNT
 from url_shortener.models import UrlShort
+from frontend.utils.article_amp import generate_amp
 
 MIN_SEARCH_STRING_LENGTH = 3
 MAX_SEARCH_STRING_LENGTH = 20
@@ -43,10 +44,28 @@ def __set_articles_cache(articles, published_only=True):
             r.zrem('%s:user:%s:articles' % (REDIS_CACHE_KEY_PREFIX, article.owner.id), article.slug)
 
 
+def __set_articles_amp_cache(articles):
+
+    for article in articles:
+        key = '%s:article:%s:amp' % (REDIS_CACHE_KEY_PREFIX, article.slug)
+        if article.status == Article.PUBLISHED and not article.paywall_enabled:
+            amp_html = generate_amp(article.slug)
+            if amp_html:
+                r.set(key, amp_html)
+                continue
+        r.delete(key)
+
+
 def update_article_cache(article_id=None):
     params = {'id': article_id} if article_id else {}
     articles = Article.objects.filter(**params)
     __set_articles_cache(articles, published_only=False)
+
+
+def update_article_amp_cache(article_id=None):
+    params = {'id': article_id} if article_id else {}
+    articles = Article.objects.filter(**params)
+    __set_articles_amp_cache(articles)
 
 
 def cache_articles_views_count(article_id=None):

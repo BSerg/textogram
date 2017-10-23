@@ -3,7 +3,7 @@
         <h1 class="{% if title|length <= 15 %}short{% endif %}">{{ title }}</h1>
         <div class="stats">
             <div class="stats_author"><a href="{{ author_href }}" target="_blank">{{ author }}</a></div>
-            <div>{{ date }}</div>
+            <div>{{ date|date:"d.m.Y H:i" }}</div>
         </div>
     </div>
 </div>
