@@ -111,7 +111,7 @@ def _get_cover_url(article):
 def generate_amp(slug):
     try:
 
-        article = Article.objects.get(slug=slug, status=Article.PUBLISHED)
+        article = Article.objects.get(slug=slug, status=Article.PUBLISHED, paywall_enabled=False)
         context = {
             'title': article.title,
             'author': '%s %s' % (article.owner.first_name, article.owner.last_name),
