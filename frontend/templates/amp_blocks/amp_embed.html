@@ -1,0 +1,22 @@
+<div class="embed">
+    {% if item.post_meta.type == 'vk' %}
+        <amp-vk width="320" height="200" data-embedtype="post" layout="responsive"
+            data-owner-id="{{ item.post_meta.owner_id }}"
+            data-post-id="{{ item.post_meta.id }}"
+            data-hash="{{ item.post_meta.post_hash }}">
+        </amp-vk>
+    {% elif item.post_meta.type == 'twitter' %}
+        <amp-twitter height=500 layout="fixed-height" data-tweetid="{{item.post_meta.id}}"></amp-twitter>
+    {% elif item.post_meta.type == 'soundcloud' %}
+        <amp-soundcloud height="337" layout="fixed-height" data-trackid="{{item.post_meta.id}}" data-visual="true"></amp-soundcloud>
+
+    {% elif item.post_meta.type == 'instagram' %}
+        <amp-instagram data-shortcode="{{item.post_meta.id}}" data-captioned width="500" height="700" layout="responsive"></amp-instagram>
+    {% elif item.post_meta.type == 'facebook' %}
+        <amp-facebook height="500" layout="fixed-height" data-href="{{item.post_meta.url}}"></amp-facebook>
+    {% elif item.post_meta.type == 'youtube' %}
+        <amp-youtube data-videoid="{{item.post_meta.id}}" layout="fixed-height" height="330"></amp-youtube>
+    {% elif item.post_meta.type == 'vimeo' %}
+        <amp-vimeo data-videoid="{{item.post_meta.id}}" layout="fixed-height" height="350"></amp-vimeo>
+    {% endif %}
+</div>

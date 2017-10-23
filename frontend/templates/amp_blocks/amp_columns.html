@@ -1,0 +1,14 @@
+{% load amp_tags %}
+
+<div class="columns">
+    <div class="image">
+        {% if item.image %}
+            <amp-img src="{{item.image.image}}" width="70" height="70" layout="fixed" />
+        {% else %}
+            {{ item.value.0 }}
+        {% endif %}
+    </div>
+    <div class="column">
+        {{ item.value|marked|safe }}
+    </div>
+</div>

@@ -3,25 +3,78 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
-    <link rel="canonical" href="<%- baseUrl %>/articles/<%- article.slug %>">
+    <link rel="canonical" href="/articles/{{ slug }}">
     <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Arimo:400,700|Noto+Serif:400,700|Open+Sans:400,700&subset=cyrillic" rel="stylesheet">
     <style amp-custom>
-
+        {{ css|safe }}
+        {% if cover_url %}
+            #cover.covered { background: url({{ cover_url }}) center center no-repeat; background-size: cover; }
+        {% endif %}
     </style>
     <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
     <script async src="https://cdn.ampproject.org/v0.js"></script>
+    
 
+    {% if embeds.soundcloud %}
+        <script async custom-element="amp-soundcloud" src="https://cdn.ampproject.org/v0/amp-soundcloud-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.twitter %}
+        <script async custom-element="amp-twitter" src="https://cdn.ampproject.org/v0/amp-twitter-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.instagram %}
+        <script async custom-element="amp-instagram" src="https://cdn.ampproject.org/v0/amp-instagram-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.facebook %}
+        <script async custom-element="amp-facebook" src="https://cdn.ampproject.org/v0/amp-facebook-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.youtube %}
+        <script async custom-element="amp-youtube" src="https://cdn.ampproject.org/v0/amp-youtube-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.vimeo %}
+        <script async custom-element="amp-vimeo" src="https://cdn.ampproject.org/v0/amp-vimeo-0.1.js"></script>
+    {%  endif %}
+    {% if embeds.vk %}
+        <script async custom-element="amp-vk" src="https://cdn.ampproject.org/v0/amp-vk-0.1.js"></script>
+    {% endif %}
 
-    <script async custom-element="amp-carousel" src="https://cdn.ampproject.org/v0/amp-carousel-0.1.js"></script>
-    <script async custom-element="amp-image-lightbox" src="https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js"></script>
+    
+
+    {% if embeds.gallery %}
+        <script async custom-element="amp-carousel" src="https://cdn.ampproject.org/v0/amp-carousel-0.1.js"></script>
+        <script async custom-element="amp-image-lightbox" src="https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js"></script>
+    {% endif %}
     <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
     <script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
  </head>
  <body>
  <div id="content">
-    {{ cover }}
+    {% load amp_tags %}
+    {{ cover|safe }}
+    {% include 'amp_blocks/amp_cover.html'  %}
+    <div class="main">{% for block in blocks %}
+            {% if block.type == block_types.HEADER %}
+                <h2>{{ block.value }}</h2>
+            {% elif block.type == block_types.TEXT %}
+                <p class="text">{{ block.value|marked|safe }}</p>
+            {% elif block.type == block_types.LEAD %}
+                <div class="lead">{{ block.value|marked|safe }}</div>
+            {% elif block.type == block_types.PHRASE %}
+                <div class="phrase">{{ block.value|marked|safe }}</div>
+            {% elif block.type == block_types.LIST %}
+                <div>{{ block.value|marked|safe }}</div>
+            {% elif block.type == block_types.QUOTE %}
+                {% include 'amp_blocks/amp_quote.html' with item=block %}
+            {% elif block.type == block_types.COLUMNS %}
+                {% include 'amp_blocks/amp_columns.html' with item=block %}
+            {% elif block.type == block_types.DIALOG %}
+                {% include 'amp_blocks/amp_dialogue.html' with item=block %}
+            {% elif block.type  == block_types.AUDIO or block.type  == block_types.VIDEO or block.type == block_types.POST %}
+                {% include 'amp_blocks/amp_embed.html' with item=block %}
+            {% endif %}
 
+        {% endfor %}
+    </div>
  </div>
  </body>
 

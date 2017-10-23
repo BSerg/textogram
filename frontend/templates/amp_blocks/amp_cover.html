@@ -1,8 +1,8 @@
-<div id="cover">
-    <div className="title">
-        <h1 className="{{ header_class }}">{{ title }}</h1>
-        <div className="stats">
-            <div className="stats_author"><a href="{{ href }}" target="_blank">{{ name }}</a></div>
+<div id="cover" class="{% if cover_url %}covered{% endif %} {% if 'inverted' %}inverted{% endif %}">
+    <div class="title">
+        <h1 class="{% if title|length <= 15 %}short{% endif %}">{{ title }}</h1>
+        <div class="stats">
+            <div class="stats_author"><a href="{{ author_href }}" target="_blank">{{ author }}</a></div>
             <div>{{ date }}</div>
         </div>
     </div>

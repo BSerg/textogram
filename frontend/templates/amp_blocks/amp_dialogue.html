@@ -1,0 +1,8 @@
+{% load amp_tags %}
+<div class="dialogue">
+    {% for remark in item.remarks %}
+        {% if remark.value %}
+            {{ item|remark_html:forloop.counter0|safe }}
+        {% endif %}
+    {% endfor %}
+</div>
