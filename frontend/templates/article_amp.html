@@ -76,10 +76,43 @@
                 {% include 'amp_blocks/amp_gallery.html' with item=block %}
             {% elif block.type  == block_types.AUDIO or block.type  == block_types.VIDEO or block.type == block_types.POST %}
                 {% include 'amp_blocks/amp_embed.html' with item=block %}
+            {% elif block.type  == 'ad' %}
+                {% include 'amp_blocks/amp_banner.html' with data=block.data %}
             {% endif %}
 
         {% endfor %}
     </div>
+
+    {% include 'amp_blocks/amp_share.html' %}
+    {% if yandex_counter_id %}
+        <amp-analytics type="metrika">
+            <script type="application/json">
+                {
+                    "vars": {
+                        "counterId": "{{ yandex_counter_id }}",
+                        "yaParams": "{\"key\":\"value\"}"
+                    }
+                }
+            </script>
+        </amp-analytics>
+    {% endif %}
+    {% if google_counter_id %}
+        <amp-analytics type="googleanalytics" id="analytics1">
+            <script type="application/json">
+                {
+                "vars": {
+                  "account": "{{ google_counter_id }}"
+                },
+                "triggers": {
+                  "trackPageview": {
+                    "on": "visible",
+                    "request": "pageview"
+                  }
+                }
+                }
+            </script>
+            </amp-analytics>
+    {% endif %}
  </div>
  </body>
 

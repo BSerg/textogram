@@ -30,4 +30,6 @@ def remark_html(item, index):
         return "<span>?</span>"
 
 
-
+@register.filter(is_safe=True)
+def banner_props_str(props):
+    return " ".join(['%s=%s' % (k, v) for k, v in props.items()])

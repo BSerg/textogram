@@ -3,6 +3,10 @@ from django.template.loader import render_to_string
 from textogram import settings
 from articles import ArticleContentType
 import re
+from django.contrib.sites.models import Site
+from advertisement.models import Banner
+import json
+# from
 
 
 EMBED_BLOCK_TYPES = [ArticleContentType.AUDIO, ArticleContentType.PHOTO, ArticleContentType.VIDEO,
@@ -16,6 +20,35 @@ VK_POST_PATTERN = r"VK\.Widgets\.Post\((?<post_data>.*\')\)"
 
 class EmbedError(Exception):
     pass
+
+
+def __add_banners(blocks):
+
+    def _get_banner_list(banner_group):
+        return [{'width': b.width, 'height': b.height, 'amp_props': b.amp_props} for b in
+                Banner.objects.filter(is_active=True, group__is_active=True, group__is_mobile=True,
+                                      group__identifier=banner_group) if b.amp_props]
+
+    banners_bottom = _get_banner_list('banner__bottom')
+    banners_content = _get_banner_list('banner__content')
+
+    banners_inserted = False
+    if len(blocks) > 5:
+        index_to_insert = 0
+        new_block = None
+        for i in range(1, len(blocks) - 1):
+            can_insert = blocks[i - 1]['type'] != ArticleContentType.PHOTO and blocks[i]['type'] != ArticleContentType.PHOTO
+            if can_insert and banners_content:
+                new_block = {'type': 'ad', 'data': banners_content[0]}
+                index_to_insert = i
+                break
+        if new_block and index_to_insert:
+            blocks.insert(index_to_insert, new_block)
+            banners_inserted = True
+    if len(blocks) < 2 or not banners_inserted and banners_bottom:
+        blocks.append({'type': 'ad', 'data': banners_bottom[0]})
+
+    return blocks
 
 
 def __process_blocks(blocks):
@@ -36,6 +69,7 @@ def __process_blocks(blocks):
         if block.get('__meta').get('type') == 'vk':
             blocks[index] = _process_vk(block)
         blocks[index]['post_meta'] = block.get('__meta')
+    blocks = __add_banners(blocks)
     return blocks
 
 
@@ -78,7 +112,6 @@ def generate_amp(slug):
     try:
 
         article = Article.objects.get(slug=slug, status=Article.PUBLISHED)
-        # print article.content.get('cover')
         context = {
             'title': article.title,
             'author': '%s %s' % (article.owner.first_name, article.owner.last_name),
@@ -91,6 +124,9 @@ def generate_amp(slug):
             'css': _get_css(),
             'blocks': __process_blocks(article.content.get('blocks') or []),
             'block_types': ArticleContentType.__dict__,
+            'url': '%s/article/%s' % (Site.objects.get_current(), article.slug),
+            'yandex_counter_id': settings.YANDEX_METRICS_COUNTER_ID,
+            'google_counter_id': settings.GOOGLE_ANALYTICS_COUNTER_ID,
 
         }
         html = render_to_string('article_amp.html', context=context)
