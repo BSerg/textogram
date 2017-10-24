@@ -69,6 +69,7 @@ class Article(models.Model):
                                         default=0)
     paywall_currency = models.CharField('Валюта [PAYWALL]', choices=PAYWALL_CURRENCIES, max_length=3,
                                         default=PAYWALL_CURRENCY_RUR)
+    is_pinned = models.BooleanField('Закреплена', default=False)
 
     def get_absolute_url(self):
         if self.slug:
@@ -258,6 +259,16 @@ def cache_article(sender, instance, created, **kwargs):
             pass
         call_command('generate_article_search_index', instance.id)
         call_command('update_article_feed_cache', instance.id)
+
+
+@receiver(pre_save, sender=Article)
+def check_pin(sender, instance, **kwargs):
+    if instance.is_pinned and instance.status == Article.PUBLISHED:
+        articles = Article.objects.filter(is_pinned=True, owner=instance.owner).exclude(id=instance.id)
+        a_ids = [a.id for a in articles]
+        articles.update(is_pinned=False)
+        for a_id in a_ids:
+            call_command('update_article_cache', a_id)
 
 
 @receiver(post_save, sender=Article)

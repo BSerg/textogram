@@ -108,7 +108,7 @@ class PublicArticleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Article
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'inverted_theme', 'published_at', 'views', 'content',
-                  'url', 'short_url', 'ads_enabled', 'images']
+                  'url', 'short_url', 'ads_enabled', 'images', 'is_pinned']
 
 
 class PublicArticleLimitedSerializer(PublicArticleSerializer):
@@ -137,7 +137,8 @@ class PublicArticleSerializerMin(PublicArticleSerializer):
 
     class Meta(PublicArticleSerializer.Meta):
         fields = ['id', 'slug', 'owner', 'title', 'cover', 'lead', 'published_at', 'link_access', 'is_draft',
-                  'last_modified', 'inverted_theme', 'paywall_enabled', 'paywall_price', 'paywall_currency']
+                  'last_modified', 'inverted_theme', 'paywall_enabled', 'paywall_price', 'paywall_currency',
+                  'is_pinned']
 
 
 class DraftArticleSerializer(PublicArticleSerializerMin):
