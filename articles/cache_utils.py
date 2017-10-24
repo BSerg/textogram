@@ -24,21 +24,21 @@ def __set_articles_cache(articles, published_only=True):
     for article in articles:
 
         if article.status == Article.PUBLISHED:
-            print article
+            print article.is_pinned
             default_serializer = PublicArticleSerializerMin if article.paywall_enabled else PublicArticleSerializer
             r.set('%s:article:%s:default' % (REDIS_CACHE_KEY_PREFIX, article.slug),
                   json.dumps(default_serializer(article).data))
             r.set('%s:article:%s:preview' % (REDIS_CACHE_KEY_PREFIX, article.slug),
                   json.dumps(PublicArticleSerializerMin(article).data))
-            print PublicArticleSerializerMin(article).data
             if article.paywall_enabled:
                 r.set('%s:article:%s:full' % (REDIS_CACHE_KEY_PREFIX, article.slug),
                       json.dumps(PublicArticleSerializer(article).data))
             try:
-                score = int(article.published_at.strftime("%s")) if not article.is_pinned else 9999999999999999
+                score = int(article.published_at.strftime("%s")) if not article.is_pinned else 9999999999
+
             except (ValueError, AttributeError) as e:
-                score = 0
-            print score, article.is_pinned
+                continue
+            print score, article.id, article.owner
             r.zadd('%s:user:%s:articles' % (REDIS_CACHE_KEY_PREFIX, article.owner.id), score, article.slug)
         elif not published_only:
             r.delete('%s:article:%s:default' % (REDIS_CACHE_KEY_PREFIX, article.slug))

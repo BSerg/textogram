@@ -250,6 +250,7 @@ def add_access_to_author(sender, instance, **kwargs):
 @receiver(post_save, sender=Article)
 def cache_article(sender, instance, created, **kwargs):
     if USE_REDIS_CACHE and (instance.status in [Article.PUBLISHED, Article.DELETED, Article.BANNED]):
+        print 'here', instance.id
         call_command('update_article_cache', instance.id)
         call_command('update_article_amp_cache', instance.id)
         try:

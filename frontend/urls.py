@@ -4,8 +4,6 @@ from frontend.views import ArticleView, EditorView, article_amp_view
 from textogram.settings import IS_LENTACH
 from .views import BaseTemplateView
 
-
-
 urlpatterns = [
     url(r'articles/new/?$', BaseTemplateView.as_view(template_name='index.html'), name='article_new'),
     url(r'articles/(?P<slug>[\-\w]+)(/gallery/[\w\-]+)?/?$', ArticleView.as_view(), name='article'),
