@@ -74,9 +74,17 @@ def jwt_user_auth(token):
             return user
 
 
-class AuthServiceBackend(object):
-    def authenticate(self, *args, **kwargs):
-        token = kwargs.get('token')
+class AuthServiceBackend(authentication.BaseAuthentication):
+    def authenticate(self, request):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '').split()
+
+        if not auth_header or auth_header[0].lower() != 'bearer':
+            return None
+
+        if len(auth_header) != 2:
+            raise exceptions.AuthenticationFailed('Wrong authentication header format')
+
+        token = auth_header[1]
 
         if not token:
             return None
