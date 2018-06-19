@@ -71,7 +71,7 @@ def jwt_user_auth(token):
                 user.avatar_url = payload.get('avatar') or ''
                 user.save()
 
-            return user
+            return user, token
 
 
 class AuthServiceBackend(authentication.BaseAuthentication):
